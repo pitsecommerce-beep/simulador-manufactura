@@ -90,7 +90,16 @@ Cada servicio se despliega desde este repositorio con la integración de GitHub 
 1. **New Project > Deploy from GitHub repo** y elige este repositorio. Crea 4 servicios desde el mismo repo: `web`, `api`, `sim-worker`, `cad-worker`.
 2. En cada servicio, **Settings**:
    - *Root Directory*: vacío (la raíz del repo; los Dockerfiles la necesitan).
-   - *Config-as-code / Railway config file*: `apps/web/railway.json`, `apps/api/railway.json`, `services/sim-worker/railway.json` o `services/cad-worker/railway.json`.
+   - *Config-as-code > Railway Config File*: ruta **absoluta** desde la raíz del repo, según el servicio:
+
+     | Servicio | Railway Config File |
+     |---|---|
+     | web | `/apps/web/railway.json` |
+     | api | `/apps/api/railway.json` |
+     | sim-worker | `/services/sim-worker/railway.json` |
+     | cad-worker | `/services/cad-worker/railway.json` |
+
+     Sin esta ruta, Railway ignora el Dockerfile y usa su detector automático (Railpack), que falla con *No start command detected*.
    - *Branch*: `main`, con **Wait for CI** activado para no desplegar si GitHub Actions falla.
 3. **Variables** por servicio (ver `.env.example`):
 
@@ -103,6 +112,8 @@ Cada servicio se despliega desde este repositorio con la integración de GitHub 
 4. **Networking > Generate Domain** en `web` y `api`. Después pon la URL del api en `API_URL` del web y la del web en `CORS_ORIGINS` del api.
 
 El servicio `api` aplica las migraciones pendientes en su *pre-deploy* antes de arrancar. Si una migración falla, el despliegue se detiene y la versión anterior sigue activa.
+
+Si el log de build dice `using build driver railpack` en vez de construir el Dockerfile, revisa el punto 2: el servicio no tiene la ruta del archivo de configuración.
 
 Comprobación: `https://<api>/health` debe responder `"supabase":"ok"` y el web debe mostrar *Supabase conectado* en la cabecera.
 
