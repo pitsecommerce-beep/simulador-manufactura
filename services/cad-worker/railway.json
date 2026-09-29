@@ -1,0 +1,11 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "services/cad-worker/Dockerfile",
+    "watchPatterns": ["services/cad-worker/**", "packages/jobqueue-py/**", "uv.lock"]
+  },
+  "deploy": {
+    "restartPolicyType": "ALWAYS"
+  }
+}
