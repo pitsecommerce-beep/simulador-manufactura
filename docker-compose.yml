@@ -1,0 +1,9 @@
+# Servicios locales de apoyo. La base de datos real es Supabase; este Postgres solo
+# se usa para los tests de migraciones y RLS (packages/db).
+services:
+  db-test:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'

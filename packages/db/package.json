@@ -1,0 +1,19 @@
+{
+  "name": "@sim/db",
+  "private": true,
+  "type": "module",
+  "description": "Migraciones SQL (supabase/migrations) y tests de RLS",
+  "scripts": {
+    "migrate": "node src/migrate.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
+    "vitest": "^5.0.2"
+  }
+}
