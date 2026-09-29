@@ -1,6 +1,6 @@
 # PLAN.md · Simulador de líneas de producción con robots ABB
 
-Estado: **borrador pendiente de aprobación**. No se escribirá código hasta que se confirme este plan.
+Estado: **revisión 2, con decisiones del usuario incorporadas (sección 18)**. Pendiente de confirmación final para iniciar la fase 1.
 
 ---
 
@@ -13,6 +13,8 @@ Etapa 1: solo simulación. Etapa 2 (futura): ejecutar la misma lógica contra ha
 ---
 
 ## 2. Decisión de API: Node/TypeScript (Fastify)
+
+Fastify es un framework para construir servidores HTTP (APIs) en Node.js, similar a Express pero más rápido y con validación de esquemas integrada. Es la pieza que recibe las peticiones del navegador, comprueba la sesión, consulta la base de datos y responde.
 
 Se elige **Fastify + TypeScript**. Motivos:
 
@@ -115,9 +117,11 @@ Convenciones: `id uuid pk`, `created_at`, `updated_at`. Todos los datos de ficha
 - **components** / **component_specs** / **component_assets**: misma idea. `category` (sensor, cámara, gripper, banda, valla, cortina de luz...). `component_specs.specs jsonb` validado por categoría (rango de detección, FOV, resolución, etc.) + `provenance`.
 - **object_types**: tipos paramétricos generados por código (`pallet`, `box`, `table`, `conveyor`, `gripper_suction`, `fence`, `light_curtain`, `safety_zone`, `part`, `feeder`, `person`, ...) con `param_schema jsonb` y `presets jsonb`.
 
-### 5.2 Datos de usuario (RLS por propietario)
+### 5.2 Datos de usuario (RLS por propietario y miembros)
 
 - **projects**: `owner_id → auth.users`, `name`, `description`.
+- **project_members**: `project_id`, `user_id → auth.users`, `role` (`viewer` | `editor`), `invited_by`. El propietario comparte un proyecto con cualquier usuario autenticado del equipo.
+- **profiles**: `user_id`, `display_name`, `email` (para buscar a quién compartir; visible solo a autenticados).
 - **layouts**: `project_id`, `version`, `scene jsonb` (validado con Zod), `is_current`.
 - **object_instances**: `layout_id`, `object_type_id` | `robot_variant_id` | `component_id`, `params jsonb`, `transform jsonb`, `color`, `links jsonb` (conexiones lógicas: valla→robot, sensor→estación).
 - **scenarios**: `project_id`, `layout_id`, `config jsonb` (turnos, mezcla de productos, BOM, fallas MTBF/MTTR, duración, réplicas, semillas, modo `realtime|accelerated`).
@@ -137,7 +141,9 @@ Convenciones: `id uuid pk`, `created_at`, `updated_at`. Todos los datos de ficha
 - RLS activada en **todas** las tablas; una migración de prueba falla si alguna tabla de `public` no la tiene.
 - Catálogo: `select` para `authenticated`; sin `insert/update/delete` para clientes.
 - `robot_assets` / `component_assets`: el cliente **no** puede leer filas `kind = 'original_cad'` (política con filtro). Las rutas de Storage nunca se exponen directamente; la API firma.
-- Datos de usuario: `owner_id = auth.uid()` (directo o vía `projects`).
+- Todo usuario autenticado puede usar el simulador y crear proyectos.
+- Datos de usuario: lectura si `auth.uid()` es propietario o miembro del proyecto; escritura si es propietario o miembro `editor`; borrar el proyecto y gestionar miembros solo el propietario. Se implementa con funciones `security definer` (`can_read_project`, `can_edit_project`) para evitar recursión en políticas.
+- Registro de usuarios: por invitación desde el panel de Supabase (registro abierto desactivado), para que "autenticado" signifique "del equipo".
 - `jobs`, `ai_usage`, `asset_access_log`: sin acceso de cliente; solo `service_role`.
 
 ### 5.5 Storage
@@ -266,8 +272,8 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 ## 15. CI/CD
 
 - `ci.yml` en cada PR: `check-no-cad` → lint (ESLint, Ruff) → typecheck (tsc, mypy) → tests (Vitest, Pytest, pgTAP con Supabase CLI local) → build (web, api, imágenes Docker de workers).
-- `deploy.yml` en `main`: despliegue a Railway por servicio con `RAILWAY_TOKEN` (secret de GitHub), luego `supabase db push` con `SUPABASE_ACCESS_TOKEN`.
-- Alternativa más simple: usar la integración nativa de Railway con GitHub (despliegue al hacer push) y dejar en Actions solo las migraciones. A decidir.
+- Despliegue: integración web de Railway con GitHub. Cada servicio apunta a su carpeta del monorepo y se despliega al hacer push a `main`, con la opción "esperar a CI" activada para no desplegar si falla.
+- Migraciones: comando *pre-deploy* del servicio `api` en Railway (`pnpm db:migrate` contra `DATABASE_URL`). Así todos los secretos viven solo en Railway y GitHub no necesita ninguno.
 
 ---
 
@@ -276,7 +282,10 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 | Riesgo | Impacto | Mitigación / alternativa |
 |---|---|---|
 | **Railway sin GPU** | No hay entrenamiento RL | Solo interfaz y cola; entrenar en un proveedor con GPU (Modal, RunPod, local) |
-| **Límite de tamaño en Supabase Storage** (plan Free: 50 MB por archivo; Pro: configurable, mayor) | STEP de robots grandes pueden superar 50 MB | Plan Pro, o comprimir antes de subir (gzip del STEP), o almacén alternativo (S3/R2 privado) para originales |
+| **Supabase Free: 50 MB por archivo y 1 GB de Storage total** | Con ~15 modelos y sus variantes, los STEP originales pueden sumar varios GB y algunos superar 50 MB | Guardar los STEP comprimidos (gzip reduce STEP de 5x a 10x), subir datasheets y planos solo si caben, y un reporte de cuota en la ingesta. Si no alcanza: plan Pro o un bucket privado S3/R2 solo para originales |
+| **Supabase Free: 500 MB de base de datos y pausa tras 7 días sin actividad** | Proyecto pausado, logs de eventos grandes | Logs de eventos en Storage (no en Postgres), limpieza de corridas antiguas, aviso en README para reactivar |
+| **Cinemática cerrada** en IRB 360 (delta), IRB 460 e IRB 660 (paralelogramo) | URDF no representa cadenas cerradas | IRB 360 con cinemática delta analítica propia; IRB 460/660 con 4 ejes activos y eslabones pasivos como articulaciones `mimic`. El resto (brazos de 6 ejes, SCARA, cobots) usa URDF estándar |
+| **CAD de robot de pintura** (IRB 52 / IRB 5500) | Puede no estar disponible para descarga | Se incluye solo si hay CAD; si no, queda en catálogo con specs y sin modelo 3D |
 | **Conversión CAD lenta y con mucha memoria** | Un STEP complejo puede tardar minutos y usar varios GB de RAM | Trabajo asíncrono, tolerancia de teselado ajustable, límites de RAM en el servicio, reintentos; opción de convertir localmente con el mismo contenedor y subir solo derivados |
 | **Imagen Docker de CadQuery/OCP pesada** (~1-2 GB) | Builds lentos en Railway | Imagen base propia cacheada en GHCR |
 | **Timeouts HTTP de Railway** | Peticiones largas cortadas | Todo lo largo es trabajo en cola; el cliente consulta estado o usa Supabase Realtime |
@@ -297,13 +306,18 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 
 ---
 
-## 18. Decisiones que necesito de ti
+## 18. Decisiones tomadas
 
-1. **API en Fastify/TS** (sección 2): ¿de acuerdo?
-2. **Plan de Supabase**: ¿Free o Pro? Afecta al tamaño máximo de archivos CAD.
-3. **Despliegue**: ¿GitHub Actions con `RAILWAY_TOKEN` o integración nativa de Railway con GitHub?
-4. **Proyectos de Supabase y Railway**: ¿ya existen? Necesitaré que configures los secretos en GitHub y Railway (yo no los veré ni los guardaré en el repo).
-5. **Robots reales iniciales**: ¿qué modelos ABB tendrás disponibles primero (ej. IRB 1200, IRB 460, IRB 6700)? Mientras tanto uso sintéticos.
-6. **Idioma de la UI**: propongo español con textos centralizados para traducir después.
-7. **Compartir proyectos entre usuarios**: ¿solo propietario en etapa 1 o equipos/organizaciones?
-8. **Licencia del repositorio** (MIT, privado sin licencia, otra).
+1. **API**: Fastify con TypeScript.
+2. **Supabase**: plan Free (ver riesgos de cuota en la sección 16).
+3. **Despliegue**: integración web de Railway con GitHub; migraciones en el pre-deploy de `api`.
+4. **Secretos**: solo como variables en Railway.
+5. **Robots del catálogo inicial** (todas las variantes disponibles de cada modelo):
+   IRB 120, IRB 1100, IRB 1200, IRB 1300, IRB 1600, IRB 2600, IRB 4600, IRB 6700, IRB 460, IRB 660, IRB 360 FlexPicker, IRB 910SC, GoFa CRB 15000, SWIFTI CRB 1100, y un robot de pintura (IRB 52 o IRB 5500) si hay CAD.
+6. **Idioma**: interfaz en español.
+7. **Acceso**: todo usuario autenticado del equipo usa el simulador; los proyectos se comparten con usuarios autenticados (roles `viewer` y `editor`).
+8. **Origen de CAD**: descarga directa desde ABB, hecha por el usuario (aceptar los términos del portal de ABB le corresponde a él). El usuario coloca los archivos en `catalog/<robot_id>/` con su `source.json`; la ingesta hace el resto. Se entrega una plantilla de `manifest.json` con los 15 modelos y sus variantes para rellenar.
+
+## 19. Pendiente
+
+- Licencia del repositorio. Por defecto: privado, todos los derechos reservados, sin archivo de licencia abierta.
