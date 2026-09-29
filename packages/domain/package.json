@@ -1,0 +1,19 @@
+{
+  "name": "@sim/domain",
+  "private": true,
+  "type": "module",
+  "description": "Esquemas y reglas de dominio compartidos por web y api",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.3.3"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.2"
+  }
+}

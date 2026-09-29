@@ -1,0 +1,27 @@
+{
+  "name": "@sim/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=../../.env src/server.ts",
+    "start": "node src/server.ts",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/rate-limit": "^11.2.0",
+    "@sim/db": "workspace:*",
+    "@sim/domain": "workspace:*",
+    "@supabase/supabase-js": "^2.117.2",
+    "fastify": "^5.12.5",
+    "jose": "^6.2.12",
+    "zod": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "vitest": "^5.0.2"
+  }
+}
