@@ -15,7 +15,9 @@ export function Layout() {
           <ApiStatus />
           {session && (
             <>
-              <span className="text-sm text-slate-600">{session.user.email}</span>
+              <Link to="/cuenta" className="text-sm text-slate-600 hover:underline">
+                {session.user.email}
+              </Link>
               <button
                 className="rounded border px-3 py-1 text-sm hover:bg-slate-100"
                 onClick={() => supabase.auth.signOut()}

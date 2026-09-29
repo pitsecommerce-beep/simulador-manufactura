@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check-no-cad:
+    name: Sin CAD de terceros
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: node tools/check-no-cad/index.mjs
+      - run: node --test tools/check-no-cad/
+
+  node:
+    name: TypeScript (lint, tipos, tests, build)
+    needs: check-no-cad
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  python:
+    name: Python (ruff, mypy, pytest)
+    needs: check-no-cad
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - run: uv sync --all-packages --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy packages/jobqueue-py/src services/sim-worker/src services/cad-worker/src
+      - run: uv run pytest packages/jobqueue-py services
+
+  docker:
+    name: Imagen ${{ matrix.service }}
+    needs: check-no-cad
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: web
+            dockerfile: apps/web/Dockerfile
+          - service: api
+            dockerfile: apps/api/Dockerfile
+          - service: sim-worker
+            dockerfile: services/sim-worker/Dockerfile
+          - service: cad-worker
+            dockerfile: services/cad-worker/Dockerfile
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -f ${{ matrix.dockerfile }} -t sim-${{ matrix.service }}:ci .

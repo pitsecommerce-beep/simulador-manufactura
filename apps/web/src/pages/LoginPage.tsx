@@ -7,6 +7,22 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
+
+  async function onForgot() {
+    setError(null);
+    if (!email) {
+      setError('Escribe tu correo para enviarte el enlace.');
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/cuenta`,
+    });
+    // No se revela si el correo existe.
+    if (error) setError('No se pudo enviar el enlace. Intenta más tarde.');
+    else
+      setInfo('Si el correo pertenece al equipo, recibirás un enlace para definir tu contraseña.');
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,12 +67,20 @@ export function LoginPage() {
             {error}
           </p>
         )}
+        {info && <p className="text-sm text-emerald-700">{info}</p>}
         <button
           type="submit"
           disabled={busy}
           className="w-full rounded bg-slate-900 px-3 py-2 text-white disabled:opacity-50"
         >
           {busy ? 'Entrando…' : 'Entrar'}
+        </button>
+        <button
+          type="button"
+          onClick={onForgot}
+          className="w-full text-sm text-slate-600 hover:underline"
+        >
+          ¿Olvidaste tu contraseña?
         </button>
       </form>
     </div>
