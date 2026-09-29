@@ -1,0 +1,76 @@
+# Dependencias y builds
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Secretos: nunca en el repo
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------------------
+# CAD y modelos 3D de terceros: NUNCA se versionan.
+# Los originales viven en el bucket privado catalog-originals de Supabase.
+# El chequeo tools/check-no-cad falla en pre-commit y CI si alguno se cuela.
+# ---------------------------------------------------------------------------
+*.step
+*.STEP
+*.stp
+*.STP
+*.p21
+*.iges
+*.IGES
+*.igs
+*.IGS
+*.sldprt
+*.SLDPRT
+*.sldasm
+*.SLDASM
+*.slddrw
+*.x_t
+*.x_b
+*.sat
+*.sab
+*.3dxml
+*.catpart
+*.CATPart
+*.catproduct
+*.CATProduct
+*.jt
+*.prt
+*.asm
+*.ipt
+*.iam
+*.3dm
+*.stl
+*.STL
+*.obj
+*.fbx
+*.dae
+*.glb
+*.gltf
+*.3mf
+*.dxf
+*.dwg
+*.rsLib
+*.rspag
+*.step.gz
+*.stp.gz
+
+# Carpetas de catálogo: solo se versionan la documentación y los ejemplos sintéticos
+/catalog/*
+!/catalog/README.md
+!/catalog/examples/
+/catalog_components/*
+!/catalog_components/README.md
+!/catalog_components/examples/
+# Datasheets y planos de fabricante tampoco se versionan
+/catalog/**/*.pdf
+/catalog_components/**/*.pdf

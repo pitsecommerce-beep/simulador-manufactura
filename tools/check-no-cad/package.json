@@ -1,0 +1,12 @@
+{
+  "name": "@sim/check-no-cad",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "check-no-cad": "./index.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "echo 'sin TypeScript'"
+  }
+}

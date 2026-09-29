@@ -1,0 +1,30 @@
+{
+  "name": "simulador-manufactura",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prepare": "node tools/install-hooks.mjs",
+    "check:cad": "node tools/check-no-cad/index.mjs",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build",
+    "dev:api": "pnpm --filter @sim/api dev",
+    "dev:web": "pnpm --filter @sim/web dev",
+    "db:migrate": "pnpm --filter @sim/db migrate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.0.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.0.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0"
+  },
+  "type": "module"
+}

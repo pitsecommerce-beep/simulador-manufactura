@@ -1,0 +1,3 @@
+#!/bin/sh
+# Impide commitear CAD de terceros (ver tools/check-no-cad).
+exec node tools/check-no-cad/index.mjs --staged

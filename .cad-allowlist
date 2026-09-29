@@ -1,0 +1,2 @@
+# Rutas exentas del chequeo anti-CAD, una por línea. Debe permanecer vacío salvo
+# justificación explícita en el PR (por ejemplo, un modelo propio no de fabricante).
