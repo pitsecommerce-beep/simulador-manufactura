@@ -113,7 +113,12 @@ Cada servicio se despliega desde este repositorio con la integración de GitHub 
 
 El servicio `api` aplica las migraciones pendientes en su *pre-deploy* antes de arrancar. Si una migración falla, el despliegue se detiene y la versión anterior sigue activa.
 
-Si el log de build dice `using build driver railpack` en vez de construir el Dockerfile, revisa el punto 2: el servicio no tiene la ruta del archivo de configuración.
+Si el log de build dice `using build driver railpack` en vez de construir el Dockerfile, el servicio no está leyendo su configuración:
+
+- Borra cualquier *Custom Build Command* y *Custom Start Command* del servicio (Railway los crea solo si importa el monorepo automáticamente).
+- Revisa la ruta del punto 2.
+- Como respaldo, añade la variable `RAILWAY_DOCKERFILE_PATH` con la ruta del Dockerfile (`apps/api/Dockerfile`, `apps/web/Dockerfile`, `services/sim-worker/Dockerfile` o `services/cad-worker/Dockerfile`). Esa variable obliga a Railway a usar el Dockerfile.
+- Solo hacen falta 4 servicios. Si Railway creó otros (por ejemplo `@sim/db`, `@sim/domain` o `check-no-cad`), elimínalos.
 
 Comprobación: `https://<api>/health` debe responder `"supabase":"ok"` y el web debe mostrar *Supabase conectado* en la cabecera.
 
