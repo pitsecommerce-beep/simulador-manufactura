@@ -316,6 +316,5 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
    IRB 120, IRB 1100, IRB 1200, IRB 1300, IRB 1600, IRB 2600, IRB 4600, IRB 6700, IRB 460, IRB 660, IRB 360 FlexPicker, IRB 910SC, GoFa CRB 15000, SWIFTI CRB 1100, y un robot de pintura (IRB 52 o IRB 5500) si hay CAD.
 6. **Idioma**: interfaz en español.
 7. **Acceso**: todo usuario autenticado del equipo usa el simulador; los proyectos se comparten con usuarios autenticados (roles `viewer` y `editor`).
-8. **Origen de CAD**: descarga directa desde ABB, hecha por el usuario (aceptar los términos del portal de ABB le corresponde a él). El usuario coloca los archivos en `catalog/<robot_id>/` con su `source.json`; la ingesta hace el resto. Se entrega una plantilla de `manifest.json` con los 15 modelos y sus variantes para rellenar.
-
+8. **Origen de CAD**: descarga directa desde ABB, hecha por el usuario (aceptar los términos del portal de ABB corresponde al usuario). El usuario coloca los archivos en `catalog/<robot_id>/` con su `source.json`; la ingesta hace el resto. Se entrega una plantilla de `manifest.json` con los 15 modelos y sus variantes para rellenar.
 9. **Licencia**: repositorio privado, sin licencia abierta. Su único fin es el despliegue en Railway.
