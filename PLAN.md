@@ -100,7 +100,7 @@ El motor es de eventos discretos; el 3D interpola entre eventos (ej. `robot.move
 └─ README.md
 ```
 
-Herramientas: pnpm workspaces + Turborepo (TS), uv (Python), Ruff + mypy, ESLint + Prettier, Vitest, Pytest, Playwright (e2e mínimos), pgTAP.
+Herramientas: pnpm workspaces (TS), uv (Python), Ruff + mypy, ESLint + Prettier, Vitest, Pytest, Playwright (e2e mínimos). Ajustes hechos en la fase 1: sin Turborepo (innecesario con este tamaño), tests de RLS con Vitest contra Postgres local en vez de pgTAP, y la cola de trabajos Python vive en `packages/jobqueue-py`.
 
 ---
 
@@ -271,7 +271,7 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 
 ## 15. CI/CD
 
-- `ci.yml` en cada PR: `check-no-cad` → lint (ESLint, Ruff) → typecheck (tsc, mypy) → tests (Vitest, Pytest, pgTAP con Supabase CLI local) → build (web, api, imágenes Docker de workers).
+- `ci.yml` en cada PR y en `main`: `check-no-cad` → lint (ESLint, Prettier, Ruff) → typecheck (tsc, mypy) → tests (Vitest, Pytest, RLS contra Postgres de servicio) → build (web, api y las 4 imágenes Docker).
 - Despliegue: integración web de Railway con GitHub. Cada servicio apunta a su carpeta del monorepo y se despliega al hacer push a `main`, con la opción "esperar a CI" activada para no desplegar si falla.
 - Migraciones: comando *pre-deploy* del servicio `api` en Railway (`pnpm db:migrate` contra `DATABASE_URL`). Así todos los secretos viven solo en Railway y GitHub no necesita ninguno.
 
