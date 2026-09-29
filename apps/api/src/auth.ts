@@ -14,7 +14,10 @@ export class AuthError extends Error {}
  * Verifica JWT de Supabase Auth. Soporta llaves asimétricas (JWKS, proyectos nuevos)
  * y el secreto HS256 heredado si se configura SUPABASE_JWT_SECRET.
  */
-export function supabaseTokenVerifier(opts: { supabaseUrl: string; jwtSecret?: string }): TokenVerifier {
+export function supabaseTokenVerifier(opts: {
+  supabaseUrl: string;
+  jwtSecret?: string;
+}): TokenVerifier {
   const issuer = `${opts.supabaseUrl.replace(/\/$/, '')}/auth/v1`;
   const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
   const secret = opts.jwtSecret ? new TextEncoder().encode(opts.jwtSecret) : null;

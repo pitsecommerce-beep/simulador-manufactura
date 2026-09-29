@@ -11,7 +11,7 @@ export const ProjectCreate = z.object({
 export type ProjectCreate = z.infer<typeof ProjectCreate>;
 
 export const ShareProject = z.object({
-  email: z.email('Correo no válido').trim().toLowerCase(),
+  email: z.string().trim().toLowerCase().pipe(z.email('Correo no válido')),
   role: MemberRole,
 });
 export type ShareProject = z.infer<typeof ShareProject>;

@@ -22,6 +22,7 @@ export async function createTestDatabase() {
     throw new Error(
       `No hay Postgres de pruebas en ${ADMIN_URL}. Arráncalo con "docker compose up -d db-test" ` +
         `o define TEST_DATABASE_URL. (${(err as Error).message})`,
+      { cause: err },
     );
   }
   await admin.query(`create database ${dbName}`);
@@ -94,4 +95,12 @@ export async function expectError(db: Db, sql: string, params: unknown[] = []): 
   }
   await db.query('release savepoint expect_error');
   throw new Error(`Se esperaba un error y la consulta tuvo éxito: ${sql}`);
+}
+
+/** Inserta con RETURNING id y devuelve el id. */
+export async function insertId(db: Db, sql: string, params: unknown[] = []): Promise<string> {
+  const { rows } = await db.query<{ id: string }>(sql, params);
+  const id = rows[0]?.id;
+  if (!id) throw new Error(`La inserción no devolvió id: ${sql}`);
+  return id;
 }

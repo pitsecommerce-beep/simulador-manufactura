@@ -40,7 +40,9 @@ for (const f of files) {
 }
 
 if (violations.length) {
-  console.error('\n✖ Se detectaron archivos CAD/3D o de fabricante. No pueden subirse al repositorio:\n');
+  console.error(
+    '\n✖ Se detectaron archivos CAD/3D o de fabricante. No pueden subirse al repositorio:\n',
+  );
   for (const v of violations) console.error(`  ${v.f}\n      ${v.reasons.join('; ')}`);
   console.error(
     '\nLos CAD originales van al bucket privado de Supabase mediante el script de ingesta (ver README).\n',

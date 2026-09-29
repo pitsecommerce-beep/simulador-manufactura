@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { checkContent, checkFile, checkPath } from './lib.mjs';
+import { STEP_SIGNATURE, checkContent, checkFile, checkPath } from './lib.mjs';
 
 test('bloquea extensiones CAD sin importar mayúsculas ni compresión', () => {
   for (const p of ['a.step', 'b/C.STP', 'x.SLDPRT', 'robot.glb', 'm.igs', 'm.step.gz', 'r.urdf']) {
@@ -13,7 +13,12 @@ test('bloquea extensiones CAD sin importar mayúsculas ni compresión', () => {
 });
 
 test('permite código y documentación', () => {
-  for (const p of ['src/index.ts', 'README.md', 'catalog/README.md', 'catalog/examples/specs.json']) {
+  for (const p of [
+    'src/index.ts',
+    'README.md',
+    'catalog/README.md',
+    'catalog/examples/specs.json',
+  ]) {
     assert.equal(checkPath(p), null, p);
   }
 });
@@ -25,12 +30,12 @@ test('bloquea datasheets y planos dentro de las carpetas de catálogo', () => {
 });
 
 test('detecta STEP por contenido aunque se renombre', () => {
-  const step = Buffer.from('ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION((\'\'),\'2;1\');\n');
+  const step = Buffer.from(STEP_SIGNATURE + ";\nHEADER;\nFILE_DESCRIPTION((''),'2;1');\n");
   assert.match(checkContent(step), /STEP/);
 });
 
 test('detecta STEP comprimido con gzip', () => {
-  const gz = gzipSync(Buffer.from('ISO-10303-21;\nHEADER;\n'));
+  const gz = gzipSync(Buffer.from(STEP_SIGNATURE + ';\nHEADER;\n'));
   assert.match(checkContent(gz), /gzip/);
 });
 
@@ -52,9 +57,16 @@ test('no marca texto normal', () => {
 test('checkFile combina nombre y contenido', () => {
   const dir = mkdtempSync(join(tmpdir(), 'cad-'));
   const disguised = join(dir, 'notas.txt');
-  writeFileSync(disguised, 'ISO-10303-21;\n');
+  writeFileSync(disguised, STEP_SIGNATURE + ';\n');
   assert.equal(checkFile(disguised).length, 1);
   const clean = join(dir, 'ok.ts');
   writeFileSync(clean, 'const a = 1;\n');
   assert.deepEqual(checkFile(clean), []);
+});
+
+test('no marca documentación que menciona la firma STEP', () => {
+  assert.equal(
+    checkContent(Buffer.from(`La cabecera ${STEP_SIGNATURE} identifica un STEP.`)),
+    null,
+  );
 });

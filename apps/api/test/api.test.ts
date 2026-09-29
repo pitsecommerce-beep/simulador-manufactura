@@ -26,7 +26,11 @@ describe('autenticación', () => {
   it('acepta un JWT válido de Supabase', async () => {
     const { app } = await testApp();
     const uid = randomUUID();
-    const res = await app.inject({ method: 'GET', url: '/v1/me', headers: auth(await signToken(uid)) });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/v1/me',
+      headers: auth(await signToken(uid)),
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ id: uid, email: `${uid}@test.local` });
   });
@@ -73,10 +77,19 @@ describe('proyectos', () => {
   it('valida la entrada', async () => {
     const { app } = await testApp();
     const token = await signToken(randomUUID());
-    const res = await app.inject({ method: 'POST', url: '/v1/projects', headers: auth(token), payload: { name: '' } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/projects',
+      headers: auth(token),
+      payload: { name: '' },
+    });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe('validation');
-    const bad = await app.inject({ method: 'GET', url: '/v1/projects/no-es-uuid', headers: auth(token) });
+    const bad = await app.inject({
+      method: 'GET',
+      url: '/v1/projects/no-es-uuid',
+      headers: auth(token),
+    });
     expect(bad.statusCode).toBe(400);
   });
 
@@ -89,10 +102,19 @@ describe('proyectos', () => {
     const guestToken = await signToken(guest);
 
     const { project } = (
-      await app.inject({ method: 'POST', url: '/v1/projects', headers: auth(ownerToken), payload: { name: 'P' } })
+      await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        headers: auth(ownerToken),
+        payload: { name: 'P' },
+      })
     ).json();
 
-    const before = await app.inject({ method: 'GET', url: `/v1/projects/${project.id}`, headers: auth(guestToken) });
+    const before = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}`,
+      headers: auth(guestToken),
+    });
     expect(before.statusCode).toBe(404);
 
     const share = await app.inject({
@@ -103,7 +125,11 @@ describe('proyectos', () => {
     });
     expect(share.statusCode).toBe(201);
 
-    const after = await app.inject({ method: 'GET', url: `/v1/projects/${project.id}`, headers: auth(guestToken) });
+    const after = await app.inject({
+      method: 'GET',
+      url: `/v1/projects/${project.id}`,
+      headers: auth(guestToken),
+    });
     expect(after.statusCode).toBe(200);
     expect(after.json().access).toBe('viewer');
 
@@ -121,7 +147,12 @@ describe('proyectos', () => {
     const { app } = await testApp();
     const token = await signToken(randomUUID());
     const { project } = (
-      await app.inject({ method: 'POST', url: '/v1/projects', headers: auth(token), payload: { name: 'P' } })
+      await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        headers: auth(token),
+        payload: { name: 'P' },
+      })
     ).json();
     const res = await app.inject({
       method: 'POST',
@@ -137,15 +168,24 @@ describe('límites y seguridad', () => {
   it('aplica límite de peticiones', async () => {
     const { app } = await testApp({ rateLimit: 2 });
     const codes = [];
-    for (let i = 0; i < 3; i++) codes.push((await app.inject({ method: 'GET', url: '/health' })).statusCode);
+    for (let i = 0; i < 3; i++)
+      codes.push((await app.inject({ method: 'GET', url: '/health' })).statusCode);
     expect(codes).toEqual([200, 200, 429]);
   });
 
   it('solo permite CORS a los orígenes configurados', async () => {
     const { app } = await testApp();
-    const ok = await app.inject({ method: 'GET', url: '/health', headers: { origin: 'http://localhost:5173' } });
+    const ok = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { origin: 'http://localhost:5173' },
+    });
     expect(ok.headers['access-control-allow-origin']).toBe('http://localhost:5173');
-    const other = await app.inject({ method: 'GET', url: '/health', headers: { origin: 'https://malo.example' } });
+    const other = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { origin: 'https://malo.example' },
+    });
     expect(other.headers['access-control-allow-origin']).toBeUndefined();
   });
 });

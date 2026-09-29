@@ -45,7 +45,10 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
 
   return {
     async listProjects() {
-      const { data, error } = await sb.from('projects').select('*').order('updated_at', { ascending: false });
+      const { data, error } = await sb
+        .from('projects')
+        .select('*')
+        .order('updated_at', { ascending: false });
       if (error) fail(error);
       return data as Project[];
     },
@@ -85,7 +88,11 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
       }));
     },
     async findUserIdByEmail(email) {
-      const { data, error } = await sb.from('profiles').select('user_id').ilike('email', email).maybeSingle();
+      const { data, error } = await sb
+        .from('profiles')
+        .select('user_id')
+        .ilike('email', email)
+        .maybeSingle();
       if (error) fail(error);
       return (data?.user_id as string | undefined) ?? null;
     },
@@ -109,7 +116,9 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
 }
 
 export function supabaseSystemRepo(url: string, secretKey: string): SystemRepo {
-  const sb = createClient(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const sb = createClient(url, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   return {
     async ping() {
       const { error } = await sb.from('object_types').select('id', { head: true, count: 'exact' });

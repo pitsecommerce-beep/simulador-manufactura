@@ -37,7 +37,8 @@ export async function projectRoutes(app: FastifyInstance) {
     const repo = app.deps.userRepo(user);
     const project = await repo.getProject(id);
     if (!project) throw httpError(404, 'Proyecto no encontrado');
-    if (project.owner_id !== user.id) throw httpError(403, 'Solo el propietario puede compartir el proyecto');
+    if (project.owner_id !== user.id)
+      throw httpError(403, 'Solo el propietario puede compartir el proyecto');
     const target = await repo.findUserIdByEmail(email);
     if (!target) throw httpError(404, 'No hay ningún usuario del equipo con ese correo');
     if (target === user.id) throw httpError(400, 'Ya eres el propietario del proyecto');

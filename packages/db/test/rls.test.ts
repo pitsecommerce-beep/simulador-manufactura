@@ -1,6 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { asRole, asUser, createTestDatabase, expectError, inRollback, type Db } from './helpers.ts';
+import {
+  asRole,
+  asUser,
+  createTestDatabase,
+  expectError,
+  inRollback,
+  insertId,
+  type Db,
+} from './helpers.ts';
 
 let db: Db;
 let drop: () => Promise<void>;
@@ -28,40 +36,40 @@ beforeAll(async () => {
     await db.query('insert into auth.users (id, email) values ($1, $2)', [id, email]);
   }
 
-  ({
-    rows: [{ id: projectId }],
-  } = await db.query(`insert into public.projects (owner_id, name) values ($1, 'Línea A') returning id`, [owner]));
+  projectId = await insertId(
+    db,
+    `insert into public.projects (owner_id, name) values ($1, 'Línea A') returning id`,
+    [owner],
+  );
   await db.query(
     `insert into public.project_members (project_id, user_id, role) values ($1, $2, 'editor'), ($1, $3, 'viewer')`,
     [projectId, editor, viewer],
   );
-  ({
-    rows: [{ id: layoutId }],
-  } = await db.query(`insert into public.layouts (project_id, scene) values ($1, '{}') returning id`, [projectId]));
-  ({
-    rows: [{ id: scenarioId }],
-  } = await db.query(
+  layoutId = await insertId(
+    db,
+    `insert into public.layouts (project_id, scene) values ($1, '{}') returning id`,
+    [projectId],
+  );
+  scenarioId = await insertId(
+    db,
     `insert into public.scenarios (project_id, layout_id, name) values ($1, $2, 'base') returning id`,
     [projectId, layoutId],
-  ));
-  ({
-    rows: [{ id: runId }],
-  } = await db.query(
+  );
+  runId = await insertId(
+    db,
     `insert into public.simulation_runs (project_id, scenario_id) values ($1, $2) returning id`,
     [projectId, scenarioId],
-  ));
+  );
 
-  ({
-    rows: [{ id: robotId }],
-  } = await db.query(
+  robotId = await insertId(
+    db,
     `insert into public.robots (slug, manufacturer, model, is_synthetic) values ('synth-6ax', 'Sintético', 'S6', true) returning id`,
-  ));
-  ({
-    rows: [{ id: variantId }],
-  } = await db.query(
+  );
+  variantId = await insertId(
+    db,
     `insert into public.robot_variants (robot_id, slug, variant_code) values ($1, 'synth-6ax-5-0.9', '5/0.9') returning id`,
     [robotId],
-  ));
+  );
   const sha = 'a'.repeat(64);
   await db.query(
     `insert into public.robot_assets (robot_id, variant_id, kind, bucket, path, sha256, bytes, license_terms)
@@ -85,14 +93,29 @@ describe('cobertura de RLS', () => {
 
   it('existen todas las tablas del plan', async () => {
     const expected = [
-      'robots', 'robot_variants', 'robot_specs', 'robot_assets', 'components', 'component_specs',
-      'component_assets', 'object_types', 'object_instances', 'projects', 'layouts', 'scenarios',
-      'simulation_runs', 'simulation_metrics', 'generated_code', 'ai_conversations',
-      'profiles', 'project_members', 'jobs', 'ai_usage', 'asset_access_log',
+      'robots',
+      'robot_variants',
+      'robot_specs',
+      'robot_assets',
+      'components',
+      'component_specs',
+      'component_assets',
+      'object_types',
+      'object_instances',
+      'projects',
+      'layouts',
+      'scenarios',
+      'simulation_runs',
+      'simulation_metrics',
+      'generated_code',
+      'ai_conversations',
+      'profiles',
+      'project_members',
+      'jobs',
+      'ai_usage',
+      'asset_access_log',
     ];
-    const { rows } = await db.query(
-      `select tablename from pg_tables where schemaname = 'public'`,
-    );
+    const { rows } = await db.query(`select tablename from pg_tables where schemaname = 'public'`);
     expect(rows.map((r) => r.tablename).sort()).toEqual([...expected].sort());
   });
 
@@ -112,10 +135,15 @@ describe('catálogo', () => {
     await asUser(db, stranger, async (c) => {
       const { rows } = await c.query('select slug from public.robots');
       expect(rows.map((r) => r.slug)).toContain('synth-6ax');
-      expect(await expectError(c, `insert into public.robots (slug, manufacturer, model) values ('x', 'y', 'z')`)).toMatch(
+      expect(
+        await expectError(
+          c,
+          `insert into public.robots (slug, manufacturer, model) values ('x', 'y', 'z')`,
+        ),
+      ).toMatch(/permission denied/);
+      expect(await expectError(c, `update public.robots set model = 'hack'`)).toMatch(
         /permission denied/,
       );
-      expect(await expectError(c, `update public.robots set model = 'hack'`)).toMatch(/permission denied/);
     });
   });
 
@@ -127,12 +155,14 @@ describe('catálogo', () => {
   });
 
   it('un CAD original no puede registrarse en el bucket de derivados', async () => {
-    const msg = await inRollback(db, (c) => expectError(
-      c,
-      `insert into public.robot_assets (robot_id, kind, bucket, path, sha256, bytes)
+    const msg = await inRollback(db, (c) =>
+      expectError(
+        c,
+        `insert into public.robot_assets (robot_id, kind, bucket, path, sha256, bytes)
        values ($1, 'original_cad', 'catalog-derived', 'leak.step', $2, 1)`,
-      [robotId, 'b'.repeat(64)],
-    ));
+        [robotId, 'b'.repeat(64)],
+      ),
+    );
     expect(msg).toMatch(/check constraint/);
   });
 
@@ -159,14 +189,18 @@ describe('catálogo', () => {
 
 describe('proyectos compartidos', () => {
   it('los perfiles se crean al registrar usuarios', async () => {
-    const { rows } = await db.query('select email from public.profiles where user_id = $1', [owner]);
+    const { rows } = await db.query('select email from public.profiles where user_id = $1', [
+      owner,
+    ]);
     expect(rows[0]?.email).toBe('owner@test.local');
   });
 
   it('propietario y miembros ven el proyecto; un extraño no', async () => {
     for (const u of [owner, editor, viewer]) {
       await asUser(db, u, async (c) => {
-        const { rowCount } = await c.query('select 1 from public.projects where id = $1', [projectId]);
+        const { rowCount } = await c.query('select 1 from public.projects where id = $1', [
+          projectId,
+        ]);
         expect(rowCount).toBe(1);
       });
     }
@@ -180,14 +214,20 @@ describe('proyectos compartidos', () => {
 
   it('un usuario crea su proyecto y lo recibe con RETURNING', async () => {
     await asUser(db, stranger, async (c) => {
-      const { rows } = await c.query(`insert into public.projects (name) values ('Mío') returning owner_id`);
+      const { rows } = await c.query(
+        `insert into public.projects (name) values ('Mío') returning owner_id`,
+      );
       expect(rows[0].owner_id).toBe(stranger);
     });
   });
 
   it('no se puede crear un proyecto a nombre de otro', async () => {
     await asUser(db, stranger, async (c) => {
-      const msg = await expectError(c, `insert into public.projects (owner_id, name) values ($1, 'X')`, [owner]);
+      const msg = await expectError(
+        c,
+        `insert into public.projects (owner_id, name) values ($1, 'X')`,
+        [owner],
+      );
       expect(msg).toMatch(/row-level security/);
     });
   });
@@ -196,13 +236,19 @@ describe('proyectos compartidos', () => {
     await asUser(db, viewer, async (c) => {
       const r = await c.query(`update public.projects set name = 'v' where id = $1`, [projectId]);
       expect(r.rowCount).toBe(0);
-      const msg = await expectError(c, `insert into public.layouts (project_id, version) values ($1, 2)`, [projectId]);
+      const msg = await expectError(
+        c,
+        `insert into public.layouts (project_id, version) values ($1, 2)`,
+        [projectId],
+      );
       expect(msg).toMatch(/row-level security/);
     });
     await asUser(db, editor, async (c) => {
       const r = await c.query(`update public.projects set name = 'e' where id = $1`, [projectId]);
       expect(r.rowCount).toBe(1);
-      await c.query(`update public.layouts set is_current = false where project_id = $1`, [projectId]);
+      await c.query(`update public.layouts set is_current = false where project_id = $1`, [
+        projectId,
+      ]);
       const ins = await c.query(
         `insert into public.layouts (project_id, version) values ($1, 2) returning id`,
         [projectId],
@@ -213,14 +259,19 @@ describe('proyectos compartidos', () => {
 
   it('solo el propietario borra el proyecto y gestiona miembros', async () => {
     await asUser(db, editor, async (c) => {
-      expect((await c.query('delete from public.projects where id = $1', [projectId])).rowCount).toBe(0);
+      expect(
+        (await c.query('delete from public.projects where id = $1', [projectId])).rowCount,
+      ).toBe(0);
       const msg = await expectError(
         c,
         `insert into public.project_members (project_id, user_id, role) values ($1, $2, 'editor')`,
         [projectId, stranger],
       );
       expect(msg).toMatch(/row-level security/);
-      const up = await c.query(`update public.project_members set role = 'editor' where user_id = $1`, [viewer]);
+      const up = await c.query(
+        `update public.project_members set role = 'editor' where user_id = $1`,
+        [viewer],
+      );
       expect(up.rowCount).toBe(0);
     });
     await asUser(db, owner, async (c) => {
@@ -228,16 +279,18 @@ describe('proyectos compartidos', () => {
         `insert into public.project_members (project_id, user_id, role) values ($1, $2, 'viewer')`,
         [projectId, stranger],
       );
-      expect((await c.query('delete from public.projects where id = $1', [projectId])).rowCount).toBe(1);
+      expect(
+        (await c.query('delete from public.projects where id = $1', [projectId])).rowCount,
+      ).toBe(1);
     });
   });
 
   it('un miembro puede salir del proyecto', async () => {
     await asUser(db, viewer, async (c) => {
-      const r = await c.query('delete from public.project_members where project_id = $1 and user_id = $2', [
-        projectId,
-        viewer,
-      ]);
+      const r = await c.query(
+        'delete from public.project_members where project_id = $1 and user_id = $2',
+        [projectId, viewer],
+      );
       expect(r.rowCount).toBe(1);
     });
   });
@@ -254,7 +307,9 @@ describe('proyectos compartidos', () => {
 
   it('los miembros leen corridas y métricas pero no las escriben', async () => {
     await asUser(db, viewer, async (c) => {
-      expect((await c.query('select 1 from public.simulation_runs where id = $1', [runId])).rowCount).toBe(1);
+      expect(
+        (await c.query('select 1 from public.simulation_runs where id = $1', [runId])).rowCount,
+      ).toBe(1);
       const msg = await expectError(
         c,
         `insert into public.simulation_runs (project_id, scenario_id) values ($1, $2)`,
@@ -265,12 +320,15 @@ describe('proyectos compartidos', () => {
   });
 
   it('una instancia no puede apuntar a un layout de otro proyecto', async () => {
-    const {
-      rows: [{ id: other }],
-    } = await db.query(`insert into public.projects (owner_id, name) values ($1, 'B') returning id`, [stranger]);
-    const {
-      rows: [{ id: ot }],
-    } = await db.query(`insert into public.object_types (key, name, category) values ('pallet_t', 'Pallet', 'pallet') returning id`);
+    const other = await insertId(
+      db,
+      `insert into public.projects (owner_id, name) values ($1, 'B') returning id`,
+      [stranger],
+    );
+    const ot = await insertId(
+      db,
+      `insert into public.object_types (key, name, category) values ('pallet_t', 'Pallet', 'pallet') returning id`,
+    );
     const msg = await inRollback(db, (c) =>
       expectError(
         c,
@@ -321,20 +379,27 @@ describe('tablas internas y storage', () => {
 
 describe('cola de trabajos', () => {
   it('claim_job reparte trabajos sin duplicarlos y finish_job reintenta con backoff', async () => {
-    await db.query(`insert into public.jobs (kind, payload, max_attempts) values ('ping', '{}', 2), ('ping', '{}', 2)`);
+    await db.query(
+      `insert into public.jobs (kind, payload, max_attempts) values ('ping', '{}', 2), ('ping', '{}', 2)`,
+    );
     const a = await db.query(`select * from private.claim_job(array['ping'], 'w1')`);
     const b = await db.query(`select * from private.claim_job(array['ping'], 'w2')`);
     expect(a.rows[0].id).not.toBe(b.rows[0].id);
-    expect((await db.query(`select * from private.claim_job(array['ping'], 'w3')`)).rowCount).toBe(0);
+    expect((await db.query(`select * from private.claim_job(array['ping'], 'w3')`)).rowCount).toBe(
+      0,
+    );
 
     await db.query(`select private.finish_job($1, 'failed', null, 'boom')`, [a.rows[0].id]);
-    const retried = await db.query('select status, run_after > now() as delayed from public.jobs where id = $1', [
-      a.rows[0].id,
-    ]);
+    const retried = await db.query(
+      'select status, run_after > now() as delayed from public.jobs where id = $1',
+      [a.rows[0].id],
+    );
     expect(retried.rows[0]).toEqual({ status: 'queued', delayed: true });
 
     await db.query(`select private.finish_job($1, 'succeeded', '{"ok":true}')`, [b.rows[0].id]);
-    const ok = await db.query('select status, result from public.jobs where id = $1', [b.rows[0].id]);
+    const ok = await db.query('select status, result from public.jobs where id = $1', [
+      b.rows[0].id,
+    ]);
     expect(ok.rows[0]).toEqual({ status: 'succeeded', result: { ok: true } });
   });
 });

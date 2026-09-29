@@ -14,7 +14,9 @@ export interface MigrationResult {
   skipped: string[];
 }
 
-export function listMigrations(dir = MIGRATIONS_DIR): { version: string; name: string; sql: string }[] {
+export function listMigrations(
+  dir = MIGRATIONS_DIR,
+): { version: string; name: string; sql: string }[] {
   return readdirSync(dir)
     .filter((f) => /^\d{14}_[a-z0-9_]+\.sql$/.test(f))
     .sort()
@@ -53,7 +55,9 @@ export async function runMigrations(
       const prev = done.get(m.version);
       if (prev) {
         if (prev !== sum) {
-          throw new Error(`La migración ${m.name} ya aplicada fue modificada. Crea una migración nueva.`);
+          throw new Error(
+            `La migración ${m.name} ya aplicada fue modificada. Crea una migración nueva.`,
+          );
         }
         result.skipped.push(m.name);
         continue;

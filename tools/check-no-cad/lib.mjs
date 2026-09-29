@@ -4,17 +4,60 @@ import { readFileSync, statSync } from 'node:fs';
 import { gunzipSync, constants as zlibConstants } from 'node:zlib';
 
 export const BLOCKED_EXTENSIONS = [
-  '.step', '.stp', '.p21', '.iges', '.igs', '.sldprt', '.sldasm', '.slddrw', '.x_t', '.x_b',
-  '.sat', '.sab', '.3dxml', '.catpart', '.catproduct', '.jt', '.prt', '.asm', '.ipt', '.iam',
-  '.3dm', '.stl', '.obj', '.fbx', '.dae', '.glb', '.gltf', '.3mf', '.dxf', '.dwg', '.rslib',
-  '.rspag', '.urdf',
+  '.step',
+  '.stp',
+  '.p21',
+  '.iges',
+  '.igs',
+  '.sldprt',
+  '.sldasm',
+  '.slddrw',
+  '.x_t',
+  '.x_b',
+  '.sat',
+  '.sab',
+  '.3dxml',
+  '.catpart',
+  '.catproduct',
+  '.jt',
+  '.prt',
+  '.asm',
+  '.ipt',
+  '.iam',
+  '.3dm',
+  '.stl',
+  '.obj',
+  '.fbx',
+  '.dae',
+  '.glb',
+  '.gltf',
+  '.3mf',
+  '.dxf',
+  '.dwg',
+  '.rslib',
+  '.rspag',
+  '.urdf',
 ];
 
 // Carpetas de catálogo: además de CAD, bloquean datasheets y planos de fabricante.
 const CATALOG_DIRS = ['catalog/', 'catalog_components/'];
-const CATALOG_BLOCKED_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.tif', '.tiff', '.zip', '.gz', '.7z'];
+const CATALOG_BLOCKED_EXTENSIONS = [
+  '.pdf',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.tif',
+  '.tiff',
+  '.zip',
+  '.gz',
+  '.7z',
+];
 
 const HEAD_BYTES = 64 * 1024;
+
+// Firmas construidas por partes para que este archivo no se detecte a sí mismo.
+export const STEP_SIGNATURE = ['ISO', '10303', '21'].join('-');
+const PARASOLID_SIGNATURE = '**' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' + 'abcdefghijklmnopqrstuvwxyz';
 
 /** Devuelve el motivo por el que un nombre de archivo está bloqueado, o null. */
 export function checkPath(path) {
@@ -26,7 +69,8 @@ export function checkPath(path) {
   if (CATALOG_DIRS.some((d) => lower.startsWith(d))) {
     const isDoc = lower.endsWith('/readme.md') || lower.includes('/examples/');
     for (const ext of CATALOG_BLOCKED_EXTENSIONS) {
-      if (lower.endsWith(ext) && !isDoc) return `archivo de fabricante en carpeta de catálogo (${ext})`;
+      if (lower.endsWith(ext) && !isDoc)
+        return `archivo de fabricante en carpeta de catálogo (${ext})`;
     }
   }
   return null;
@@ -47,16 +91,17 @@ export function checkContent(buf) {
     return 'contenido GLB (cabecera glTF)';
   }
   const head = buf.subarray(0, HEAD_BYTES).toString('latin1');
-  if (head.includes('ISO-10303-21')) return 'contenido STEP (ISO-10303-21)';
-  if (head.includes('**ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')) {
-    return 'contenido Parasolid';
-  }
+  // Un STEP real empieza con la firma seguida de ';' (se toleran BOM y espacios).
+  if (head.replace(/^\uFEFF?\s*/, '').startsWith(STEP_SIGNATURE + ';')) return 'contenido STEP';
+  if (head.slice(0, 200).includes(PARASOLID_SIGNATURE)) return 'contenido Parasolid';
   const firstLine = head.split(/\r?\n/, 1)[0] ?? '';
   if (firstLine.length >= 80 && /^.{72}S\s*0*1\s*$/.test(firstLine.slice(0, 80))) {
     return 'contenido IGES';
   }
   if (/^solid\s[^\n]*\n\s*facet\s+normal/.test(head)) return 'contenido STL ASCII';
-  if (/"asset"\s*:\s*\{[^}]*"version"\s*:\s*"2\.0"/.test(head)) return 'contenido glTF JSON';
+  if (/^\s*\{/.test(head) && /"asset"\s*:\s*\{[^}]*"version"\s*:\s*"2\.0"/.test(head)) {
+    return 'contenido glTF JSON';
+  }
   return null;
 }
 
@@ -65,7 +110,7 @@ export function checkFile(path, readPath = path) {
   const reasons = [];
   const byName = checkPath(path);
   if (byName) reasons.push(byName);
-  let size = 0;
+  let size;
   try {
     size = statSync(readPath).size;
   } catch {

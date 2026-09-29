@@ -5,7 +5,13 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/coverage/**', '**/.venv/**', 'services/**', 'packages/jobqueue-py/**'],
+    ignores: [
+      '**/dist/**',
+      '**/coverage/**',
+      '**/.venv/**',
+      'services/**',
+      'packages/jobqueue-py/**',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

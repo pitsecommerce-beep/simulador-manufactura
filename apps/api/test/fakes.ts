@@ -12,7 +12,10 @@ export async function signToken(
   sub: string,
   opts: { email?: string; role?: string; expiresIn?: string; issuer?: string } = {},
 ) {
-  return new SignJWT({ role: opts.role ?? 'authenticated', email: opts.email ?? `${sub}@test.local` })
+  return new SignJWT({
+    role: opts.role ?? 'authenticated',
+    email: opts.email ?? `${sub}@test.local`,
+  })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(sub)
     .setIssuer(opts.issuer ?? `${SUPABASE_URL}/auth/v1`)

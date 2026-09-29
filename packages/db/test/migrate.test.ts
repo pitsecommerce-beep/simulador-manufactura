@@ -31,7 +31,10 @@ it('falla si una migración aplicada se modifica', async () => {
 
 it('revierte una migración que falla a mitad', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'mig-'));
-  writeFileSync(join(dir, '20990102000000_bad.sql'), 'create table public.half (id int); select 1/0;');
+  writeFileSync(
+    join(dir, '20990102000000_bad.sql'),
+    'create table public.half (id int); select 1/0;',
+  );
   await expect(runMigrations(db, dir, () => {})).rejects.toThrow(/Falló/);
   const { rowCount } = await db.query(`select 1 from pg_tables where tablename = 'half'`);
   expect(rowCount).toBe(0);
