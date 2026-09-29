@@ -1,6 +1,6 @@
 # PLAN.md · Simulador de líneas de producción con robots ABB
 
-Estado: **revisión 2, con decisiones del usuario incorporadas (sección 18)**. Pendiente de confirmación final para iniciar la fase 1.
+Estado: **revisión 3, todas las decisiones tomadas (sección 18)**. Listo para iniciar la fase 1 tras confirmación.
 
 ---
 
@@ -318,6 +318,4 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 7. **Acceso**: todo usuario autenticado del equipo usa el simulador; los proyectos se comparten con usuarios autenticados (roles `viewer` y `editor`).
 8. **Origen de CAD**: descarga directa desde ABB, hecha por el usuario (aceptar los términos del portal de ABB le corresponde a él). El usuario coloca los archivos en `catalog/<robot_id>/` con su `source.json`; la ingesta hace el resto. Se entrega una plantilla de `manifest.json` con los 15 modelos y sus variantes para rellenar.
 
-## 19. Pendiente
-
-- Licencia del repositorio. Por defecto: privado, todos los derechos reservados, sin archivo de licencia abierta.
+9. **Licencia**: repositorio privado, sin licencia abierta. Su único fin es el despliegue en Railway.
