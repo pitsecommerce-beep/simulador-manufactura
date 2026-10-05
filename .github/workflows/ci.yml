@@ -24,7 +24,7 @@ jobs:
           # Este job no instala dependencias; sin esto setup-node busca pnpm para la caché.
           package-manager-cache: false
       - run: node tools/check-no-cad/index.mjs
-      - run: node --test tools/check-no-cad/
+      - run: node --test tools/check-no-cad/lib.test.mjs
 
   node:
     name: TypeScript (lint, tipos, tests, build)
