@@ -453,7 +453,13 @@ Funciones puras que, a partir de `robot_specs`, devuelven una cadena de eslabone
 - API: GET/PUT de layout, 409 por versión, 400 por escena inválida, 403 a lector.
 - RLS: editor guarda layout, lector no, extraño no lo ve.
 
-### 20.9 Preguntas para confirmar
+### 20.9 Decisiones confirmadas
+
+1. Proporciones fijas por familia, marcadas en la UI como "supuesto visual".
+2. Altura de pallets GMA y 1200×1000 vacía y obligatoria; la ayuda "EUR publicado: 144 mm" no se guarda.
+3. Los componentes se cargan ya en el seed, sin UI.
+
+### 20.10 Preguntas originales
 
 1. **Proporciones de eslabones**: como las fichas no publican longitudes de eslabón, ¿aceptas proporciones fijas por familia, marcadas como supuesto visual?
 2. **Altura de pallets GMA y 1200×1000**: no está publicada en `presets.json`. ¿Campo vacío obligatorio (propuesta) o un valor por defecto editable marcado como supuesto?

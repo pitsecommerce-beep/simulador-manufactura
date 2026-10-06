@@ -11,12 +11,13 @@ Aplicación web para diseñar y simular líneas de manufactura y empaque con rob
 | 1. Base: monorepo, CI, Auth, esquema con RLS, despliegue | ✅ |
 | 2a. Catálogo con datos de ficha | ✅ |
 | 2b. Pipeline CAD | pendiente |
-| 3 a 10 | pendiente |
+| 3. Lienzo 3D con robots simplificados | ✅ |
+| 4 a 10 | pendiente |
 
 ## Estructura
 
 ```
-apps/web               React + Vite + Tailwind (login, proyectos, compartir)
+apps/web               React + Vite + Tailwind (login, proyectos, catálogo, lienzo 3D con React Three Fiber)
 apps/api               Fastify + TypeScript (auth Supabase, proyectos, salud)
 services/sim-worker    Python, SimPy. Consume la cola de trabajos
 services/cad-worker    Python. Conversión STEP → GLB → URDF (fase 2)
@@ -71,6 +72,7 @@ uv run ruff check . && uv run mypy packages/jobqueue-py/src services/*/src && uv
 
 Qué cubren hoy:
 
+- **Lienzo 3D**: robots paramétricos desde la ficha (alcance y rangos de eje), límites de ejes, alcance (esfera, delta y SCARA), carga nominal, colisiones AABB con giro, escena validada con Zod, guardado con control de versión (409) y RLS de `layouts`.
 - **Catálogo**: el seed es idempotente, deja en null lo no publicado, guarda la fuente de cada dato y refleja los JSON; la API exige sesión y filtra; RLS impide escribir el catálogo.
 - **Migraciones**: el ejecutor y el script manual `apply_all.sql` registran todas las migraciones, son idempotentes y compatibles entre sí; `apply_all.sql` está al día.
 - **RLS**: todas las tablas de `public` tienen RLS; `anon` no lee nada; el catálogo es solo lectura; los metadatos de CAD original no son visibles; propietario, editor, lector y extraño tienen exactamente los permisos esperados; las tablas internas no son accesibles; los buckets son privados y sin políticas.

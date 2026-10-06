@@ -3,6 +3,7 @@ import type {
   CatalogVariant,
   CatalogVariantDetail,
   MemberRole,
+  Scene,
   Project,
   ProjectMember,
 } from '@sim/domain';
@@ -22,7 +23,22 @@ export interface UserRepo {
   removeMember(projectId: string, userId: string): Promise<boolean>;
   listCatalogVariants(): Promise<CatalogVariant[]>;
   getCatalogVariant(slug: string): Promise<CatalogVariantDetail | null>;
+  /** Layout actual del proyecto (escena sin validar) o null si aún no existe. */
+  getLayout(projectId: string): Promise<StoredLayout | null>;
+  /**
+   * Guarda la escena en el layout actual si su versión sigue siendo `version` (o lo crea si
+   * `version` es null). Lanza RepoError 409 si otro usuario guardó antes.
+   */
+  saveLayout(projectId: string, scene: Scene, version: number | null): Promise<StoredLayout>;
 }
+
+export interface StoredLayout {
+  version: number;
+  scene: unknown;
+  updated_at: string;
+}
+
+export const LAYOUT_CONFLICT = 'Otro usuario guardó el layout. Recarga para ver sus cambios.';
 
 export interface SystemRepo {
   /** Comprueba conectividad con Supabase usando la clave secreta. */
@@ -204,6 +220,39 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
         documents: (docs.data ?? []) as CatalogVariantDetail['documents'],
         siblings: (siblings.data ?? []) as CatalogVariantDetail['siblings'],
       };
+    },
+    async getLayout(projectId) {
+      const { data, error } = await sb
+        .from('layouts')
+        .select('version, scene, updated_at')
+        .eq('project_id', projectId)
+        .eq('is_current', true)
+        .maybeSingle();
+      if (error) fail(error);
+      return (data as StoredLayout | null) ?? null;
+    },
+    async saveLayout(projectId, scene, version) {
+      if (version == null) {
+        const { data, error } = await sb
+          .from('layouts')
+          .insert({ project_id: projectId, version: 1, scene, is_current: true, name: 'Principal' })
+          .select('version, scene, updated_at')
+          .single();
+        if (error?.code === '23505') throw new RepoError(LAYOUT_CONFLICT, 409);
+        if (error) fail(error);
+        return data as StoredLayout;
+      }
+      const { data, error } = await sb
+        .from('layouts')
+        .update({ scene, version: version + 1 })
+        .eq('project_id', projectId)
+        .eq('is_current', true)
+        .eq('version', version)
+        .select('version, scene, updated_at');
+      if (error) fail(error);
+      const row = (data as StoredLayout[] | null)?.[0];
+      if (!row) throw new RepoError(LAYOUT_CONFLICT, 409);
+      return row;
     },
   };
 }

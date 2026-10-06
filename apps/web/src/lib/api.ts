@@ -3,10 +3,12 @@ import type {
   CatalogQuery,
   CatalogVariant,
   CatalogVariantDetail,
+  LayoutDoc,
   MemberRole,
   Project,
   ProjectAccess,
   ProjectMember,
+  Scene,
 } from '@sim/domain';
 
 export class ApiError extends Error {
@@ -70,6 +72,12 @@ export function createApi(baseUrl: string, getToken: () => Promise<string | null
         `/v1/catalog/variants${qs ? `?${qs}` : ''}`,
       );
     },
+    getLayout: (projectId: string) => request<LayoutDoc>(`/v1/projects/${projectId}/layout`),
+    saveLayout: (projectId: string, scene: Scene, version: number | null) =>
+      request<LayoutDoc>(`/v1/projects/${projectId}/layout`, {
+        method: 'PUT',
+        body: JSON.stringify({ scene, version }),
+      }),
     catalogFacets: () => request<CatalogFacets>('/v1/catalog/facets'),
     getCatalogVariant: (slug: string) =>
       request<CatalogVariantDetail>(`/v1/catalog/variants/${encodeURIComponent(slug)}`),

@@ -190,6 +190,124 @@ describe('límites y seguridad', () => {
   });
 });
 
+describe('layout del proyecto', () => {
+  const scene = {
+    schema: 1,
+    objects: [
+      {
+        id: 'p1',
+        name: 'Pallet 1',
+        kind: 'pallet',
+        position: [1000, 0],
+        elevation: 0,
+        rotation_deg: 0,
+        color: '#c08a4a',
+        served_by: null,
+        params: { preset: 'eur', length_mm: 1200, width_mm: 800, height_mm: 144 },
+      },
+    ],
+  };
+
+  async function setup() {
+    const { app, store } = await testApp();
+    const owner = randomUUID();
+    const editor = randomUUID();
+    const viewer = randomUUID();
+    const ownerToken = await signToken(owner);
+    const { project } = (
+      await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        headers: auth(ownerToken),
+        payload: { name: 'P' },
+      })
+    ).json();
+    store.members.push(
+      { project_id: project.id, user_id: editor, role: 'editor' },
+      { project_id: project.id, user_id: viewer, role: 'viewer' },
+    );
+    const url = `/v1/projects/${project.id}/layout`;
+    const as = async (uid: string) => auth(await signToken(uid));
+    return { app, url, owner: await as(owner), editor: await as(editor), viewer: await as(viewer) };
+  }
+
+  it('sin layout devuelve una escena vacía; al guardar crea la versión 1', async () => {
+    const { app, url, owner } = await setup();
+    const empty = await app.inject({ method: 'GET', url, headers: owner });
+    expect(empty.json()).toEqual({
+      version: null,
+      scene: { schema: 1, objects: [] },
+      updated_at: null,
+    });
+    const saved = await app.inject({
+      method: 'PUT',
+      url,
+      headers: owner,
+      payload: { scene, version: null },
+    });
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json().version).toBe(1);
+    const loaded = await app.inject({ method: 'GET', url, headers: owner });
+    expect(loaded.json().scene.objects[0].name).toBe('Pallet 1');
+  });
+
+  it('el editor guarda; una versión desactualizada da 409', async () => {
+    const { app, url, owner, editor } = await setup();
+    await app.inject({ method: 'PUT', url, headers: owner, payload: { scene, version: null } });
+    const ok = await app.inject({
+      method: 'PUT',
+      url,
+      headers: editor,
+      payload: { scene, version: 1 },
+    });
+    expect(ok.json().version).toBe(2);
+    const stale = await app.inject({
+      method: 'PUT',
+      url,
+      headers: owner,
+      payload: { scene, version: 1 },
+    });
+    expect(stale.statusCode).toBe(409);
+    expect(stale.json().message).toMatch(/Recarga/);
+  });
+
+  it('el lector lee pero no guarda; un extraño no ve el proyecto', async () => {
+    const { app, url, viewer } = await setup();
+    expect((await app.inject({ method: 'GET', url, headers: viewer })).statusCode).toBe(200);
+    const res = await app.inject({
+      method: 'PUT',
+      url,
+      headers: viewer,
+      payload: { scene, version: null },
+    });
+    expect(res.statusCode).toBe(403);
+    const stranger = auth(await signToken(randomUUID()));
+    expect((await app.inject({ method: 'GET', url, headers: stranger })).statusCode).toBe(404);
+  });
+
+  it('rechaza escenas inválidas (pallet sin altura, medidas negativas)', async () => {
+    const { app, url, owner } = await setup();
+    const noHeight = structuredClone(scene);
+    delete (noHeight.objects[0]!.params as Record<string, unknown>).height_mm;
+    for (const bad of [
+      noHeight,
+      {
+        schema: 1,
+        objects: [{ ...scene.objects[0], params: { ...scene.objects[0]!.params, width_mm: -1 } }],
+      },
+      { schema: 2, objects: [] },
+    ]) {
+      const res = await app.inject({
+        method: 'PUT',
+        url,
+        headers: owner,
+        payload: { scene: bad, version: null },
+      });
+      expect(res.statusCode).toBe(400);
+    }
+  });
+});
+
 describe('catálogo', () => {
   const get = async (url: string, withAuth = true) => {
     const { app } = await testApp();

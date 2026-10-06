@@ -3,7 +3,7 @@ import type { CatalogVariant, MemberRole, Project, ProjectMember } from '@sim/do
 import { SignJWT } from 'jose';
 import { buildApp } from '../src/app.ts';
 import { supabaseTokenVerifier, type AuthUser } from '../src/auth.ts';
-import type { UserRepo } from '../src/repo.ts';
+import { LAYOUT_CONFLICT, RepoError, type StoredLayout, type UserRepo } from '../src/repo.ts';
 
 export const SUPABASE_URL = 'https://test-project.supabase.co';
 export const JWT_SECRET = 'test-secret-with-at-least-32-characters!!';
@@ -63,6 +63,7 @@ export function memoryStore() {
   const projects: Project[] = [];
   const members: { project_id: string; user_id: string; role: MemberRole }[] = [];
   const profiles = new Map<string, string>(); // email -> user_id
+  const layouts = new Map<string, StoredLayout>(); // project_id -> layout actual
 
   const canRead = (p: Project, uid: string) =>
     p.owner_id === uid || members.some((m) => m.project_id === p.id && m.user_id === uid);
@@ -105,6 +106,21 @@ export function memoryStore() {
       members.splice(i, 1);
       return true;
     },
+    async getLayout(projectId) {
+      const p = projects.find((x) => x.id === projectId);
+      return p && canRead(p, user.id) ? (layouts.get(projectId) ?? null) : null;
+    },
+    async saveLayout(projectId, scene, version) {
+      const current = layouts.get(projectId);
+      if ((current?.version ?? null) !== version) throw new RepoError(LAYOUT_CONFLICT, 409);
+      const saved = {
+        version: (version ?? 0) + 1,
+        scene,
+        updated_at: new Date().toISOString(),
+      };
+      layouts.set(projectId, saved);
+      return saved;
+    },
     async listCatalogVariants() {
       return CATALOG;
     },
@@ -131,7 +147,7 @@ export function memoryStore() {
     },
   });
 
-  return { projects, members, profiles, repoFor };
+  return { projects, members, profiles, layouts, repoFor };
 }
 
 export async function testApp(opts: { pingOk?: boolean; rateLimit?: number } = {}) {

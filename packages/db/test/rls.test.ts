@@ -284,6 +284,29 @@ describe('proyectos compartidos', () => {
     });
   });
 
+  it('guardar layout: el editor actualiza la escena con control de versión; lector y extraño no', async () => {
+    const save = (c: Db, version: number) =>
+      c.query(
+        `update public.layouts set scene = $2, version = $3 + 1
+         where project_id = $1 and is_current and version = $3 returning version`,
+        [projectId, JSON.stringify({ schema: 1, objects: [] }), version],
+      );
+    for (const u of [viewer, stranger]) {
+      await asUser(db, u, async (c) => {
+        expect((await save(c, 1)).rowCount).toBe(0);
+      });
+    }
+    await asUser(db, editor, async (c) => {
+      expect((await save(c, 1)).rows).toEqual([{ version: 2 }]);
+      // Una versión desactualizada no actualiza nada (la API responde 409).
+      expect((await save(c, 1)).rowCount).toBe(0);
+      const { rows } = await c.query('select scene from public.layouts where project_id = $1', [
+        projectId,
+      ]);
+      expect(rows[0].scene).toEqual({ schema: 1, objects: [] });
+    });
+  });
+
   it('solo el propietario borra el proyecto y gestiona miembros', async () => {
     await asUser(db, editor, async (c) => {
       expect(

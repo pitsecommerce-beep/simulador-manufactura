@@ -154,3 +154,25 @@ describe('procedencia por campo', () => {
     expect(resolveSources('armload_kg', all, [])?.[0]?.file).toBe('d.pdf');
   });
 });
+
+describe('presets de pallet', () => {
+  it('las medidas del dominio coinciden con presets.json', async () => {
+    const { PALLET_SIZES } = await import('@sim/domain');
+    const presets = JSON.parse(
+      readFileSync(join(COMPONENTS_DIR, 'standards', 'presets.json'), 'utf8'),
+    ).pallets as { id: string; length_mm: number; width_mm: number; height_mm: number | null }[];
+    const byId = Object.fromEntries(presets.map((p) => [p.id, p]));
+    for (const [key, id] of [
+      ['eur', 'eur-epal-1'],
+      ['gma', 'gma-48x40'],
+      ['1200x1000', 'eur-2-epal-2'],
+    ] as const) {
+      const p = byId[id]!;
+      expect(PALLET_SIZES[key]).toMatchObject({
+        length_mm: p.length_mm,
+        width_mm: p.width_mm,
+        height_mm: p.height_mm,
+      });
+    }
+  });
+});

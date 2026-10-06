@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useMatch } from 'react-router-dom';
 import { useApp } from '../lib/context';
 import { ApiStatus } from './ApiStatus';
 import { Disclaimer } from './Disclaimer';
@@ -7,10 +7,15 @@ import { Logo } from './ui';
 export function Layout() {
   const { supabase, session } = useApp();
   const email = session?.user.email ?? '';
+  // El editor de proyecto usa todo el ancho disponible.
+  const wide = useMatch('/proyectos/:id') != null;
+  const width = wide ? 'max-w-[1600px]' : 'max-w-5xl';
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <div
+          className={`mx-auto flex ${width} items-center justify-between gap-4 px-4 py-3 sm:px-6`}
+        >
           <div className="flex items-center gap-3 sm:gap-6">
             <Link to="/" className="flex items-center gap-3 font-semibold">
               <Logo />
@@ -66,8 +71,8 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <Disclaimer />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <Disclaimer width={width} />
+      <main className={`mx-auto ${width} px-4 py-8 sm:px-6`}>
         <Outlet />
       </main>
     </div>
