@@ -1,0 +1,40 @@
+{
+  "component_id": "sick-pbs-rb040sg1ssnbma0z",
+  "manufacturer": "SICK",
+  "model": "PBS-RB040SG1SSNBMA0Z (6038890)",
+  "category": "sensors",
+  "type": "pressure sensor 0-40 bar",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "pressure_range_bar": [
+      0,
+      40
+    ],
+    "output": "1x PNP + 4-20 mA",
+    "supply_voltage_v": [
+      15,
+      35
+    ],
+    "current_ma": [
+      45,
+      70
+    ],
+    "response_time_ms": 3,
+    "accuracy_pct_span": 1,
+    "ip_rating": "IP67",
+    "process_connection": "G1/4 A",
+    "weight_g": 200,
+    "temp_process_c": [
+      -20,
+      85
+    ]
+  },
+  "notes": [
+    "Data sheet page 2 to 3."
+  ],
+  "cad": {
+    "status": "requires_login",
+    "via": "SICK site CAD download (not opened)"
+  }
+}

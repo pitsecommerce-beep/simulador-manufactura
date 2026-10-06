@@ -1,8 +1,10 @@
 # catalog/
 
-Carpeta local para la ingesta del catálogo de robots. **Su contenido no se versiona**: `.gitignore` y el chequeo `tools/check-no-cad` impiden subir CAD, fichas PDF o planos de fabricantes al repositorio.
+Catálogo de robots. **Solo se versionan los metadatos JSON** (`manifest.json` y, por robot, `specs.json` y `source.json`): cifras de ficha, URLs públicas, hashes y términos de uso. `.gitignore` y `tools/check-no-cad` impiden subir CAD, fichas PDF, zips o planos de fabricantes al repositorio.
 
-Estructura esperada (el script de ingesta llega en la fase 2):
+`pnpm catalog:sql` convierte estos JSON en `supabase/manual/seed_catalog.sql` (ver README principal).
+
+Estructura:
 
 ```
 catalog/

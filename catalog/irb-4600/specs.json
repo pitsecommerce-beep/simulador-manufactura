@@ -1,0 +1,348 @@
+{
+  "robot_id": "irb-4600",
+  "name": "IRB 4600",
+  "family": "Articulated / medium (OmniCore)",
+  "typical_application": "Carga media, manipulación, carga/descarga de máquinas",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/medium-robots/irb-4600",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "floor",
+        "shelf",
+        "inverted",
+        "tilted"
+      ],
+      "ip_rating": "IP67 estándar; Foundry Plus 2 opcional; Cleanroom ISO 14644-1 clase 5 opcional (solo 40 y 60 kg)",
+      "controller": "OmniCore V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 4600-60/2.05",
+      "robot_id": "irb-4600-60-2-05",
+      "axes": 6,
+      "reach_mm": 2050,
+      "payload_kg": 60,
+      "armload_kg": 20,
+      "robot_weight_kg": 445,
+      "repeatability": {
+        "pose_repeatability_mm": 0.06,
+        "path_repeatability_mm": 0.09,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -90,
+          "range_max": 150,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -180,
+          "range_max": 75,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 250,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -125,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 250,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        }
+      ]
+    },
+    {
+      "mounting": [
+        "floor",
+        "shelf",
+        "inverted",
+        "tilted"
+      ],
+      "ip_rating": "IP67 estándar; Foundry Plus 2 opcional; Cleanroom ISO 14644-1 clase 5 opcional (solo 40 y 60 kg)",
+      "controller": "OmniCore V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 4600-45/2.05",
+      "robot_id": "irb-4600-45-2-05",
+      "axes": 6,
+      "reach_mm": 2050,
+      "payload_kg": 45,
+      "armload_kg": 20,
+      "robot_weight_kg": 445,
+      "repeatability": {
+        "pose_repeatability_mm": 0.05,
+        "path_repeatability_mm": 0.13,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -90,
+          "range_max": 150,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -180,
+          "range_max": 75,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 250,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -125,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 250,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        }
+      ]
+    },
+    {
+      "mounting": [
+        "floor",
+        "shelf",
+        "inverted",
+        "tilted"
+      ],
+      "ip_rating": "IP67 estándar; Foundry Plus 2 opcional; Cleanroom ISO 14644-1 clase 5 opcional (solo 40 y 60 kg)",
+      "controller": "OmniCore V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 4600-40/2.55",
+      "robot_id": "irb-4600-40-2-55",
+      "axes": 6,
+      "reach_mm": 2550,
+      "payload_kg": 40,
+      "armload_kg": 20,
+      "robot_weight_kg": 465,
+      "repeatability": {
+        "pose_repeatability_mm": 0.06,
+        "path_repeatability_mm": 0.28,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -90,
+          "range_max": 150,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -180,
+          "range_max": 75,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 250,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -125,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 250,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        }
+      ]
+    },
+    {
+      "mounting": [
+        "floor",
+        "shelf",
+        "inverted",
+        "tilted"
+      ],
+      "ip_rating": "IP67 estándar; Foundry Plus 2 opcional; Cleanroom ISO 14644-1 clase 5 opcional (solo 40 y 60 kg)",
+      "controller": "OmniCore V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 4600-20/2.50",
+      "robot_id": "irb-4600-20-2-50",
+      "axes": 6,
+      "reach_mm": 2510,
+      "payload_kg": 20,
+      "armload_kg": 11,
+      "robot_weight_kg": 430,
+      "repeatability": {
+        "pose_repeatability_mm": 0.05,
+        "path_repeatability_mm": 0.17,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -90,
+          "range_max": 150,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -180,
+          "range_max": 75,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -120,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Path repeatability medida a 250 mm/s (nota del datasheet).",
+    "Eje 5 de 20/2.50: +/-120. Los STEP descargados corresponden a IRB 4600-60/2.05 (60-205, rev06)."
+  ],
+  "manual": {
+    "doc_id": "3HAC033453-001",
+    "revision": "AM",
+    "doc_date": "2026-09-21",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC033453-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 4
+}

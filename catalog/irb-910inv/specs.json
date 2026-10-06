@@ -1,0 +1,155 @@
+{
+  "robot_id": "irb-910inv",
+  "name": "IRB 910INV",
+  "family": "SCARA invertido (techo)",
+  "typical_application": "Ensamble, prueba, pick-and-place; sustituto de IRB 910SC",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/scara-robots/irb-910inv",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "inverted"
+      ],
+      "ip_rating": "IP30 estándar (texto del PDF ambiguo por OCR); IP54 opcional; Cleanroom ISO 1 opcional",
+      "controller": "OmniCore E10, C30, C90XT",
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Physical / Movement"
+        }
+      },
+      "variant": "IRB 910INV-3/0.35",
+      "robot_id": "irb-910inv-3-0-35",
+      "axes": 4,
+      "reach_mm": 350,
+      "payload_kg": 3,
+      "robot_weight_kg": 19,
+      "repeatability": {
+        "pose_repeatability_mm": 0.01,
+        "path_repeatability_linear_mm": 0.06,
+        "pose_stabilization_time_s": 0.61,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -225,
+          "range_max": 225,
+          "range_unit": "deg",
+          "max_speed": 672,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -225,
+          "range_max": 225,
+          "range_unit": "deg",
+          "max_speed": 748,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -140,
+          "range_max": 0,
+          "range_unit": "mm",
+          "max_speed": 1.1,
+          "speed_unit": "m/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -720,
+          "range_max": 720,
+          "range_unit": "deg",
+          "max_speed": 3000,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "cycle_times": [
+        {
+          "value_s": 0.35,
+          "condition": "1 kg picking cycle"
+        }
+      ],
+      "armload_kg": null
+    },
+    {
+      "mounting": [
+        "inverted"
+      ],
+      "ip_rating": "IP30 estándar (texto del PDF ambiguo por OCR); IP54 opcional; Cleanroom ISO 1 opcional",
+      "controller": "OmniCore E10, C30, C90XT",
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Physical / Movement"
+        }
+      },
+      "variant": "IRB 910INV-6/0.55",
+      "robot_id": "irb-910inv-6-0-55",
+      "axes": 4,
+      "reach_mm": 550,
+      "payload_kg": 6,
+      "robot_weight_kg": 22,
+      "repeatability": {
+        "pose_repeatability_mm": 0.01,
+        "path_repeatability_linear_mm": 0.05,
+        "pose_stabilization_time_s": 1.05,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -225,
+          "range_max": 225,
+          "range_unit": "deg",
+          "max_speed": 420,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -225,
+          "range_max": 225,
+          "range_unit": "deg",
+          "max_speed": 780,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -190,
+          "range_max": 0,
+          "range_unit": "mm",
+          "max_speed": 1.1,
+          "speed_unit": "m/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -720,
+          "range_max": 720,
+          "range_unit": "deg",
+          "max_speed": 3000,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "cycle_times": [
+        {
+          "value_s": 0.4,
+          "condition": "1 kg picking cycle"
+        }
+      ],
+      "armload_kg": null
+    }
+  ],
+  "notes": [
+    "Se descargó la versión IP54 CR (rev00, 2019); existe también versión estándar rev02 (2019).",
+    "La condición exacta del ciclo de 1 kg (recorrido) no se detalla en el texto extraído."
+  ],
+  "manual": null,
+  "sim_models_processsimulate_available_not_downloaded": 2
+}

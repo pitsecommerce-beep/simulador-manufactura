@@ -1,0 +1,48 @@
+{
+  "robot_id": "irb-5500-25",
+  "name": "IRB 5500-25 Elevated Rail",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/paint-robots/irb-5500-25",
+  "library_page": "https://library.abb.com/r?cid=9AAC185703",
+  "library_category_id": "9AAC185703",
+  "accessed_at": "2026-09-30T16:29:54Z",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "datasheet",
+      "doc_id": "9AKK10103A5848",
+      "revision": "C",
+      "doc_date": "2018-11-05",
+      "title": "IRB 5500-25 Elevated Rail data sheet, PDF",
+      "url": "https://search.abb.com/library/Download.aspx?DocumentID=9AKK10103A5848&LanguageCode=en&DocumentPartId=&Action=Launch",
+      "library_page": "https://library.abb.com/r?cid=9AAC185703",
+      "accessed_at": "2026-09-30T16:29:54Z",
+      "original_filename": "IRB5500-Elevated-9AKK10103A5848-Rev.F.pdf",
+      "sha256": "69f611ebef395662f472b97fa6b41e7e41b952ff8acab84db1aac11dddf0ae36",
+      "size_bytes": 1057889,
+      "license_terms": "Documento clasificado PÚBLICO (ExternalPublic) en ABB Library, descargable sin inicio de sesión. Junto a la descarga no aparece texto de licencia; el pie de library.abb.com solo muestra un enlace \"Términos y condiciones\" sin URL directa expuesta. Los PDF incluyen aviso de copyright de ABB con derechos reservados y prohibición de reproducir o divulgar sin consentimiento previo por escrito. Uso comercial/redistribución de CAD: pendiente de validar con ABB."
+    },
+    {
+      "path": "cad/9AKK10103A6150_STEP-IRB-5500-25-Elevated-rail-IRC5P-rev00.zip",
+      "kind": "cad_step",
+      "doc_id": "9AKK10103A6150",
+      "revision": "-",
+      "doc_date": "2015-10-14",
+      "title": "CAD Model, STEP, IRB 5500-25, Elevated rail, IRC5P, rev00",
+      "url": "https://search.abb.com/library/Download.aspx?DocumentID=9AKK10103A6150&LanguageCode=en&DocumentPartId=&Action=Launch",
+      "library_page": "https://library.abb.com/r?cid=9AAC185703",
+      "accessed_at": "2026-09-30T16:29:54Z",
+      "original_filename": "ElevRail_ 1_5m.stp",
+      "sha256": "4a8f766dfa755a6bdd11d2d5870c493cbdfe4ad7f6b3120a2f7203a4bd834619",
+      "size_bytes": 1187661,
+      "license_terms": "Documento clasificado PÚBLICO (ExternalPublic) en ABB Library, descargable sin inicio de sesión. Junto a la descarga no aparece texto de licencia; el pie de library.abb.com solo muestra un enlace \"Términos y condiciones\" sin URL directa expuesta. Los PDF incluyen aviso de copyright de ABB con derechos reservados y prohibición de reproducir o divulgar sin consentimiento previo por escrito. Uso comercial/redistribución de CAD: pendiente de validar con ABB.",
+      "format": "STEP",
+      "granularity": "no especificado",
+      "zip_first_entry": "ElevRail_ 1_5m.stp"
+    }
+  ],
+  "manual": null,
+  "not_downloaded": {
+    "sim_models_processsimulate": 0,
+    "other_cad_formats": "SAT/ACIS, IGES, Parasolid, VDA, VRML, STL, SolidWorks y modelos RobCad/V5 disponibles en ABB Library según robot; no descargados"
+  }
+}

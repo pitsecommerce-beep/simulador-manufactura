@@ -9,13 +9,15 @@ Aplicación web para diseñar y simular líneas de manufactura y empaque con rob
 | Fase | Estado |
 |---|---|
 | 1. Base: monorepo, CI, Auth, esquema con RLS, despliegue | ✅ |
-| 2. Ingesta de catálogo y pipeline CAD | pendiente |
-| 3 a 10 | pendiente |
+| 2a. Catálogo con datos de ficha | ✅ |
+| 2b. Pipeline CAD | pendiente |
+| 3. Lienzo 3D con robots simplificados | ✅ |
+| 4 a 10 | pendiente |
 
 ## Estructura
 
 ```
-apps/web               React + Vite + Tailwind (login, proyectos, compartir)
+apps/web               React + Vite + Tailwind (login, proyectos, catálogo, lienzo 3D con React Three Fiber)
 apps/api               Fastify + TypeScript (auth Supabase, proyectos, salud)
 services/sim-worker    Python, SimPy. Consume la cola de trabajos
 services/cad-worker    Python. Conversión STEP → GLB → URDF (fase 2)
@@ -70,6 +72,8 @@ uv run ruff check . && uv run mypy packages/jobqueue-py/src services/*/src && uv
 
 Qué cubren hoy:
 
+- **Lienzo 3D**: robots paramétricos desde la ficha (alcance y rangos de eje), límites de ejes, alcance (esfera, delta y SCARA), carga nominal, colisiones AABB con giro, escena validada con Zod, guardado con control de versión (409) y RLS de `layouts`.
+- **Catálogo**: el seed es idempotente, deja en null lo no publicado, guarda la fuente de cada dato y refleja los JSON; la API exige sesión y filtra; RLS impide escribir el catálogo.
 - **Migraciones**: el ejecutor y el script manual `apply_all.sql` registran todas las migraciones, son idempotentes y compatibles entre sí; `apply_all.sql` está al día.
 - **RLS**: todas las tablas de `public` tienen RLS; `anon` no lee nada; el catálogo es solo lectura; los metadatos de CAD original no son visibles; propietario, editor, lector y extraño tienen exactamente los permisos esperados; las tablas internas no son accesibles; los buckets son privados y sin políticas.
 - **API**: verificación de JWT (vencido, otro emisor, firma alterada, rol anónimo), validación de entrada, compartir proyectos, CORS y límite de peticiones.
@@ -91,6 +95,21 @@ El esquema vive en `supabase/migrations/*.sql`. El api no aplica migraciones al 
 4. **No edites una migración ya aplicada.** Crea una nueva (`AAAAMMDDhhmmss_nombre.sql`). Si el script detecta que una migración aplicada cambió, se detiene con un error.
 
 `apply_all.sql` es generado y se versiona. Un test falla si no está al día; también puedes comprobarlo con `pnpm --filter @sim/db sql --check`.
+
+## Catálogo de robots (seed manual)
+
+Los datos de ficha viven en `catalog/` y `catalog_components/` (solo `manifest.json`, `specs.json`, `source.json` y `standards/presets.json`; PDFs, CAD, zips y planos siguen prohibidos por `.gitignore` y `check-no-cad`).
+
+1. Si cambias algún JSON, regenera el seed:
+
+   ```bash
+   pnpm catalog:sql   # escribe supabase/manual/seed_catalog.sql
+   ```
+
+2. Aplica antes las migraciones pendientes (`apply_all.sql`, sección anterior).
+3. Pega `supabase/manual/seed_catalog.sql` completo en **SQL Editor > Run**. Es idempotente y deja el catálogo igual a los JSON: lo que no está publicado queda `NULL`. Al final muestra el conteo de robots, variantes, documentos y componentes.
+
+Un test falla si `seed_catalog.sql` no está al día (`pnpm --filter @sim/db catalog:sql --check`).
 
 ## Configurar Supabase (plan Free)
 

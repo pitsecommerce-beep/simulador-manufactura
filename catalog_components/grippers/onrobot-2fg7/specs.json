@@ -1,0 +1,38 @@
+{
+  "component_id": "onrobot-2fg7",
+  "manufacturer": "OnRobot",
+  "model": "2FG7",
+  "category": "grippers",
+  "type": "electric parallel gripper (2 jaws)",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "payload_force_fit_kg": 7,
+    "payload_form_fit_kg": 11,
+    "total_stroke_mm": 38,
+    "gripping_force_n_min": 20,
+    "gripping_force_n_max": 140,
+    "gripping_force_tolerance_n": 5,
+    "gripping_speed_mm_s_min": 16,
+    "gripping_speed_mm_s_max": 450,
+    "repeatability_mm": 0.1,
+    "dimensions_mm": "144 x 90 x 71",
+    "weight_kg": 1.1,
+    "ip_rating": "IP67",
+    "supply_voltage_v_nominal": 24,
+    "supply_voltage_v_min": 20,
+    "supply_voltage_v_max": 25,
+    "current_ma_max": 2000,
+    "gripping_time_ms": 200
+  },
+  "notes": [
+    "Datasheet page 1 General Properties table; weight 1.1 kg from first column of the Weight row (lb column 2.4).",
+    "Gripping time 200 ms is the typical value (incl. brake activation); datasheet footnote mentions 300 ms at 38 mm stroke and 80 N."
+  ],
+  "cad": {
+    "status": "downloaded",
+    "file": "cad/2FG7_v1.STEP",
+    "url": null,
+    "note": "Public file offered in the OnRobot download selector (df.onrobot.com, API onrobot.dforigo.com); exact file URL not captured because the portal triggers the download from script."
+  }
+}

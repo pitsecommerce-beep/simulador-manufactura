@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useMatch } from 'react-router-dom';
 import { useApp } from '../lib/context';
 import { ApiStatus } from './ApiStatus';
 import { Disclaimer } from './Disclaimer';
@@ -7,14 +7,44 @@ import { Logo } from './ui';
 export function Layout() {
   const { supabase, session } = useApp();
   const email = session?.user.email ?? '';
+  // El editor de proyecto usa todo el ancho disponible.
+  const wide = useMatch('/proyectos/:id') != null;
+  const width = wide ? 'max-w-[1600px]' : 'max-w-5xl';
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link to="/" className="flex items-center gap-3 font-semibold">
-            <Logo />
-            <span className="hidden sm:inline">Simulador de líneas de producción</span>
-          </Link>
+        <div
+          className={`mx-auto flex ${width} items-center justify-between gap-4 px-4 py-3 sm:px-6`}
+        >
+          <div className="flex items-center gap-3 sm:gap-6">
+            <Link to="/" className="flex items-center gap-3 font-semibold">
+              <Logo />
+              <span className="hidden xl:inline">Simulador de líneas de producción</span>
+            </Link>
+            {session && (
+              <nav className="flex items-center gap-1 text-sm">
+                {[
+                  ['/', 'Proyectos'],
+                  ['/catalogo', 'Catálogo'],
+                ].map(([to, label]) => (
+                  <NavLink
+                    key={to}
+                    to={to!}
+                    end={to === '/'}
+                    className={({ isActive }) =>
+                      `rounded-lg px-2.5 py-1.5 font-medium transition sm:px-3 ${
+                        isActive
+                          ? 'bg-brand-50 text-brand-700'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`
+                    }
+                  >
+                    {label}
+                  </NavLink>
+                ))}
+              </nav>
+            )}
+          </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <ApiStatus />
             {session && (
@@ -30,18 +60,19 @@ export function Layout() {
                   <span className="hidden max-w-48 truncate md:inline">{email}</span>
                 </NavLink>
                 <button
-                  className="btn btn-secondary py-1.5"
+                  className="btn btn-secondary py-1.5 whitespace-nowrap"
                   onClick={() => supabase.auth.signOut()}
                 >
-                  Cerrar sesión
+                  <span className="sm:hidden">Salir</span>
+                  <span className="hidden sm:inline">Cerrar sesión</span>
                 </button>
               </>
             )}
           </div>
         </div>
       </header>
-      <Disclaimer />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <Disclaimer width={width} />
+      <main className={`mx-auto ${width} px-4 py-8 sm:px-6`}>
         <Outlet />
       </main>
     </div>

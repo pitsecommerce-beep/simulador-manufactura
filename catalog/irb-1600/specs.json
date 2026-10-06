@@ -1,0 +1,353 @@
+{
+  "robot_id": "irb-1600",
+  "name": "IRB 1600",
+  "family": "Articulated / medium (OmniCore)",
+  "typical_application": "Uso general, manipulación, carga/descarga de máquinas",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/medium-robots/irb-1600",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "floor",
+        "wall",
+        "shelf",
+        "tilted",
+        "inverted"
+      ],
+      "ip_rating": "IP54 estándar; Foundry Plus 2 (IP67) opcional",
+      "controller": "OmniCore C30, C90XT, V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 1600-6/1.2",
+      "robot_id": "irb-1600-6-1-2",
+      "axes": 6,
+      "reach_mm": 1200,
+      "payload_kg": 6,
+      "armload_kg": 30.5,
+      "robot_weight_kg": 250,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 150,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -63,
+          "range_max": 110,
+          "range_unit": "deg",
+          "max_speed": 160,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -235,
+          "range_max": 55,
+          "range_unit": "deg",
+          "max_speed": 170,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -200,
+          "range_max": 200,
+          "range_unit": "deg",
+          "max_speed": 320,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -115,
+          "range_max": 115,
+          "range_unit": "deg",
+          "max_speed": 400,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 460,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.02,
+        "path_repeatability_mm": 0.13,
+        "standard": "ISO 9283"
+      }
+    },
+    {
+      "mounting": [
+        "floor",
+        "wall",
+        "shelf",
+        "tilted",
+        "inverted"
+      ],
+      "ip_rating": "IP54 estándar; Foundry Plus 2 (IP67) opcional",
+      "controller": "OmniCore C30, C90XT, V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 1600-6/1.45",
+      "robot_id": "irb-1600-6-1-45",
+      "axes": 6,
+      "reach_mm": 1450,
+      "payload_kg": 6,
+      "armload_kg": 30.5,
+      "robot_weight_kg": 250,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 150,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -90,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 160,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -245,
+          "range_max": 65,
+          "range_unit": "deg",
+          "max_speed": 170,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -200,
+          "range_max": 200,
+          "range_unit": "deg",
+          "max_speed": 320,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -115,
+          "range_max": 115,
+          "range_unit": "deg",
+          "max_speed": 400,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 460,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.02,
+        "path_repeatability_mm": 0.19,
+        "standard": "ISO 9283"
+      }
+    },
+    {
+      "mounting": [
+        "floor",
+        "wall",
+        "shelf",
+        "tilted",
+        "inverted"
+      ],
+      "ip_rating": "IP54 estándar; Foundry Plus 2 (IP67) opcional",
+      "controller": "OmniCore C30, C90XT, V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 1600-10/1.2",
+      "robot_id": "irb-1600-10-1-2",
+      "axes": 6,
+      "reach_mm": 1200,
+      "payload_kg": 10,
+      "armload_kg": 20.5,
+      "robot_weight_kg": 250,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 180,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -63,
+          "range_max": 110,
+          "range_unit": "deg",
+          "max_speed": 180,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -235,
+          "range_max": 55,
+          "range_unit": "deg",
+          "max_speed": 185,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -200,
+          "range_max": 200,
+          "range_unit": "deg",
+          "max_speed": 385,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -115,
+          "range_max": 115,
+          "range_unit": "deg",
+          "max_speed": 400,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 460,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.02,
+        "path_repeatability_mm": 0.06,
+        "standard": "ISO 9283"
+      }
+    },
+    {
+      "mounting": [
+        "floor",
+        "wall",
+        "shelf",
+        "tilted",
+        "inverted"
+      ],
+      "ip_rating": "IP54 estándar; Foundry Plus 2 (IP67) opcional",
+      "controller": "OmniCore C30, C90XT, V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 1600-10/1.45",
+      "robot_id": "irb-1600-10-1-45",
+      "axes": 6,
+      "reach_mm": 1450,
+      "payload_kg": 10,
+      "armload_kg": 20.5,
+      "robot_weight_kg": 250,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 180,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -90,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 180,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -245,
+          "range_max": 65,
+          "range_unit": "deg",
+          "max_speed": 185,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -200,
+          "range_max": 200,
+          "range_unit": "deg",
+          "max_speed": 385,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -115,
+          "range_max": 115,
+          "range_unit": "deg",
+          "max_speed": 400,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 460,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.05,
+        "path_repeatability_mm": 0.13,
+        "standard": "ISO 9283"
+      }
+    }
+  ],
+  "notes": [
+    "Robot weight 250 kg (una cifra para todas las variantes). Eje 4 por defecto +/-200 (max rev +/-190); eje 6 por defecto +/-400 (max rev +/-288).",
+    "Eje 2: hasta +136 (1.2 m) con eje 1 limitado a +/-100, y hasta +150 (1.45 m) con eje 1 limitado a +/-95 (notas del datasheet).",
+    "Las velocidades de eje se publican por grupo de carga (6 kg / 10 kg), no por alcance."
+  ],
+  "manual": {
+    "doc_id": "3HAC026660-001",
+    "revision": "AR",
+    "doc_date": "2026-06-05",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC026660-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 4
+}

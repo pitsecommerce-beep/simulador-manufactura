@@ -16,7 +16,8 @@
     "dev:api": "pnpm --filter @sim/api dev",
     "dev:web": "pnpm --filter @sim/web dev",
     "db:migrate": "pnpm --filter @sim/db migrate",
-    "db:sql": "pnpm --filter @sim/db sql"
+    "db:sql": "pnpm --filter @sim/db sql",
+    "catalog:sql": "pnpm --filter @sim/db catalog:sql"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

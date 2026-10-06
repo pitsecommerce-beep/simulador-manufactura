@@ -1,4 +1,15 @@
-import type { MemberRole, Project, ProjectAccess, ProjectMember } from '@sim/domain';
+import type {
+  CatalogFacets,
+  CatalogQuery,
+  CatalogVariant,
+  CatalogVariantDetail,
+  LayoutDoc,
+  MemberRole,
+  Project,
+  ProjectAccess,
+  ProjectMember,
+  Scene,
+} from '@sim/domain';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -52,6 +63,24 @@ export function createApi(baseUrl: string, getToken: () => Promise<string | null
       }),
     removeMember: (id: string, userId: string) =>
       request<void>(`/v1/projects/${id}/members/${userId}`, { method: 'DELETE' }),
+    listCatalog: (query: Partial<Record<keyof CatalogQuery, string | number>> = {}) => {
+      const params = new URLSearchParams();
+      for (const [k, v] of Object.entries(query))
+        if (v !== '' && v != null) params.set(k, String(v));
+      const qs = params.toString();
+      return request<{ variants: CatalogVariant[]; total: number }>(
+        `/v1/catalog/variants${qs ? `?${qs}` : ''}`,
+      );
+    },
+    getLayout: (projectId: string) => request<LayoutDoc>(`/v1/projects/${projectId}/layout`),
+    saveLayout: (projectId: string, scene: Scene, version: number | null) =>
+      request<LayoutDoc>(`/v1/projects/${projectId}/layout`, {
+        method: 'PUT',
+        body: JSON.stringify({ scene, version }),
+      }),
+    catalogFacets: () => request<CatalogFacets>('/v1/catalog/facets'),
+    getCatalogVariant: (slug: string) =>
+      request<CatalogVariantDetail>(`/v1/catalog/variants/${encodeURIComponent(slug)}`),
   };
 }
 

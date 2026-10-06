@@ -1,0 +1,500 @@
+{
+  "robot_id": "irb-360",
+  "name": "IRB 360 FlexPicker",
+  "family": "Delta (pick-and-place)",
+  "typical_application": "Pick-and-place a alta velocidad, empaque, alimentos",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/delta-robots/irb-360",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "axis_data": null,
+      "repeatability": {
+        "position_repeatability_mm": 0.1,
+        "angular_repeatability_axis4_deg": 0.4,
+        "note": "angular 1.5 deg en eje 4 wash-down",
+        "standard": null
+      },
+      "mounting": [
+        "inverted"
+      ],
+      "ip_rating": null,
+      "controller": "OmniCore (C30) o IRC5",
+      "cycle_times": [
+        {
+          "condition": "Ciclo 25/305/25 mm; valores en s por variante en el orden impreso (columnas 0.1 kg, 1 kg, payload máximo)",
+          "table": {
+            "IRB 360-1/1130": [
+              0.3,
+              0.36
+            ],
+            "IRB 360-3/1130": [
+              0.4,
+              0.4,
+              0.52
+            ],
+            "IRB 360-8/1130": [
+              0.38,
+              0.42,
+              0.6
+            ],
+            "IRB 360-1/1600": [
+              0.35,
+              0.4
+            ],
+            "IRB 360-6/1600": [
+              0.43,
+              0.48,
+              0.6
+            ]
+          },
+          "mapping_uncertain": true
+        },
+        {
+          "condition": "Ciclo 90/400/90 mm; mismos criterios",
+          "table": {
+            "IRB 360-1/1130": [
+              0.44,
+              0.51
+            ],
+            "IRB 360-3/1130": [
+              0.6,
+              0.6,
+              0.75
+            ],
+            "IRB 360-8/1130": [
+              0.55,
+              0.65,
+              0.92
+            ],
+            "IRB 360-1/1600": [
+              0.5,
+              0.54
+            ],
+            "IRB 360-6/1600": [
+              0.57,
+              0.63,
+              0.8
+            ]
+          },
+          "mapping_uncertain": true
+        }
+      ],
+      "sources": {
+        "variants_weight_repeatability_mounting": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specifications / Physical / Performance"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Cycle times"
+        }
+      },
+      "variant": "IRB 360-1/1130",
+      "robot_id": "irb-360-1-1130",
+      "axes": "3 o 4",
+      "workspace_diameter_mm": 1130,
+      "payload_kg": 1,
+      "robot_weight_kg": 120,
+      "reach_mm": null,
+      "armload_kg": null
+    },
+    {
+      "axis_data": null,
+      "repeatability": {
+        "position_repeatability_mm": 0.1,
+        "angular_repeatability_axis4_deg": 0.4,
+        "note": "angular 1.5 deg en eje 4 wash-down",
+        "standard": null
+      },
+      "mounting": [
+        "inverted"
+      ],
+      "ip_rating": null,
+      "controller": "OmniCore (C30) o IRC5",
+      "cycle_times": [
+        {
+          "condition": "Ciclo 25/305/25 mm; valores en s por variante en el orden impreso (columnas 0.1 kg, 1 kg, payload máximo)",
+          "table": {
+            "IRB 360-1/1130": [
+              0.3,
+              0.36
+            ],
+            "IRB 360-3/1130": [
+              0.4,
+              0.4,
+              0.52
+            ],
+            "IRB 360-8/1130": [
+              0.38,
+              0.42,
+              0.6
+            ],
+            "IRB 360-1/1600": [
+              0.35,
+              0.4
+            ],
+            "IRB 360-6/1600": [
+              0.43,
+              0.48,
+              0.6
+            ]
+          },
+          "mapping_uncertain": true
+        },
+        {
+          "condition": "Ciclo 90/400/90 mm; mismos criterios",
+          "table": {
+            "IRB 360-1/1130": [
+              0.44,
+              0.51
+            ],
+            "IRB 360-3/1130": [
+              0.6,
+              0.6,
+              0.75
+            ],
+            "IRB 360-8/1130": [
+              0.55,
+              0.65,
+              0.92
+            ],
+            "IRB 360-1/1600": [
+              0.5,
+              0.54
+            ],
+            "IRB 360-6/1600": [
+              0.57,
+              0.63,
+              0.8
+            ]
+          },
+          "mapping_uncertain": true
+        }
+      ],
+      "sources": {
+        "variants_weight_repeatability_mounting": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specifications / Physical / Performance"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Cycle times"
+        }
+      },
+      "variant": "IRB 360-3/1130",
+      "robot_id": "irb-360-3-1130",
+      "axes": "3 o 4",
+      "workspace_diameter_mm": 1130,
+      "payload_kg": 3,
+      "robot_weight_kg": 120,
+      "reach_mm": null,
+      "armload_kg": null
+    },
+    {
+      "axis_data": null,
+      "repeatability": {
+        "position_repeatability_mm": 0.1,
+        "angular_repeatability_axis4_deg": 0.4,
+        "note": "angular 1.5 deg en eje 4 wash-down",
+        "standard": null
+      },
+      "mounting": [
+        "inverted"
+      ],
+      "ip_rating": null,
+      "controller": "OmniCore (C30) o IRC5",
+      "cycle_times": [
+        {
+          "condition": "Ciclo 25/305/25 mm; valores en s por variante en el orden impreso (columnas 0.1 kg, 1 kg, payload máximo)",
+          "table": {
+            "IRB 360-1/1130": [
+              0.3,
+              0.36
+            ],
+            "IRB 360-3/1130": [
+              0.4,
+              0.4,
+              0.52
+            ],
+            "IRB 360-8/1130": [
+              0.38,
+              0.42,
+              0.6
+            ],
+            "IRB 360-1/1600": [
+              0.35,
+              0.4
+            ],
+            "IRB 360-6/1600": [
+              0.43,
+              0.48,
+              0.6
+            ]
+          },
+          "mapping_uncertain": true
+        },
+        {
+          "condition": "Ciclo 90/400/90 mm; mismos criterios",
+          "table": {
+            "IRB 360-1/1130": [
+              0.44,
+              0.51
+            ],
+            "IRB 360-3/1130": [
+              0.6,
+              0.6,
+              0.75
+            ],
+            "IRB 360-8/1130": [
+              0.55,
+              0.65,
+              0.92
+            ],
+            "IRB 360-1/1600": [
+              0.5,
+              0.54
+            ],
+            "IRB 360-6/1600": [
+              0.57,
+              0.63,
+              0.8
+            ]
+          },
+          "mapping_uncertain": true
+        }
+      ],
+      "sources": {
+        "variants_weight_repeatability_mounting": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specifications / Physical / Performance"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Cycle times"
+        }
+      },
+      "variant": "IRB 360-1/1600",
+      "robot_id": "irb-360-1-1600",
+      "axes": 4,
+      "workspace_diameter_mm": 1600,
+      "payload_kg": 1,
+      "robot_weight_kg": 120,
+      "reach_mm": null,
+      "armload_kg": null
+    },
+    {
+      "axis_data": null,
+      "repeatability": {
+        "position_repeatability_mm": 0.1,
+        "angular_repeatability_axis4_deg": 0.4,
+        "note": "angular 1.5 deg en eje 4 wash-down",
+        "standard": null
+      },
+      "mounting": [
+        "inverted"
+      ],
+      "ip_rating": null,
+      "controller": "OmniCore (C30) o IRC5",
+      "cycle_times": [
+        {
+          "condition": "Ciclo 25/305/25 mm; valores en s por variante en el orden impreso (columnas 0.1 kg, 1 kg, payload máximo)",
+          "table": {
+            "IRB 360-1/1130": [
+              0.3,
+              0.36
+            ],
+            "IRB 360-3/1130": [
+              0.4,
+              0.4,
+              0.52
+            ],
+            "IRB 360-8/1130": [
+              0.38,
+              0.42,
+              0.6
+            ],
+            "IRB 360-1/1600": [
+              0.35,
+              0.4
+            ],
+            "IRB 360-6/1600": [
+              0.43,
+              0.48,
+              0.6
+            ]
+          },
+          "mapping_uncertain": true
+        },
+        {
+          "condition": "Ciclo 90/400/90 mm; mismos criterios",
+          "table": {
+            "IRB 360-1/1130": [
+              0.44,
+              0.51
+            ],
+            "IRB 360-3/1130": [
+              0.6,
+              0.6,
+              0.75
+            ],
+            "IRB 360-8/1130": [
+              0.55,
+              0.65,
+              0.92
+            ],
+            "IRB 360-1/1600": [
+              0.5,
+              0.54
+            ],
+            "IRB 360-6/1600": [
+              0.57,
+              0.63,
+              0.8
+            ]
+          },
+          "mapping_uncertain": true
+        }
+      ],
+      "sources": {
+        "variants_weight_repeatability_mounting": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specifications / Physical / Performance"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Cycle times"
+        }
+      },
+      "variant": "IRB 360-6/1600",
+      "robot_id": "irb-360-6-1600",
+      "axes": 4,
+      "workspace_diameter_mm": 1600,
+      "payload_kg": 6,
+      "robot_weight_kg": 120,
+      "reach_mm": null,
+      "armload_kg": null
+    },
+    {
+      "axis_data": null,
+      "repeatability": {
+        "position_repeatability_mm": 0.1,
+        "angular_repeatability_axis4_deg": 0.4,
+        "note": "angular 1.5 deg en eje 4 wash-down",
+        "standard": null
+      },
+      "mounting": [
+        "inverted"
+      ],
+      "ip_rating": null,
+      "controller": "OmniCore (C30) o IRC5",
+      "cycle_times": [
+        {
+          "condition": "Ciclo 25/305/25 mm; valores en s por variante en el orden impreso (columnas 0.1 kg, 1 kg, payload máximo)",
+          "table": {
+            "IRB 360-1/1130": [
+              0.3,
+              0.36
+            ],
+            "IRB 360-3/1130": [
+              0.4,
+              0.4,
+              0.52
+            ],
+            "IRB 360-8/1130": [
+              0.38,
+              0.42,
+              0.6
+            ],
+            "IRB 360-1/1600": [
+              0.35,
+              0.4
+            ],
+            "IRB 360-6/1600": [
+              0.43,
+              0.48,
+              0.6
+            ]
+          },
+          "mapping_uncertain": true
+        },
+        {
+          "condition": "Ciclo 90/400/90 mm; mismos criterios",
+          "table": {
+            "IRB 360-1/1130": [
+              0.44,
+              0.51
+            ],
+            "IRB 360-3/1130": [
+              0.6,
+              0.6,
+              0.75
+            ],
+            "IRB 360-8/1130": [
+              0.55,
+              0.65,
+              0.92
+            ],
+            "IRB 360-1/1600": [
+              0.5,
+              0.54
+            ],
+            "IRB 360-6/1600": [
+              0.57,
+              0.63,
+              0.8
+            ]
+          },
+          "mapping_uncertain": true
+        }
+      ],
+      "sources": {
+        "variants_weight_repeatability_mounting": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specifications / Physical / Performance"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Cycle times"
+        }
+      },
+      "variant": "IRB 360-8/1130",
+      "robot_id": "irb-360-8-1130",
+      "axes": 4,
+      "workspace_diameter_mm": 1130,
+      "payload_kg": 8,
+      "robot_weight_kg": 120,
+      "reach_mm": null,
+      "armload_kg": null
+    }
+  ],
+  "notes": [
+    "Robot delta: no hay rangos de eje articulares; se publica diámetro de espacio de trabajo.",
+    "Peso 120 kg (estándar y wash-down), 145 kg (acero inoxidable).",
+    "STEP disponibles: rev05 para 6-1600 y 8-1130 (STD-4D). No hay STEP por variante para 1/1130, 3/1130 ni 1/1600.",
+    "Los valores de la tabla de ciclos salen del layout del PDF (mapping_uncertain=true); verificar en el PDF p.2."
+  ],
+  "manual": {
+    "doc_id": "3HAC030005-001",
+    "revision": "AH",
+    "doc_date": "2026-09-17",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC030005-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 0
+}

@@ -1,0 +1,35 @@
+{
+  "component_id": "dorner-2200-851-863a",
+  "manufacturer": "Dorner",
+  "model": "2200 Series conveyor (doc 851-863a)",
+  "category": "conveyors",
+  "type": "belt conveyor, aluminum frame",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "belt_widths_mm": [
+      44,
+      95,
+      152,
+      203,
+      254,
+      305,
+      356,
+      406,
+      457,
+      508,
+      559,
+      609
+    ],
+    "load_kg_narrow_widths": "14 to 36 (by width, see datasheet)",
+    "max_belt_speed_m_min": 80.5,
+    "motor_voltage_v": null
+  },
+  "notes": [
+    "Load values depend on width code (02=14 kg, 04=19, 06=27, 08=32, 10 to 24=36 kg) and carry an asterisk footnote not transcribed."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "Dorner online configurator not used."
+  }
+}

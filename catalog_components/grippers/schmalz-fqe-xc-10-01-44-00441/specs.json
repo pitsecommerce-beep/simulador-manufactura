@@ -1,0 +1,33 @@
+{
+  "component_id": "schmalz-fqe-xc-10-01-44-00441",
+  "manufacturer": "Schmalz",
+  "model": "FQE Xc 300x130 SW100 O20 (10.01.44.00441)",
+  "category": "grippers",
+  "type": "vacuum area gripper (foam, integrated ejector)",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "length_mm": 300,
+    "width_mm": 130,
+    "height_mm": 73.8,
+    "height_H1_mm": 129.4,
+    "weight_kg": 1.21,
+    "suction_cells": 35,
+    "ejectors": 3,
+    "nozzle_diameter_mm": 1.0,
+    "air_consumption_l_min": 249.0,
+    "vacuum_switch": "PNP",
+    "supply_voltage_v": null,
+    "payload_kg": null,
+    "gripping_force_n": null,
+    "response_time_ms": null
+  },
+  "notes": [
+    "Payload/force not in article datasheet (null).",
+    "Datasheet page 1 technical/design data, page 2 technical data."
+  ],
+  "cad": {
+    "status": "requires_login",
+    "via": "TraceParts viewer (PartNumber 10.01.44.00441)"
+  }
+}

@@ -253,8 +253,9 @@ Robots sintéticos: `packages/synthetic` genera robots de 6 ejes con geometría 
 | # | Fase | Entregable verificable |
 |---|---|---|
 | 1 | Base | Monorepo, CI verde (lint, tests, build, anti-CAD), migraciones con RLS y tests pgTAP, login con Supabase, "hello world" desplegado en Railway leyendo de Supabase |
-| 2 | Ingesta y CAD | Ingesta idempotente con robots sintéticos, worker STEP→GLB→URDF probado con STEP sintético generado por CadQuery, URLs firmadas, test de no-descarga |
-| 3 | Lienzo 3D | Colocar robots/objetos/personas/sensores, IK con límites, colores, guardar/cargar layouts, advertencias AABB/alcance/carga |
+| 2a | Catálogo con datos de ficha | `pnpm catalog:sql` genera un seed idempotente desde `catalog/*.json`; API y página de catálogo de solo lectura con la procedencia de cada dato (ver sección 19) |
+| 2b | Pipeline CAD | Ingesta de archivos, worker STEP→GLB→URDF probado con STEP sintético generado por CadQuery, URLs firmadas, test de no-descarga |
+| 3 | Lienzo 3D | Robots paramétricos desde la ficha, objetos paramétricos, ejes con límites, colores, guardar/cargar layouts, advertencias AABB/alcance/carga (ver sección 20). IK y personas/sensores pasan a fases posteriores |
 | 4 | Motor de línea | SimPy con estaciones, buffers, BOM, fallas, Monte Carlo, dashboard con rangos, reproductor de eventos |
 | 5 | Robots por ficha | Perfil trapezoidal, calibración con ciclos publicados, etiqueta ESTIMACIÓN en toda la UI |
 | 6 | Personas | Agentes con turnos, descansos, errores, zonas de seguridad que afectan al robot |
@@ -318,3 +319,148 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 7. **Acceso**: todo usuario autenticado del equipo usa el simulador; los proyectos se comparten con usuarios autenticados (roles `viewer` y `editor`).
 8. **Origen de CAD**: descarga directa desde ABB, hecha por el usuario (aceptar los términos del portal de ABB corresponde al usuario). El usuario coloca los archivos en `catalog/<robot_id>/` con su `source.json`; la ingesta hace el resto. Se entrega una plantilla de `manifest.json` con los 15 modelos y sus variantes para rellenar.
 9. **Licencia**: repositorio privado, sin licencia abierta. Su único fin es el despliegue en Railway.
+
+---
+
+## 19. Diseño: fase 2a, catálogo con datos de ficha (sin CAD)
+
+### 19.1 Archivos versionados
+
+- Se versionan **solo** `catalog/manifest.json`, `catalog/<robot>/specs.json`, `catalog/<robot>/source.json`, `catalog_components/manifest_components.json`, `catalog_components/<categoría>/<id>/{specs,source}.json` y `catalog_components/standards/presets.json`.
+- `.gitignore`: lista blanca explícita de esos nombres; todo lo demás bajo `catalog/` y `catalog_components/` sigue ignorado.
+- `check-no-cad`: dentro de las carpetas de catálogo solo se permiten `README.md`, `examples/` y esos `.json`. Cualquier otro archivo (PDF, STEP, zip, DWG, imágenes, otros JSON) falla. Se añade test.
+- Los JSON solo contienen metadatos (cifras, URLs públicas de ABB Library, hashes, términos). Ningún contenido de los PDF ni del CAD.
+
+### 19.2 Formato real de los JSON (revisado)
+
+14 robots, 40 variantes. Lo relevante para el seed:
+
+| Fuente | Campos | Particularidades |
+|---|---|---|
+| `manifest.json` | `robot_id`, `name`, `family`, `application`, `status` (`ok`/`partial`), `product_page`, `notes` | `family` en 8 valores (Articulated small/medium/large, Collaborative, Delta, SCARA invertido, Palletizing 4-axis, Paint) |
+| `specs.json` (robot) | `typical_application`, `extracted_from`, `extracted_at`, `extraction_note`, `notes`, `manual` | |
+| `specs.json` (variante) | `variant`, `robot_id` (slug), `axes`, `reach_mm`, `payload_kg`, `armload_kg`, `robot_weight_kg`, `mounting[]`, `ip_rating`, `controller`, `repeatability{}`, `axis_data[]`, `cycle_times[]`, `sources{}`; opcionales `workspace_diameter_mm`, `max_tcp_speed_m_s`, `payload_note`, `extra{}` | `axes` puede ser texto (`"3 o 4"` en IRB 360) o null (IRB 5500). `reach_mm` es null en IRB 360 (publica diámetro de trabajo). Eje 3 del IRB 910INV en mm y m/s. `cycle_times` puede ser valor simple o tabla por variante con `mapping_uncertain`. `mounting` a veces es texto libre |
+| `sources{}` | clave = grupo de campos unidos por `_` (ej. `reach_payload_mounting_ip_controller`, `axes_range`, `all`) → `{file, page, section}` | |
+| `source.json` | `files[]` con `path`, `kind` (`datasheet`, `product_specification`, `cad_step`, `drawing_dwg_dxf`), `doc_id`, `revision`, `doc_date`, `title`, `url`, `library_page`, `accessed_at`, `sha256`, `size_bytes`, `license_terms` | |
+
+### 19.3 Cambios de esquema (migración nueva `20261006000100_catalog_sheet_data.sql`)
+
+La migración del catálogo ya aplicada no se toca. La nueva añade:
+
+- **robots**: `application text`, `typical_application text`, `product_page text`, `data_status text` (`ok`/`partial`), `notes text[]`.
+- **robot_specs**: `armload_kg`, `workspace_diameter_mm`, `max_tcp_speed_m_s`, `payload_note`, `axes_note` (texto original cuando `axes` no es un entero, ej. "3 o 4"), `repeatability jsonb` (detalle completo), `extra jsonb`, `notes text[]`. `repeatability_mm` = `pose_repeatability_mm` o `position_repeatability_mm` si existe; si no, null.
+- **robot_documents** (nueva): `robot_id`, `path`, `kind`, `doc_id`, `revision`, `doc_date`, `title`, `url`, `library_page`, `accessed_at`, `sha256`, `size_bytes`, `license_terms`; único `(robot_id, path)`. Solo filas de documentos que respaldan datos (`datasheet`, `product_specification`); los CAD y planos se registrarán en `robot_assets` en la fase 2b, cuando existan en el bucket. RLS: lectura para autenticados, escritura solo `service_role`. Las URL son las públicas de ABB Library; no hay descarga desde la app.
+- `axis_limits` pasa a guardar `{axis, min, max, unit: "deg"|"mm", max_speed, speed_unit}` tal como viene la ficha (necesario para el eje lineal del SCARA). Se documenta con `comment on column`.
+
+### 19.4 Generador `pnpm catalog:sql`
+
+- `packages/db/src/catalog-seed.ts` (mismo patrón que `bundle.ts`): lee los JSON, los valida con Zod (desconocidos → advertencia en consola, no error) y escribe `supabase/manual/seed_catalog.sql`. `--check` falla si no está al día; un test lo verifica.
+- Un solo script transaccional (`begin … commit`) con `insert … on conflict (slug) do update` para `robots`, `robot_variants`, `robot_specs`, `robot_documents`; las variantes o documentos que ya no estén en los JSON se borran del robot correspondiente (el seed refleja exactamente los archivos).
+- **Nulos**: todo campo ausente o null queda `null`. No se convierte texto a número salvo que el valor ya sea numérico. `"3 o 4"` → `axes_count = null`, `axes_note = '3 o 4'`.
+- **Procedencia por dato**: `provenance` = `{ "<campo>": [{ "file", "page", "section", "doc_id", "revision" }] }`. Título, URL, fecha de consulta y términos de uso están en `robot_documents` y se unen por `file` = `path` (así no se repiten en cada dato). El campo se asocia a la clave de `sources` cuyos tokens lo contienen (`reach`, `payload`, `armload`, `mounting`, `ip`, `controller`, `repeatability`, `weight`, `axes`, `cycle_times`, `performance`, `variants`, `all`). Si ninguna clave lo cubre, el dato se guarda con procedencia `null` y la UI muestra "fuente no indicada".
+- Componentes: tabla `component_documents` análoga, y columnas `type` y `notes` en `components`.
+- `kinematic_type` se deriva de `family` (Articulated/Collaborative/Paint → `serial`; Palletizing 4-axis → `parallel_linkage`; Delta → `delta`; SCARA → `scara`). `manufacturer = 'ABB'` (todos vienen de ABB Library).
+- Componentes (`catalog_components`) y `presets.json`: se cargan a `components`/`component_specs` (specs tal cual, con su fuente) y `object_types.presets`. No se muestran aún en la UI salvo los presets de pallet del lienzo.
+
+### 19.5 API (solo lectura, sesión obligatoria, RLS con el JWT del usuario)
+
+- `GET /v1/catalog/variants?q=&family=&application=&payload_min=&payload_max=&reach_min=&reach_max=` → lista plana de variantes con robot, familia, aplicación, alcance, carga, ejes. Los filtros numéricos excluyen las variantes con el dato en null (la UI lo indica).
+- `GET /v1/catalog/variants/:slug` → robot, variante, specs completas, `provenance` y `documents`.
+- `GET /v1/catalog/facets` → familias y aplicaciones disponibles, rangos de carga y alcance.
+
+### 19.6 Web
+
+- Menú "Catálogo". Página con buscador (modelo o variante), filtros por familia, aplicación, rango de carga y de alcance, y tarjetas o tabla de variantes.
+- Ficha por variante (`/catalogo/:slug`): tabla de datos con un icono de fuente en cada fila (documento, página, sección, revisión, fecha de consulta, términos de uso); tabla de ejes; tiempos de ciclo con su condición (y aviso si `mapping_uncertain`); notas de extracción. Los null se muestran como **"No publicado"** con estilo distinto, nunca como 0 ni guion ambiguo. Aviso de estimación y de derechos de ABB.
+
+### 19.7 Tests
+
+- Seed: archivo al día; aplicar dos veces deja las mismas filas (idempotencia); campos ausentes quedan null (IRB 360 sin `reach_mm`, IRB 5500 sin ejes); `axes_note` y procedencia correctos; documentos con términos de uso.
+- API: 401 sin sesión, filtros y detalle con repositorio falso, 404 de variante inexistente.
+- RLS: autenticado lee catálogo y `robot_documents`; no puede insertar, actualizar ni borrar; `anon` no lee nada.
+
+---
+
+## 20. Diseño: fase 3, lienzo 3D con robots simplificados
+
+### 20.1 Tecnología
+
+`three`, `@react-three/fiber`, `@react-three/drei` (OrbitControls, TransformControls, Grid, Html). El lienzo se carga con `React.lazy` para no engordar el resto de la web. Unidades del modelo: milímetros; la escena 3D usa metros (factor 0.001). Eje Z hacia arriba en el modelo de datos.
+
+### 20.2 Modelo de escena (`packages/domain/src/scene.ts`, validado con Zod)
+
+```
+SceneV1 = { schema: 1, objects: SceneObject[] }
+SceneObject = {
+  id, name, kind: 'robot' | 'pallet' | 'box' | 'table' | 'conveyor',
+  position: [x, y] (mm), elevation (mm), rotation_deg (giro sobre Z), color '#rrggbb',
+  params: según kind,
+  served_by?: id de robot (para validar alcance y carga)
+}
+robot.params  = { variant_slug, joints: number[] (deg o mm por eje), mounting: 'floor' }
+pallet.params = { preset: 'eur'|'gma'|'1200x1000'|'custom', length_mm, width_mm, height_mm }
+box.params    = { length_mm, width_mm, height_mm, mass_kg | null }
+table.params  = { length_mm, width_mm, height_mm }
+conveyor.params = { length_mm, width_mm, height_mm }
+```
+
+Se guarda en `layouts.scene` del layout actual (`is_current`). `object_instances` queda para cuando la simulación lo necesite (fase 4); no se duplica ahora.
+
+### 20.3 Guardar y cargar
+
+- `GET /v1/projects/:id/layout` → layout actual (o una escena vacía si no existe).
+- `PUT /v1/projects/:id/layout` con `{ scene, version }`: valida con Zod, actualiza en sitio el layout actual y sube `version` en 1. Si `version` no coincide → 409 ("otro usuario guardó cambios; recarga"). Si no existe layout, lo crea con versión 1.
+- Usa el JWT del usuario, así que RLS decide: propietario y editor guardan, lector solo lee (la UI desactiva edición para lectores). No hace falta migración: las políticas de `layouts` ya existen.
+
+### 20.4 Robots paramétricos (`packages/domain/src/robot-model.ts`)
+
+Funciones puras que, a partir de `robot_specs`, devuelven una cadena de eslabones (longitudes, ejes de giro, límites) que el lienzo dibuja con cilindros y cajas.
+
+- **Datos de ficha usados**: `reach_mm` (o `workspace_diameter_mm`), `axis_limits` (rango y unidad por eje), `axes_count`, `payload_kg`.
+- **Proporciones de eslabones**: no se publican en las fichas. Se usan proporciones fijas por familia (ej. serie de 6 ejes: altura de hombro 0.35·R, brazo 0.45·R, antebrazo 0.45·R, muñeca 0.10·R, ajustadas para que el alcance máximo sea exactamente R). Son un supuesto de visualización, documentado en el código y en la UI.
+- **Serie (6 ejes, cobots, pintura)**: base, hombro, brazo, antebrazo, muñeca y herramienta.
+- **4 ejes de paletizado (IRB 460/660)**: cadena serie con la muñeca forzada a horizontal (simula el paralelogramo).
+- **Delta (IRB 360)**: base hexagonal en altura, tres brazos y plataforma; la plataforma se mueve dentro de un cilindro de diámetro `workspace_diameter_mm` (la altura del volumen no se publica: se dibuja como disco y se avisa).
+- **SCARA invertido (IRB 910INV)**: montado en techo, dos brazos horizontales (R repartido 50/50), eje 3 lineal con carrera de la ficha (mm), eje 4 de giro.
+- **Sin ejes publicados (IRB 5500)**: se dibuja un bloque con su alcance, sin sliders, con la advertencia "ejes no publicados".
+- **Sliders por eje**: limitados a `[min, max]` de la ficha. Si un eje no tiene rango publicado, el slider queda desactivado con "rango no publicado".
+- **Envolvente**: esfera de radio R centrada en el hombro (serie y 4 ejes), cilindro (delta), anillo con altura igual a la carrera (SCARA). Semitransparente, se activa por robot.
+- Rótulo fijo en el lienzo: "Representación simplificada generada desde la ficha técnica. No es el CAD real".
+
+### 20.5 Objetos paramétricos
+
+- **Pallets**: EUR 1200×800, GMA 1219×1016, 1200×1000 (dimensiones de `presets.json`) y personalizado. La altura solo está publicada para EUR (144 mm); para los demás el campo empieza vacío y se debe capturar (se marca "altura no publicada"). Ver pregunta 2.
+- **Cajas** (con masa opcional), **mesas** y **bandas transportadoras**: medidas editables en mm.
+- Todos se colocan sobre el piso o encima de otro objeto (`elevation`).
+
+### 20.6 Interacción
+
+- Panel izquierdo: lista de objetos y botón "Añadir" (robot desde el catálogo con buscador, o tipo de objeto).
+- Lienzo: piso con cuadrícula de 100 mm / 1 m, cámara orbital, clic para seleccionar (contorno resaltado), gizmo para mover sobre el piso y girar sobre Z, con ajuste opcional a la cuadrícula.
+- Panel derecho del objeto seleccionado: nombre, posición, giro, color, medidas, "atendido por" (robot), sliders de ejes y casilla de envolvente.
+- Barra superior: Guardar (con estado "cambios sin guardar"), deshacer simple, contador de advertencias.
+
+### 20.7 Validaciones (`packages/domain/src/validate.ts`, puras)
+
+- **Alcance**: para cada objeto con `served_by`, distancia horizontal y vertical desde el centro de la envolvente del robot al punto más cercano de la cara superior del objeto. Si supera R → "Pallet 1 fuera del alcance de IRB 1300-7/1.4 (excede 230 mm)". Delta y SCARA usan su envolvente propia. Con alcance no publicado → aviso "no se puede validar".
+- **Carga**: cajas con `served_by` y `mass_kg` > `payload_kg` → advertencia. Masa o carga desconocida → aviso informativo. Solo se compara el valor nominal (sin curva de carga).
+- **Colisiones (AABB)**: cajas delimitadoras alineadas a los ejes del mundo, calculadas con la rotación de cada objeto. Para robots se usa la base (huella) y no el brazo. Contacto exacto (apoyado encima) no cuenta. Se informan los pares que se solapan.
+- Panel de advertencias visible y objetos implicados resaltados en ámbar.
+
+### 20.8 Tests
+
+- Dominio: alcance (dentro, fuera, borde, alcance null, delta y SCARA), carga (bajo, sobre, desconocida), AABB (solapado, tocándose, separado, con rotación de 90°), validación Zod de escenas, generación de cadenas por familia y límites de sliders.
+- API: GET/PUT de layout, 409 por versión, 400 por escena inválida, 403 a lector.
+- RLS: editor guarda layout, lector no, extraño no lo ve.
+
+### 20.9 Decisiones confirmadas
+
+1. Proporciones fijas por familia, marcadas en la UI como "supuesto visual".
+2. Altura de pallets GMA y 1200×1000 vacía y obligatoria; la ayuda "EUR publicado: 144 mm" no se guarda.
+3. Los componentes se cargan ya en el seed, sin UI.
+
+### 20.10 Preguntas originales
+
+1. **Proporciones de eslabones**: como las fichas no publican longitudes de eslabón, ¿aceptas proporciones fijas por familia, marcadas como supuesto visual?
+2. **Altura de pallets GMA y 1200×1000**: no está publicada en `presets.json`. ¿Campo vacío obligatorio (propuesta) o un valor por defecto editable marcado como supuesto?
+3. **Componentes**: ¿los cargo ya en el seed (sin UI) o los dejo para cuando haya objetos de catálogo en el lienzo?

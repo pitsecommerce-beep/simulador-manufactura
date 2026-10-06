@@ -65,12 +65,26 @@ __pycache__/
 *.stp.gz
 
 # Carpetas de catálogo: solo se versionan la documentación y los ejemplos sintéticos
+# Excepción: metadatos JSON (cifras de ficha, fuentes y términos). check-no-cad lo verifica.
 /catalog/*
 !/catalog/README.md
 !/catalog/examples/
+!/catalog/manifest.json
+!/catalog/*/
+/catalog/*/*
+!/catalog/*/specs.json
+!/catalog/*/source.json
 /catalog_components/*
 !/catalog_components/README.md
 !/catalog_components/examples/
+!/catalog_components/manifest_components.json
+!/catalog_components/*/
+/catalog_components/*/*
+!/catalog_components/*/*/
+/catalog_components/*/*/*
+!/catalog_components/*/*/specs.json
+!/catalog_components/*/*/source.json
+!/catalog_components/standards/presets.json
 # Datasheets y planos de fabricante tampoco se versionan
 /catalog/**/*.pdf
 /catalog_components/**/*.pdf

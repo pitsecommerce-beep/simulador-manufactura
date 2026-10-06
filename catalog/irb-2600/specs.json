@@ -1,0 +1,272 @@
+{
+  "robot_id": "irb-2600",
+  "name": "IRB 2600",
+  "family": "Articulated / medium (OmniCore)",
+  "typical_application": "Uso general, manipulación, soldadura, carga de máquinas",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/medium-robots/irb-2600",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -95,
+          "range_max": 155,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -180,
+          "range_max": 75,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -120,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "mounting": [
+        "floor",
+        "wall",
+        "shelf",
+        "tilted",
+        "inverted"
+      ],
+      "ip_rating": "IP67 estándar; Foundry Plus 2 opcional",
+      "controller": "OmniCore V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 2600-20/1.65",
+      "robot_id": "irb-2600-20-1-65",
+      "axes": 6,
+      "reach_mm": 1650,
+      "payload_kg": 20,
+      "robot_weight_kg": 272,
+      "repeatability": {
+        "pose_repeatability_mm": 0.04,
+        "path_repeatability_mm": 0.13,
+        "standard": "ISO 9283"
+      },
+      "armload_kg": null
+    },
+    {
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -95,
+          "range_max": 155,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -180,
+          "range_max": 75,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -120,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "mounting": [
+        "floor",
+        "wall",
+        "shelf",
+        "tilted",
+        "inverted"
+      ],
+      "ip_rating": "IP67 estándar; Foundry Plus 2 opcional",
+      "controller": "OmniCore V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 2600-12/1.65",
+      "robot_id": "irb-2600-12-1-65",
+      "axes": 6,
+      "reach_mm": 1650,
+      "payload_kg": 12,
+      "robot_weight_kg": 272,
+      "repeatability": {
+        "pose_repeatability_mm": 0.04,
+        "path_repeatability_mm": 0.14,
+        "standard": "ISO 9283"
+      },
+      "armload_kg": null
+    },
+    {
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -95,
+          "range_max": 155,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -180,
+          "range_max": 75,
+          "range_unit": "deg",
+          "max_speed": 175,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -120,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "mounting": [
+        "floor",
+        "wall",
+        "shelf",
+        "tilted",
+        "inverted"
+      ],
+      "ip_rating": "IP67 estándar; Foundry Plus 2 opcional",
+      "controller": "OmniCore V250XT, V400XT",
+      "cycle_times": [],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Movement / Physical"
+        }
+      },
+      "variant": "IRB 2600-12/1.85",
+      "robot_id": "irb-2600-12-1-85",
+      "axes": 6,
+      "reach_mm": 1850,
+      "payload_kg": 12,
+      "robot_weight_kg": 284,
+      "repeatability": {
+        "pose_repeatability_mm": 0.04,
+        "path_repeatability_mm": 0.16,
+        "standard": "ISO 9283"
+      },
+      "armload_kg": null
+    }
+  ],
+  "notes": [
+    "Rangos de eje comunes a las tres variantes (eje 4 max rev +/-251, eje 6 max rev +/-274).",
+    "Los STEP descargados (Type C 12-165 y 20-165, rev00, 2019) son de generación IRC5, mientras la ficha y la Product Specification son de OmniCore. Verificar equivalencia geométrica.",
+    "El datasheet en ABB Library viene dentro de un ZIP (ROB0142EN_B); se extrajo el PDF."
+  ],
+  "manual": {
+    "doc_id": "3HAC035504-001",
+    "revision": "AL",
+    "doc_date": "2026-09-15",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC035504-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 5
+}

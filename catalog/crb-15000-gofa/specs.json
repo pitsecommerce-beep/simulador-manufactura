@@ -1,0 +1,294 @@
+{
+  "robot_id": "crb-15000-gofa",
+  "name": "GoFa CRB 15000",
+  "family": "Collaborative",
+  "typical_application": "Cobot para ensamble, atornillado, manipulación, carga de máquinas",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/collaborative-robots/gofa",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "any angle (mesa, pared, techo)"
+      ],
+      "controller": "OmniCore C30",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_ip_controller_mounting": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Specification"
+        },
+        "performance": {
+          "file": "datasheet.pdf",
+          "page": 4,
+          "section": "Performance"
+        },
+        "weight_axes": {
+          "file": "datasheet.pdf",
+          "page": 4,
+          "section": "Physical / Movement"
+        }
+      },
+      "variant": "GoFa 5 (CRB 15000-5/0.95)",
+      "robot_id": "crb-15000-5-0-95",
+      "axes": 6,
+      "reach_mm": 950,
+      "payload_kg": 5,
+      "armload_kg": 1,
+      "robot_weight_kg": 28,
+      "ip_rating": "IP54",
+      "repeatability": {
+        "pose_repeatability_mm": 0.02,
+        "path_accuracy_mm": 0.03,
+        "standard": null
+      },
+      "max_tcp_speed_m_s": 2.2,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 125,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 125,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -225,
+          "range_max": 85,
+          "range_unit": "deg",
+          "max_speed": 140,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -270,
+          "range_max": 270,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        }
+      ]
+    },
+    {
+      "mounting": [
+        "any angle (mesa, pared, techo)"
+      ],
+      "controller": "OmniCore C30",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_ip_controller_mounting": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Specification"
+        },
+        "performance": {
+          "file": "datasheet.pdf",
+          "page": 4,
+          "section": "Performance"
+        },
+        "weight_axes": {
+          "file": "datasheet.pdf",
+          "page": 4,
+          "section": "Physical / Movement"
+        }
+      },
+      "variant": "GoFa 12 (CRB 15000-12/1.27)",
+      "robot_id": "crb-15000-12-1-27",
+      "axes": 6,
+      "reach_mm": 1270,
+      "payload_kg": 12,
+      "payload_note": "el datasheet imprime \"up to 14kg*\"; el ID del CAD usa 12",
+      "armload_kg": 1,
+      "robot_weight_kg": 48,
+      "ip_rating": "IP67",
+      "repeatability": {
+        "pose_repeatability_mm": 0.02,
+        "path_accuracy_mm": 0.03,
+        "standard": null
+      },
+      "max_tcp_speed_m_s": 2.0,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -270,
+          "range_max": 270,
+          "range_unit": "deg",
+          "max_speed": 120,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 120,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -225,
+          "range_max": 85,
+          "range_unit": "deg",
+          "max_speed": 125,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -270,
+          "range_max": 270,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        }
+      ]
+    },
+    {
+      "mounting": [
+        "any angle (mesa, pared, techo)"
+      ],
+      "controller": "OmniCore C30",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_ip_controller_mounting": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Specification"
+        },
+        "performance": {
+          "file": "datasheet.pdf",
+          "page": 4,
+          "section": "Performance"
+        },
+        "weight_axes": {
+          "file": "datasheet.pdf",
+          "page": 4,
+          "section": "Physical / Movement"
+        }
+      },
+      "variant": "GoFa 10 (CRB 15000-10/1.52)",
+      "robot_id": "crb-15000-10-1-52",
+      "axes": 6,
+      "reach_mm": 1520,
+      "payload_kg": 10,
+      "payload_note": "el datasheet imprime \"up to 12kg*\"; el ID del CAD usa 10",
+      "armload_kg": 1,
+      "robot_weight_kg": 51,
+      "ip_rating": "IP67",
+      "repeatability": {
+        "pose_repeatability_mm": 0.02,
+        "path_accuracy_mm": 0.03,
+        "standard": null
+      },
+      "max_tcp_speed_m_s": 2.0,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -270,
+          "range_max": 270,
+          "range_unit": "deg",
+          "max_speed": 120,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 120,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -225,
+          "range_max": 85,
+          "range_unit": "deg",
+          "max_speed": 125,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -270,
+          "range_max": 270,
+          "range_unit": "deg",
+          "max_speed": 200,
+          "speed_unit": "deg/s"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "El datasheet lista GoFa 5, 12 y 10; los CAD/planos descargados son de 12-127 y 10-152 (no hay CAD de 5 kg en el listado público).",
+    "Alcance dado en muñeca (wrist); en brida: 1050/1370/1620 mm."
+  ],
+  "manual": {
+    "doc_id": "3HAC077389-001",
+    "revision": "X",
+    "doc_date": "2026-05-11",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC077389-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 3
+}

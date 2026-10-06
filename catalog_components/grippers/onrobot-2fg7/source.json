@@ -1,0 +1,26 @@
+{
+  "component_id": "onrobot-2fg7",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "product datasheet",
+      "title": "Datasheet 2FG7 v2.0",
+      "url": "https://onrobot.com/storage/datasheets/2fg7/datasheet_2fg7_v2.0_en.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "261c025c26c3dad4f1af2be3550407af35e7bbc90f61b3903e9bf3539648b463",
+      "size_bytes": 822726,
+      "license_terms": "Public download without login. No license text shown next to the file. Terms of the OnRobot site not reviewed."
+    },
+    {
+      "path": "cad/2FG7_v1.STEP",
+      "kind": "STEP",
+      "title": "2FG7_v1.STEP",
+      "url": null,
+      "accessed_at": "2026-09-30",
+      "sha256": "4aa791f431604588d854fa8f591002dbaf48fd7448c9eebe7b83533397d8aacd",
+      "size_bytes": 9198992,
+      "license_terms": "Public download without login. No license text shown next to the file. Terms of the OnRobot site not reviewed.",
+      "note": "Offered at https://df.onrobot.com (Downloads > Product > 2FG7 > Drawing). Exact URL not captured."
+    }
+  ]
+}

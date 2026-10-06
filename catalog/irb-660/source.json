@@ -1,0 +1,88 @@
+{
+  "robot_id": "irb-660",
+  "name": "IRB 660",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/large-robots/irb-660",
+  "library_page": "https://library.abb.com/r?cid=9AAC210848",
+  "library_category_id": "9AAC210848",
+  "accessed_at": "2026-09-30T16:29:54Z",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "datasheet",
+      "doc_id": "9AKK107046A8172",
+      "revision": "M",
+      "doc_date": "2025-05-14",
+      "title": "IRB 660 data sheet, PDF",
+      "url": "https://search.abb.com/library/Download.aspx?DocumentID=9AKK107046A8172&LanguageCode=en&DocumentPartId=&Action=Launch",
+      "library_page": "https://library.abb.com/r?cid=9AAC210848",
+      "accessed_at": "2026-09-30T16:29:54Z",
+      "original_filename": "IRB_660_20251405_RR_V1.pdf",
+      "sha256": "109ec7730966d96be4388770b85c0270c8cbe3ec681a752deb07ece1f9f7aebb",
+      "size_bytes": 422112,
+      "license_terms": "Documento clasificado PÚBLICO (ExternalPublic) en ABB Library, descargable sin inicio de sesión. Junto a la descarga no aparece texto de licencia; el pie de library.abb.com solo muestra un enlace \"Términos y condiciones\" sin URL directa expuesta. Los PDF incluyen aviso de copyright de ABB con derechos reservados y prohibición de reproducir o divulgar sin consentimiento previo por escrito. Uso comercial/redistribución de CAD: pendiente de validar con ABB."
+    },
+    {
+      "path": "product_specification.pdf",
+      "kind": "product_specification",
+      "doc_id": "3HAC081955-001",
+      "revision": "J",
+      "doc_date": "2026-09-22",
+      "title": "IRB 660 for OmniCore, Product specification",
+      "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC081955-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+      "library_page": "https://library.abb.com/r?cid=9AAC210848",
+      "accessed_at": "2026-09-30T16:29:54Z",
+      "original_filename": "3HAC081955 PS IRB 660 on OmniCore-en.pdf",
+      "sha256": "a561df80bc96819745c60cb5904056a3934256a4d69d4432f102a612c4d68678",
+      "size_bytes": 2961083,
+      "license_terms": "Documento clasificado PÚBLICO (ExternalPublic) en ABB Library, descargable sin inicio de sesión. Junto a la descarga no aparece texto de licencia; el pie de library.abb.com solo muestra un enlace \"Términos y condiciones\" sin URL directa expuesta. Los PDF incluyen aviso de copyright de ABB con derechos reservados y prohibición de reproducir o divulgar sin consentimiento previo por escrito. Uso comercial/redistribución de CAD: pendiente de validar con ABB."
+    },
+    {
+      "path": "cad/9AKK106930A3557_STEP-IRB-660-180-315-rev03.zip",
+      "kind": "cad_step",
+      "doc_id": "9AKK106930A3557",
+      "revision": "D",
+      "doc_date": "2016-12-14",
+      "title": "CAD Model, STEP, IRB 660, 180-315, rev03",
+      "url": "https://search.abb.com/library/Download.aspx?DocumentID=9AKK106930A3557&LanguageCode=en&DocumentPartId=&Action=Launch",
+      "library_page": "https://library.abb.com/r?cid=9AAC210848",
+      "accessed_at": "2026-09-30T16:29:54Z",
+      "original_filename": "IRB660_180-315_IRC5_rev03_STEP_j/",
+      "sha256": "2ea6f4b3c4cccb50b6d3cf5970da274af0c0818f5521302e94f0ff1dd0e465d8",
+      "size_bytes": 1471244,
+      "license_terms": "Documento clasificado PÚBLICO (ExternalPublic) en ABB Library, descargable sin inicio de sesión. Junto a la descarga no aparece texto de licencia; el pie de library.abb.com solo muestra un enlace \"Términos y condiciones\" sin URL directa expuesta. Los PDF incluyen aviso de copyright de ABB con derechos reservados y prohibición de reproducir o divulgar sin consentimiento previo por escrito. Uso comercial/redistribución de CAD: pendiente de validar con ABB.",
+      "format": "STEP",
+      "granularity": "no especificado",
+      "zip_first_entry": "IRB660_180-315_IRC5_rev03_STEP_j/"
+    },
+    {
+      "path": "drawings/9AKK106930A0537_DXF-DWG-IRB-660-M2004-rev03.zip",
+      "kind": "drawing_dwg_dxf",
+      "doc_id": "9AKK106930A0537",
+      "revision": "-",
+      "doc_date": "2016-09-01",
+      "title": "CAD Model, DXF/DWG, IRB 660, M2004, rev03",
+      "url": "https://search.abb.com/library/Download.aspx?DocumentID=9AKK106930A0537&LanguageCode=en&DocumentPartId=&Action=Launch",
+      "library_page": "https://library.abb.com/r?cid=9AAC210848",
+      "accessed_at": "2026-09-30T16:29:54Z",
+      "original_filename": "irb660_-_m2004_02_dxfdwg_c/",
+      "sha256": "7469bbf0d391732c011079c69bb1ea760d207b63ca5c4ff04f18bbd2e5ec03d1",
+      "size_bytes": 10681183,
+      "license_terms": "Documento clasificado PÚBLICO (ExternalPublic) en ABB Library, descargable sin inicio de sesión. Junto a la descarga no aparece texto de licencia; el pie de library.abb.com solo muestra un enlace \"Términos y condiciones\" sin URL directa expuesta. Los PDF incluyen aviso de copyright de ABB con derechos reservados y prohibición de reproducir o divulgar sin consentimiento previo por escrito. Uso comercial/redistribución de CAD: pendiente de validar con ABB.",
+      "format": "DWG/DXF",
+      "granularity": null,
+      "zip_first_entry": "irb660_-_m2004_02_dxfdwg_c/"
+    }
+  ],
+  "manual": {
+    "doc_id": "3HAC025755-001",
+    "revision": "AL",
+    "doc_date": "2026-06-01",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC025755-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "not_downloaded": {
+    "sim_models_processsimulate": 1,
+    "other_cad_formats": "SAT/ACIS, IGES, Parasolid, VDA, VRML, STL, SolidWorks y modelos RobCad/V5 disponibles en ABB Library según robot; no descargados"
+  }
+}

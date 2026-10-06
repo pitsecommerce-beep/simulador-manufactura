@@ -1,0 +1,59 @@
+{
+  "robot_id": "irb-5500-25",
+  "name": "IRB 5500-25 Elevated Rail",
+  "family": "Paint",
+  "typical_application": "Pintura automotriz (riel elevado para IRB 5500 FlexPainter)",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/paint-robots/irb-5500-25",
+  "extracted_from": [
+    "datasheet.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "controller": null,
+      "cycle_times": [
+        {
+          "condition": "hasta 10% menos de ciclo con riel elevado (texto de marketing)",
+          "value_s": null
+        }
+      ],
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Technical data"
+        }
+      },
+      "variant": "IRB 5500-25 con Elevated Rail",
+      "robot_id": "irb-5500-25-elevated-rail",
+      "axes": null,
+      "reach_mm": 2975,
+      "payload_kg": 13,
+      "payload_note": "13 kg a 350 mm COG",
+      "robot_weight_kg": 600,
+      "repeatability": {
+        "robot_accuracy_tcp_mm": 0.15,
+        "trolley_mm": 0.3,
+        "standard": null
+      },
+      "axis_data": null,
+      "ip_rating": "IP67 estándar (Ex zona 1)",
+      "mounting": [
+        "floor o elevated (robot: tilted, upright, inverted)"
+      ],
+      "extra": {
+        "rail_axis7_speed_m_s": 1.4,
+        "trolley_weight_kg": 370,
+        "rail_element_weight_kg_per_m": 380
+      },
+      "armload_kg": null
+    }
+  ],
+  "notes": [
+    "El único documento público de la categoría es el datasheet del Elevated Rail y un STEP del riel (1.5 m); no hay CAD del robot IRB 5500 ahí. Para pintura conviene revisar IRB 5510/5350 u otra categoría.",
+    "Datos del robot (ejes, rangos, velocidades) no aparecen en este documento: null."
+  ],
+  "manual": null,
+  "sim_models_processsimulate_available_not_downloaded": 0
+}

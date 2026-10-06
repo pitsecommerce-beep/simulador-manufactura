@@ -7,6 +7,7 @@ import { httpError } from './errors.ts';
 import { AuthError, bearerToken, type AuthUser, type TokenVerifier } from './auth.ts';
 import type { SystemRepo, UserRepo } from './repo.ts';
 import { RepoError } from './repo.ts';
+import { catalogRoutes } from './routes/catalog.ts';
 import { healthRoutes } from './routes/health.ts';
 import { meRoutes } from './routes/me.ts';
 import { projectRoutes } from './routes/projects.ts';
@@ -94,5 +95,6 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(healthRoutes);
   await app.register(meRoutes, { prefix: '/v1' });
   await app.register(projectRoutes, { prefix: '/v1' });
+  await app.register(catalogRoutes, { prefix: '/v1' });
   return app;
 }

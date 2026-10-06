@@ -1,0 +1,15 @@
+{
+  "component_id": "onrobot-vgc10",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "product datasheet",
+      "title": "Datasheet VGC10 v1.7",
+      "url": "https://onrobot.com/storage/datasheets/vgc10/datasheet_vgc10_v1.7_en.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "f4fe1ea417f68497584db99acbd7136eb03ca5cb5c4e61bef7c16b8fe3e5af60",
+      "size_bytes": 1658627,
+      "license_terms": "Public download without login. No license text shown next to the file. Terms of the OnRobot site not reviewed."
+    }
+  ]
+}

@@ -1,0 +1,628 @@
+{
+  "generated_at": "2026-09-30T16:29:54Z",
+  "root": "~/Desktop/Robots/catalog",
+  "source_site": "https://www.abb.com/global/en/areas/robotics/products/robots",
+  "download_portal": "https://library.abb.com (ABB Library)",
+  "robots": [
+    {
+      "robot_id": "irb-1010",
+      "name": "IRB 1010",
+      "family": "Articulated (small)",
+      "application": "Ensamble compacto (sustituto de IRB 120)",
+      "status": "ok",
+      "variants": [
+        "IRB 1010-1.5/0.37"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 2,
+        "drawing_files": 1
+      },
+      "size_bytes": 26082903,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/small-robots/irb-1010",
+      "notes": [
+        "Datasheet lista una sola variante (1.5 kg / 0.37 m)."
+      ]
+    },
+    {
+      "robot_id": "irb-1100",
+      "name": "IRB 1100",
+      "family": "Articulated (small)",
+      "application": "Ensamble/manipulación compacta alta velocidad",
+      "status": "ok",
+      "variants": [
+        "IRB 1100-4/0.475",
+        "IRB 1100-4/0.58"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 4,
+        "drawing_files": 1
+      },
+      "size_bytes": 104210615,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/small-robots/irb-1100",
+      "notes": [
+        "Peso 21 kg publicado para IRB 1100 (ambas variantes)."
+      ]
+    },
+    {
+      "robot_id": "irb-1200-gen2",
+      "name": "IRB 1200 Gen2 (Next Generation)",
+      "family": "Articulated (small)",
+      "application": "Manipulación pequeña (sustituto de IRB 1200 clásico)",
+      "status": "ok",
+      "variants": [
+        "IRB 1200-5/0.9 Gen2",
+        "IRB 1200-7/0.7 Gen2",
+        "IRB 1200-8/0.9 Gen2",
+        "IRB 1200-9/0.7 Gen2"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 8,
+        "drawing_files": 2
+      },
+      "size_bytes": 145113665,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/small-robots/irb-1200-next-generation",
+      "notes": [
+        "Existe también IRB 1200 Hygienic (no descargado en esta pasada).",
+        "Datasheet no publica armload ni tiempos de ciclo."
+      ]
+    },
+    {
+      "robot_id": "irb-1300",
+      "name": "IRB 1300",
+      "family": "Articulated (small)",
+      "application": "Manipulación pequeña/ensamble",
+      "status": "ok",
+      "variants": [
+        "IRB 1300-11/0.9",
+        "IRB 1300-10/1.15",
+        "IRB 1300-7/1.4",
+        "IRB 1300-12/1.4"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 6,
+        "drawing_files": 1
+      },
+      "size_bytes": 92800141,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/small-robots/irb-1300",
+      "notes": [
+        "La velocidad máxima de eje varía según controlador (el datasheet remite a la Product Specification).",
+        "Se descargaron solo los STEP de configuración STD (IP40/IP67/CleanRoom); existen también BTM y FoundryPlus."
+      ]
+    },
+    {
+      "robot_id": "irb-1600",
+      "name": "IRB 1600",
+      "family": "Articulated (medium)",
+      "application": "Uso general, carga/descarga de máquinas",
+      "status": "ok",
+      "variants": [
+        "IRB 1600-6/1.2",
+        "IRB 1600-6/1.45",
+        "IRB 1600-10/1.2",
+        "IRB 1600-10/1.45"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 4,
+        "drawing_files": 2
+      },
+      "size_bytes": 31730877,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/medium-robots/irb-1600",
+      "notes": [
+        "Robot weight 250 kg (una cifra para todas las variantes). Eje 4 por defecto +/-200 (max rev +/-190); eje 6 por defecto +/-400 (max rev +/-288).",
+        "Eje 2: hasta +136 (1.2 m) con eje 1 limitado a +/-100, y hasta +150 (1.45 m) con eje 1 limitado a +/-95 (notas del datasheet).",
+        "Las velocidades de eje se publican por grupo de carga (6 kg / 10 kg), no por alcance."
+      ]
+    },
+    {
+      "robot_id": "irb-2600",
+      "name": "IRB 2600",
+      "family": "Articulated (medium)",
+      "application": "Uso general",
+      "status": "ok",
+      "variants": [
+        "IRB 2600-20/1.65",
+        "IRB 2600-12/1.65",
+        "IRB 2600-12/1.85"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 2,
+        "drawing_files": 1
+      },
+      "size_bytes": 45083483,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/medium-robots/irb-2600",
+      "notes": [
+        "Rangos de eje comunes a las tres variantes (eje 4 max rev +/-251, eje 6 max rev +/-274).",
+        "Los STEP descargados (Type C 12-165 y 20-165, rev00, 2019) son de generación IRC5, mientras la ficha y la Product Specification son de OmniCore. Verificar equivalencia geométrica.",
+        "El datasheet en ABB Library viene dentro de un ZIP (ROB0142EN_B); se extrajo el PDF."
+      ]
+    },
+    {
+      "robot_id": "irb-4600",
+      "name": "IRB 4600",
+      "family": "Articulated (medium)",
+      "application": "Carga media, manipulación",
+      "status": "ok",
+      "variants": [
+        "IRB 4600-60/2.05",
+        "IRB 4600-45/2.05",
+        "IRB 4600-40/2.55",
+        "IRB 4600-20/2.50"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 1,
+        "drawing_files": 1
+      },
+      "size_bytes": 34681911,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/medium-robots/irb-4600",
+      "notes": [
+        "Path repeatability medida a 250 mm/s (nota del datasheet).",
+        "Eje 5 de 20/2.50: +/-120. Los STEP descargados corresponden a IRB 4600-60/2.05 (60-205, rev06)."
+      ]
+    },
+    {
+      "robot_id": "irb-6710",
+      "name": "IRB 6710",
+      "family": "Articulated (large)",
+      "application": "Carga pesada (sustituto de IRB 6700)",
+      "status": "ok",
+      "variants": [
+        "IRB 6710-210/2.65",
+        "IRB 6710-200/2.95",
+        "IRB 6710-175/2.65 LID",
+        "IRB 6710-175/2.95 LID"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 4,
+        "drawing_files": 0
+      },
+      "size_bytes": 111518676,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/large-robots/irb-6710",
+      "notes": [
+        "Datasheet compartido por IRB 6710, 6720, 6730 y 6740; solo se extrajeron las variantes IRB 6710.",
+        "Repeatability de las variantes LID no aparece en las filas leídas del datasheet: null.",
+        "Eje 1 lleva asterisco en el datasheet (nota sobre el rango)."
+      ]
+    },
+    {
+      "robot_id": "irb-460",
+      "name": "IRB 460",
+      "family": "Palletizing 4-axis",
+      "application": "Paletizado",
+      "status": "ok",
+      "variants": [
+        "IRB 460-110/2.4"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 2,
+        "drawing_files": 1
+      },
+      "size_bytes": 23823912,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/medium-robots/irb-460",
+      "notes": [
+        "Los STEP disponibles son de generación IRC5 (rev01, 2022); hay además un STEP-Parasolid de placa de conexión (no descargado)."
+      ]
+    },
+    {
+      "robot_id": "irb-660",
+      "name": "IRB 660",
+      "family": "Palletizing 4-axis",
+      "application": "Paletizado y empaque",
+      "status": "ok",
+      "variants": [
+        "IRB 660-180/3.15",
+        "IRB 660-250/3.15"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 1,
+        "drawing_files": 1
+      },
+      "size_bytes": 15535622,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/large-robots/irb-660",
+      "notes": [
+        "Los STEP disponibles (180-315, rev03, 2016) corresponden a la variante 180/3.15; 250/3.15 no tiene STEP propio en el listado.",
+        "La asignación de velocidades 130/95 y 300/240 a 180/3.15 y 250/3.15 sigue el orden de columnas del datasheet."
+      ]
+    },
+    {
+      "robot_id": "irb-360",
+      "name": "IRB 360 FlexPicker",
+      "family": "Delta",
+      "application": "Pick-and-place empaque",
+      "status": "ok",
+      "variants": [
+        "IRB 360-1/1130",
+        "IRB 360-3/1130",
+        "IRB 360-1/1600",
+        "IRB 360-6/1600",
+        "IRB 360-8/1130"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 2,
+        "drawing_files": 1
+      },
+      "size_bytes": 31995166,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/delta-robots/irb-360",
+      "notes": [
+        "Robot delta: no hay rangos de eje articulares; se publica diámetro de espacio de trabajo.",
+        "Peso 120 kg (estándar y wash-down), 145 kg (acero inoxidable).",
+        "STEP disponibles: rev05 para 6-1600 y 8-1130 (STD-4D). No hay STEP por variante para 1/1130, 3/1130 ni 1/1600.",
+        "Los valores de la tabla de ciclos salen del layout del PDF (mapping_uncertain=true); verificar en el PDF p.2."
+      ]
+    },
+    {
+      "robot_id": "irb-910inv",
+      "name": "IRB 910INV",
+      "family": "SCARA (invertido)",
+      "application": "Ensamble/manipulación (sustituto de IRB 910SC)",
+      "status": "ok",
+      "variants": [
+        "IRB 910INV-3/0.35",
+        "IRB 910INV-6/0.55"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 4,
+        "drawing_files": 1
+      },
+      "size_bytes": 30076338,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/scara-robots/irb-910inv",
+      "notes": [
+        "Se descargó la versión IP54 CR (rev00, 2019); existe también versión estándar rev02 (2019).",
+        "La condición exacta del ciclo de 1 kg (recorrido) no se detalla en el texto extraído."
+      ]
+    },
+    {
+      "robot_id": "crb-15000-gofa",
+      "name": "GoFa CRB 15000",
+      "family": "Collaborative",
+      "application": "Cobot manipulación/ensamble",
+      "status": "ok",
+      "variants": [
+        "GoFa 5 (CRB 15000-5/0.95)",
+        "GoFa 12 (CRB 15000-12/1.27)",
+        "GoFa 10 (CRB 15000-10/1.52)"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": true,
+        "cad_step_files": 4,
+        "drawing_files": 2
+      },
+      "size_bytes": 26200701,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/collaborative-robots/gofa",
+      "notes": [
+        "El datasheet lista GoFa 5, 12 y 10; los CAD/planos descargados son de 12-127 y 10-152 (no hay CAD de 5 kg en el listado público).",
+        "Alcance dado en muñeca (wrist); en brida: 1050/1370/1620 mm."
+      ]
+    },
+    {
+      "robot_id": "irb-5500-25",
+      "name": "IRB 5500-25 Elevated Rail",
+      "family": "Paint",
+      "application": "Pintura",
+      "status": "partial",
+      "variants": [
+        "IRB 5500-25 con Elevated Rail"
+      ],
+      "downloaded": {
+        "datasheet": true,
+        "product_specification": false,
+        "cad_step_files": 1,
+        "drawing_files": 0
+      },
+      "size_bytes": 2245550,
+      "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/paint-robots/irb-5500-25",
+      "notes": [
+        "El único documento público de la categoría es el datasheet del Elevated Rail y un STEP del riel (1.5 m); no hay CAD del robot IRB 5500 ahí. Para pintura conviene revisar IRB 5510/5350 u otra categoría.",
+        "Datos del robot (ejes, rangos, velocidades) no aparecen en este documento: null."
+      ]
+    }
+  ],
+  "requested_vs_found": [
+    {
+      "requested": "IRB 120",
+      "result": "no aparece en el portafolio actual del sitio",
+      "substitute": "irb-1010"
+    },
+    {
+      "requested": "IRB 1100",
+      "result": "ok",
+      "substitute": null
+    },
+    {
+      "requested": "IRB 1200",
+      "result": "IRB 1200 clásico no aparece; se ofrece Gen2 (Next Generation) e Hygienic",
+      "substitute": "irb-1200-gen2 (Hygienic no descargado)"
+    },
+    {
+      "requested": "IRB 1300",
+      "result": "ok (solo STEP config STD)",
+      "substitute": null
+    },
+    {
+      "requested": "IRB 1600",
+      "result": "ok",
+      "substitute": null
+    },
+    {
+      "requested": "IRB 2600",
+      "result": "ok (STEP IRC5 2019)",
+      "substitute": null
+    },
+    {
+      "requested": "IRB 4600",
+      "result": "ok",
+      "substitute": null
+    },
+    {
+      "requested": "IRB 6700",
+      "result": "no aparece; línea actual IRB 6710/6720/6730/6740",
+      "substitute": "irb-6710"
+    },
+    {
+      "requested": "IRB 460",
+      "result": "ok",
+      "substitute": null
+    },
+    {
+      "requested": "IRB 660",
+      "result": "ok",
+      "substitute": null
+    },
+    {
+      "requested": "IRB 360 FlexPicker",
+      "result": "ok",
+      "substitute": null
+    },
+    {
+      "requested": "IRB 910SC",
+      "result": "no aparece; SCARA actuales: IRB 910INV, 920T, 930",
+      "substitute": "irb-910inv"
+    },
+    {
+      "requested": "GoFa CRB 15000",
+      "result": "ok (CAD de 12 kg y 10 kg; sin CAD de 5 kg)",
+      "substitute": null
+    },
+    {
+      "requested": "SWIFTI CRB 1100",
+      "result": "no aparece en el portafolio colaborativo actual (GoFa, YuMi, PoWa)",
+      "substitute": "ninguno descargado"
+    },
+    {
+      "requested": "Robot de pintura (IRB 52/5500)",
+      "result": "IRB 5500-25 Elevated Rail: solo datasheet del riel y STEP del riel; sin CAD del robot",
+      "substitute": "irb-5500-25 (parcial)"
+    }
+  ],
+  "notes": [
+    "Robots agrupados por familia; las variantes (robot_id por variante) están dentro de specs.json.",
+    "Solo se bajó lo marcado PÚBLICO en ABB Library. No se inició sesión ni se aceptaron términos.",
+    "No se descargaron manuales (solo versión y enlace en specs.json) ni modelos SAT/IGES/Parasolid/VRML/STL/SolidWorks ni SIM (ProcessSimulate/RobCad/V5).",
+    "Phase 2: 19 public datasheets and 1 STEP downloaded for third-party components; see catalog_components/REPORT.md"
+  ],
+  "total_size_bytes_downloaded": 721099560,
+  "components": [
+    {
+      "id": "schmalz-fqe-xc-10-01-44-00441",
+      "category": "grippers",
+      "manufacturer": "Schmalz",
+      "model": "FQE Xc 300x130 SW100 O20 (10.01.44.00441)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 210604
+    },
+    {
+      "id": "schmalz-spb2-40-10-01-06-03459",
+      "category": "grippers",
+      "manufacturer": "Schmalz",
+      "model": "SPB2 40 ED-65 G1/4-AG (10.01.06.03459)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 242788
+    },
+    {
+      "id": "onrobot-2fg7",
+      "category": "grippers",
+      "manufacturer": "OnRobot",
+      "model": "2FG7",
+      "datasheet": true,
+      "cad": "downloaded",
+      "bytes": 10021718
+    },
+    {
+      "id": "onrobot-vgc10",
+      "category": "grippers",
+      "manufacturer": "OnRobot",
+      "model": "VGC10",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 1658627
+    },
+    {
+      "id": "onrobot-vgp20",
+      "category": "grippers",
+      "manufacturer": "OnRobot",
+      "model": "VGP20",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 3149907
+    },
+    {
+      "id": "schunk-egp-40-n-n-b",
+      "category": "grippers",
+      "manufacturer": "SCHUNK",
+      "model": "EGP 40-N-N-B (ID 0310940)",
+      "datasheet": true,
+      "cad": "requires_login_or_not_checked",
+      "bytes": 1907983
+    },
+    {
+      "id": "interroll-rollerdrive-ec5000-50mm-ip54",
+      "category": "conveyors",
+      "manufacturer": "Interroll",
+      "model": "RollerDrive EC5000 o50 mm IP54",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 1095224
+    },
+    {
+      "id": "interroll-rollerdrive-ec5000-60mm-ip54",
+      "category": "conveyors",
+      "manufacturer": "Interroll",
+      "model": "RollerDrive EC5000 o60 mm IP54",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 1302158
+    },
+    {
+      "id": "dorner-2200-851-863a",
+      "category": "conveyors",
+      "manufacturer": "Dorner",
+      "model": "2200 Series conveyor (doc 851-863a)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 4514155
+    },
+    {
+      "id": "dorner-2200-modular-belt-851-873a",
+      "category": "conveyors",
+      "manufacturer": "Dorner",
+      "model": "2200 Series modular belt conveyor (doc 851-873a)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 3789712
+    },
+    {
+      "id": "sick-wll180t-e632",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "WLL180T-E632 (6050763)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 374206
+    },
+    {
+      "id": "sick-imb12-08npsvu2s",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "IMB12-08NPSVU2S (1072743)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 485118
+    },
+    {
+      "id": "sick-pbs-rb040sg1ssnbma0z",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "PBS-RB040SG1SSNBMA0Z (6038890)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 347031
+    },
+    {
+      "id": "sick-micros3-mics3-cbaz40za1",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "microScan3 MICS3-CBAZ40ZA1 (1069682)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 570882
+    },
+    {
+      "id": "sick-detec4-core-set-30-600",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "deTec4 Core Set 30/600 (1062911)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 649862
+    },
+    {
+      "id": "banner-q4x-190074",
+      "category": "sensors",
+      "manufacturer": "Banner Engineering",
+      "model": "Q4X stainless laser sensor, dual outputs and IO-Link (manual 190074)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 6548485
+    },
+    {
+      "id": "banner-qs18-63908",
+      "category": "sensors",
+      "manufacturer": "Banner Engineering",
+      "model": "WORLD-BEAM QS18 (manual 63908)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 775345
+    },
+    {
+      "id": "banner-ez-screen-ls-204120",
+      "category": "safety",
+      "manufacturer": "Banner Engineering",
+      "model": "EZ-SCREEN LS Basic (p/n 204120)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 9781490
+    },
+    {
+      "id": "troax-machine-guarding-brochure",
+      "category": "fences",
+      "manufacturer": "Troax",
+      "model": "Machine guarding brochure (panels, posts, doors)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 7919593
+    }
+  ],
+  "components_pending": [
+    {
+      "manufacturer": "Piab",
+      "reason": "CAD and per-article datasheets locked behind login (lock icon in CAD Center and Downloads tab)"
+    },
+    {
+      "manufacturer": "Cognex",
+      "reason": "In-Sight 2800 datasheet requires filling a registration form"
+    },
+    {
+      "manufacturer": "Keyence",
+      "reason": "GL-R catalog/datasheet/CAD require registration or sign-in"
+    },
+    {
+      "manufacturer": "Zimmer",
+      "reason": "No public datasheet or CAD link found on the GPP5000 product page"
+    },
+    {
+      "manufacturer": "Pilz / Bosch Rexroth / item",
+      "reason": "Not reached in this pass"
+    },
+    {
+      "manufacturer": "Schmalz, SICK",
+      "reason": "Datasheets downloaded; CAD goes through TraceParts or SICK CAD download, which need registration or were not opened"
+    }
+  ],
+  "components_size_bytes": 55344888
+}

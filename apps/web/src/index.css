@@ -53,3 +53,9 @@
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
 }
+
+@layer components {
+  .not-published {
+    @apply inline-flex items-center rounded-md border border-dashed border-slate-300 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 italic;
+  }
+}

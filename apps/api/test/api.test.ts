@@ -190,6 +190,176 @@ describe('límites y seguridad', () => {
   });
 });
 
+describe('layout del proyecto', () => {
+  const scene = {
+    schema: 1,
+    objects: [
+      {
+        id: 'p1',
+        name: 'Pallet 1',
+        kind: 'pallet',
+        position: [1000, 0],
+        elevation: 0,
+        rotation_deg: 0,
+        color: '#c08a4a',
+        served_by: null,
+        params: { preset: 'eur', length_mm: 1200, width_mm: 800, height_mm: 144 },
+      },
+    ],
+  };
+
+  async function setup() {
+    const { app, store } = await testApp();
+    const owner = randomUUID();
+    const editor = randomUUID();
+    const viewer = randomUUID();
+    const ownerToken = await signToken(owner);
+    const { project } = (
+      await app.inject({
+        method: 'POST',
+        url: '/v1/projects',
+        headers: auth(ownerToken),
+        payload: { name: 'P' },
+      })
+    ).json();
+    store.members.push(
+      { project_id: project.id, user_id: editor, role: 'editor' },
+      { project_id: project.id, user_id: viewer, role: 'viewer' },
+    );
+    const url = `/v1/projects/${project.id}/layout`;
+    const as = async (uid: string) => auth(await signToken(uid));
+    return { app, url, owner: await as(owner), editor: await as(editor), viewer: await as(viewer) };
+  }
+
+  it('sin layout devuelve una escena vacía; al guardar crea la versión 1', async () => {
+    const { app, url, owner } = await setup();
+    const empty = await app.inject({ method: 'GET', url, headers: owner });
+    expect(empty.json()).toEqual({
+      version: null,
+      scene: { schema: 1, objects: [] },
+      updated_at: null,
+    });
+    const saved = await app.inject({
+      method: 'PUT',
+      url,
+      headers: owner,
+      payload: { scene, version: null },
+    });
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json().version).toBe(1);
+    const loaded = await app.inject({ method: 'GET', url, headers: owner });
+    expect(loaded.json().scene.objects[0].name).toBe('Pallet 1');
+  });
+
+  it('el editor guarda; una versión desactualizada da 409', async () => {
+    const { app, url, owner, editor } = await setup();
+    await app.inject({ method: 'PUT', url, headers: owner, payload: { scene, version: null } });
+    const ok = await app.inject({
+      method: 'PUT',
+      url,
+      headers: editor,
+      payload: { scene, version: 1 },
+    });
+    expect(ok.json().version).toBe(2);
+    const stale = await app.inject({
+      method: 'PUT',
+      url,
+      headers: owner,
+      payload: { scene, version: 1 },
+    });
+    expect(stale.statusCode).toBe(409);
+    expect(stale.json().message).toMatch(/Recarga/);
+  });
+
+  it('el lector lee pero no guarda; un extraño no ve el proyecto', async () => {
+    const { app, url, viewer } = await setup();
+    expect((await app.inject({ method: 'GET', url, headers: viewer })).statusCode).toBe(200);
+    const res = await app.inject({
+      method: 'PUT',
+      url,
+      headers: viewer,
+      payload: { scene, version: null },
+    });
+    expect(res.statusCode).toBe(403);
+    const stranger = auth(await signToken(randomUUID()));
+    expect((await app.inject({ method: 'GET', url, headers: stranger })).statusCode).toBe(404);
+  });
+
+  it('rechaza escenas inválidas (pallet sin altura, medidas negativas)', async () => {
+    const { app, url, owner } = await setup();
+    const noHeight = structuredClone(scene);
+    delete (noHeight.objects[0]!.params as Record<string, unknown>).height_mm;
+    for (const bad of [
+      noHeight,
+      {
+        schema: 1,
+        objects: [{ ...scene.objects[0], params: { ...scene.objects[0]!.params, width_mm: -1 } }],
+      },
+      { schema: 2, objects: [] },
+    ]) {
+      const res = await app.inject({
+        method: 'PUT',
+        url,
+        headers: owner,
+        payload: { scene: bad, version: null },
+      });
+      expect(res.statusCode).toBe(400);
+    }
+  });
+});
+
+describe('catálogo', () => {
+  const get = async (url: string, withAuth = true) => {
+    const { app } = await testApp();
+    const headers = withAuth ? auth(await signToken(randomUUID())) : {};
+    return app.inject({ method: 'GET', url, headers });
+  };
+
+  it.each(['/v1/catalog/variants', '/v1/catalog/facets', '/v1/catalog/variants/irb-1300-7-1-4'])(
+    'exige sesión en %s',
+    async (url) => {
+      expect((await get(url, false)).statusCode).toBe(401);
+    },
+  );
+
+  it('lista y filtra variantes; los filtros numéricos excluyen datos no publicados', async () => {
+    const all = await get('/v1/catalog/variants');
+    expect(all.json().variants).toHaveLength(4);
+    const heavy = await get('/v1/catalog/variants?payload_min=5');
+    expect(heavy.json().variants.map((v: { slug: string }) => v.slug)).toEqual([
+      'irb-1300-7-1-4',
+      'irb-460-110-2-4',
+    ]);
+    const family = await get('/v1/catalog/variants?family=Delta');
+    expect(family.json().variants.map((v: { slug: string }) => v.slug)).toEqual(['irb-360-1-1130']);
+    // El delta no publica alcance: se filtra por su radio de trabajo (1130/2).
+    const reach = await get('/v1/catalog/variants?reach_max=600');
+    expect(reach.json().variants.map((v: { slug: string }) => v.slug)).toEqual(['irb-360-1-1130']);
+    const text = await get('/v1/catalog/variants?q=irb%20460');
+    expect(text.json().variants).toHaveLength(1);
+  });
+
+  it('rechaza filtros inválidos', async () => {
+    expect((await get('/v1/catalog/variants?payload_min=-3')).statusCode).toBe(400);
+  });
+
+  it('devuelve facetas', async () => {
+    const res = await get('/v1/catalog/facets');
+    expect(res.json()).toMatchObject({
+      families: ['Articulated (small)', 'Delta', 'Paint', 'Palletizing 4-axis'],
+      payload: { min: 1, max: 110 },
+    });
+  });
+
+  it('devuelve el detalle de una variante y 404 si no existe', async () => {
+    const ok = await get('/v1/catalog/variants/irb-1300-7-1-4');
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().variant.variant_code).toBe('IRB 1300-7/1.4');
+    expect((await get('/v1/catalog/variants/no-existe')).statusCode).toBe(404);
+    expect((await get('/v1/catalog/variants/NO_VALIDO')).statusCode).toBe(400);
+  });
+});
+
 describe('configuración', () => {
   it('falla con un mensaje claro si faltan variables', () => {
     expect(() => loadConfig({})).toThrow(/SUPABASE_URL/);

@@ -1,0 +1,29 @@
+{
+  "component_id": "dorner-2200-modular-belt-851-873a",
+  "manufacturer": "Dorner",
+  "model": "2200 Series modular belt conveyor (doc 851-873a)",
+  "category": "conveyors",
+  "type": "modular plastic belt conveyor",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "belt_widths_mm": [
+      102,
+      152,
+      203,
+      305,
+      457,
+      610
+    ],
+    "idrive_max_belt_speed_m_min": 27.4,
+    "load_kg": null,
+    "motor_voltage_v": null
+  },
+  "notes": [
+    "Load capacity not transcribed (null)."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "Dorner online configurator not used."
+  }
+}

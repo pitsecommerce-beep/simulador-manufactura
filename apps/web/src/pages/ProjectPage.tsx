@@ -1,8 +1,11 @@
 import type { MemberRole, Project, ProjectAccess, ProjectMember } from '@sim/domain';
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Message, Spinner } from '../components/ui';
 import { useApp } from '../lib/context';
+
+// El editor 3D (three.js) se descarga solo al abrir un proyecto.
+const LayoutEditor = lazy(() => import('../editor/LayoutEditor'));
 
 const ROLE_LABEL: Record<ProjectAccess, string> = {
   owner: 'Propietario',
@@ -80,9 +83,18 @@ export function ProjectPage() {
         )}
       </div>
 
-      <div className="flex h-56 items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white text-center text-sm text-slate-500">
-        El lienzo 3D y la simulación llegan en las fases 3 y 4.
-      </div>
+      <Suspense
+        fallback={
+          <p className="flex items-center gap-2 text-sm text-slate-500">
+            <Spinner /> Cargando editor…
+          </p>
+        }
+      >
+        <LayoutEditor
+          projectId={id}
+          canEdit={data.access === 'owner' || data.access === 'editor'}
+        />
+      </Suspense>
 
       <div className="card p-6">
         <h2 className="font-semibold">Miembros</h2>

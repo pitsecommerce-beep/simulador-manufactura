@@ -1,0 +1,15 @@
+{
+  "component_id": "troax-machine-guarding-brochure",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "brochure",
+      "title": "Brochure Machine guarding EN",
+      "url": "https://www.troax.com/app/uploads/Brochure-Machine-guarding_EN-1.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "c1c668effa08bb7aeb73ca76e15d86a51d4fe9b9206a3be4702db7be240bffe3",
+      "size_bytes": 7919593,
+      "license_terms": "Public link. No license text shown next to the file. Terms not reviewed."
+    }
+  ]
+}
