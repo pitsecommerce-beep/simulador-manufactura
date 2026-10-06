@@ -15,7 +15,8 @@
     "build": "pnpm -r build",
     "dev:api": "pnpm --filter @sim/api dev",
     "dev:web": "pnpm --filter @sim/web dev",
-    "db:migrate": "pnpm --filter @sim/db migrate"
+    "db:migrate": "pnpm --filter @sim/db migrate",
+    "db:sql": "pnpm --filter @sim/db sql"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

@@ -17,10 +17,7 @@ FROM base
 ENV NODE_ENV=production
 COPY --from=deps /app /app
 COPY packages/domain/src packages/domain/src
-COPY packages/db/src packages/db/src
-COPY supabase/migrations supabase/migrations
 COPY apps/api/src apps/api/src
 USER node
 EXPOSE 8080
-# Pre-deploy en Railway: node packages/db/src/migrate.ts
 CMD ["node", "apps/api/src/server.ts"]

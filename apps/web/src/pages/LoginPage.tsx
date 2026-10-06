@@ -1,88 +1,196 @@
 import { useState, type FormEvent } from 'react';
+import { Field, Logo, Message, PasswordField, Spinner } from '../components/ui';
 import { useApp } from '../lib/context';
+import { MIN_PASSWORD_LENGTH, passwordProblem } from '../lib/password';
+
+type Mode = 'login' | 'signup';
+type Feedback = { kind: 'error' | 'success'; text: string } | null;
+
+function signUpError(message: string): string {
+  if (/already registered|already exists/i.test(message))
+    return 'Ese correo ya tiene una cuenta. Inicia sesión.';
+  if (/password/i.test(message)) return 'La contraseña no cumple los requisitos de seguridad.';
+  return 'No se pudo crear la cuenta. Intenta más tarde.';
+}
 
 export function LoginPage() {
   const { supabase } = useApp();
+  const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
-  const [info, setInfo] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Feedback>(null);
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setFeedback(null);
+    setPassword('');
+    setConfirm('');
+  }
 
   async function onForgot() {
-    setError(null);
+    setFeedback(null);
     if (!email) {
-      setError('Escribe tu correo para enviarte el enlace.');
+      setFeedback({ kind: 'error', text: 'Escribe tu correo para enviarte el enlace.' });
       return;
     }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/cuenta`,
     });
     // No se revela si el correo existe.
-    if (error) setError('No se pudo enviar el enlace. Intenta más tarde.');
-    else
-      setInfo('Si el correo pertenece al equipo, recibirás un enlace para definir tu contraseña.');
+    setFeedback(
+      error
+        ? { kind: 'error', text: 'No se pudo enviar el enlace. Intenta más tarde.' }
+        : {
+            kind: 'success',
+            text: 'Si el correo tiene cuenta, recibirás un enlace para definir tu contraseña.',
+          },
+    );
+  }
+
+  async function onLogin() {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) return;
+    setFeedback({
+      kind: 'error',
+      text: /not confirmed/i.test(error.message)
+        ? 'Confirma tu correo con el enlace que te enviamos antes de entrar.'
+        : 'Correo o contraseña incorrectos.',
+    });
+  }
+
+  async function onSignUp() {
+    const problem = passwordProblem(password, confirm);
+    if (problem) {
+      setFeedback({ kind: 'error', text: problem });
+      return;
+    }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) {
+      setFeedback({ kind: 'error', text: signUpError(error.message) });
+      return;
+    }
+    // Con confirmación de correo activa no hay sesión hasta abrir el enlace.
+    if (!data.session) {
+      switchMode('login');
+      setFeedback({
+        kind: 'success',
+        text: `Te enviamos un correo a ${email}. Abre el enlace para activar tu cuenta.`,
+      });
+    }
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) setError('Correo o contraseña incorrectos.');
+    setFeedback(null);
+    try {
+      await (mode === 'login' ? onLogin() : onSignUp());
+    } finally {
+      setBusy(false);
+    }
   }
 
+  const isLogin = mode === 'login';
+
   return (
-    <div className="mx-auto mt-16 max-w-sm rounded-lg border bg-white p-6 shadow-sm">
-      <h1 className="mb-1 text-xl font-semibold">Iniciar sesión</h1>
-      <p className="mb-4 text-sm text-slate-600">
-        El acceso es solo por invitación. Pide a un administrador que te invite desde Supabase.
-      </p>
-      <form onSubmit={onSubmit} className="space-y-3">
-        <label className="block text-sm">
-          Correo
-          <input
+    <div className="mx-auto grid max-w-4xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm md:mt-8 md:grid-cols-2">
+      <aside className="hidden flex-col justify-between bg-linear-to-br from-brand-600 to-brand-700 p-10 text-white md:flex">
+        <div>
+          <Logo className="h-11 w-11 bg-white/15" />
+          <h2 className="mt-6 text-2xl leading-tight font-semibold">
+            Diseña y simula líneas de manufactura y empaque
+          </h2>
+          <p className="mt-3 text-sm text-brand-100">
+            Coloca robots, define escenarios y estima tiempos de ciclo y capacidad antes de
+            invertir.
+          </p>
+        </div>
+        <ul className="mt-10 space-y-3 text-sm text-brand-50">
+          <li>• Proyectos privados que puedes compartir con tu equipo</li>
+          <li>• Catálogo de robots con datos de fichas técnicas</li>
+          <li>• Escenarios y simulación por eventos</li>
+        </ul>
+      </aside>
+
+      <div className="p-8 sm:p-10">
+        <div className="mb-6 flex items-center gap-3 md:hidden">
+          <Logo />
+          <span className="font-semibold">Simulador de líneas</span>
+        </div>
+
+        <div role="tablist" className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm">
+          {(['login', 'signup'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => switchMode(m)}
+              className={`rounded-lg py-2 font-medium transition ${
+                mode === m
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {m === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+            </button>
+          ))}
+        </div>
+
+        <h1 className="text-xl font-semibold">
+          {isLogin ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}
+        </h1>
+        <p className="mt-1 mb-6 text-sm text-slate-500">
+          {isLogin
+            ? 'Entra con tu correo y contraseña.'
+            : 'Solo necesitas un correo y una contraseña.'}
+        </p>
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <Field
+            label="Correo"
             type="email"
             required
             autoComplete="email"
+            placeholder="tu@empresa.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded border px-3 py-2"
           />
-        </label>
-        <label className="block text-sm">
-          Contraseña
-          <input
-            type="password"
+          <PasswordField
+            label="Contraseña"
             required
-            autoComplete="current-password"
+            autoComplete={isLogin ? 'current-password' : 'new-password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border px-3 py-2"
+            hint={isLogin ? undefined : `Mínimo ${MIN_PASSWORD_LENGTH} caracteres.`}
           />
-        </label>
-        {error && (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
-        {info && <p className="text-sm text-emerald-700">{info}</p>}
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded bg-slate-900 px-3 py-2 text-white disabled:opacity-50"
-        >
-          {busy ? 'Entrando…' : 'Entrar'}
-        </button>
-        <button
-          type="button"
-          onClick={onForgot}
-          className="w-full text-sm text-slate-600 hover:underline"
-        >
-          ¿Olvidaste tu contraseña?
-        </button>
-      </form>
+          {!isLogin && (
+            <PasswordField
+              label="Confirmar contraseña"
+              required
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
+          )}
+          {feedback && <Message kind={feedback.kind}>{feedback.text}</Message>}
+          <button type="submit" disabled={busy} className="btn btn-primary w-full">
+            {busy && <Spinner />}
+            {isLogin ? (busy ? 'Entrando…' : 'Entrar') : busy ? 'Creando…' : 'Crear cuenta'}
+          </button>
+          {isLogin && (
+            <button type="button" onClick={onForgot} className="btn btn-ghost w-full">
+              ¿Olvidaste tu contraseña?
+            </button>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

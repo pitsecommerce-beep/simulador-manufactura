@@ -20,9 +20,10 @@ apps/api               Fastify + TypeScript (auth Supabase, proyectos, salud)
 services/sim-worker    Python, SimPy. Consume la cola de trabajos
 services/cad-worker    Python. Conversión STEP → GLB → URDF (fase 2)
 packages/domain        Esquemas y reglas compartidos por web y api
-packages/db            Ejecutor de migraciones y tests de RLS
+packages/db            Generador del script SQL manual, ejecutor local y tests de RLS
 packages/jobqueue-py   Cliente Python de la cola de trabajos (tabla public.jobs)
 supabase/migrations    SQL versionado (esquema, RLS, buckets, cola)
+supabase/manual        apply_all.sql generado para el SQL Editor de Supabase
 tools/check-no-cad     Chequeo que impide subir CAD de terceros
 ```
 
@@ -40,11 +41,13 @@ uv sync --all-packages    # entorno Python de los workers
 cp .env.example .env      # rellena las claves de tu proyecto Supabase
 ```
 
-Aplicar migraciones a tu proyecto Supabase (también lo hace Railway en cada despliegue):
+Las migraciones se aplican a mano en el SQL Editor (ver [Migraciones manuales](#migraciones-manuales-sql-editor)). Como alternativa local opcional, con la cadena del *Session pooler*:
 
 ```bash
 DATABASE_URL="<session pooler>" pnpm db:migrate
 ```
+
+Ambos caminos registran lo aplicado en `app_migrations.applied` y son compatibles entre sí.
 
 Arrancar servicios:
 
@@ -67,19 +70,37 @@ uv run ruff check . && uv run mypy packages/jobqueue-py/src services/*/src && uv
 
 Qué cubren hoy:
 
+- **Migraciones**: el ejecutor y el script manual `apply_all.sql` registran todas las migraciones, son idempotentes y compatibles entre sí; `apply_all.sql` está al día.
 - **RLS**: todas las tablas de `public` tienen RLS; `anon` no lee nada; el catálogo es solo lectura; los metadatos de CAD original no son visibles; propietario, editor, lector y extraño tienen exactamente los permisos esperados; las tablas internas no son accesibles; los buckets son privados y sin políticas.
 - **API**: verificación de JWT (vencido, otro emisor, firma alterada, rol anónimo), validación de entrada, compartir proyectos, CORS y límite de peticiones.
 - **Anti-CAD**: detección por extensión y por contenido (STEP, IGES, GLB, glTF, STL, Parasolid, también comprimidos).
 - **Cola de trabajos**: reparto sin duplicados, reintentos con espera, estados `unsupported` y `needs_mapping`.
 
+## Migraciones manuales (SQL Editor)
+
+El esquema vive en `supabase/migrations/*.sql`. El api no aplica migraciones al desplegar; se aplican a mano:
+
+1. Genera el script con todas las migraciones:
+
+   ```bash
+   pnpm db:sql      # escribe supabase/manual/apply_all.sql
+   ```
+
+2. Abre `supabase/manual/apply_all.sql`, copia el archivo **completo** y pégalo en **Supabase > SQL Editor > New query > Run**. Solo aplica las migraciones que falten (puedes correrlo varias veces) y al final muestra la lista de migraciones aplicadas.
+3. Aplícalo **antes** de desplegar el código que necesita esas tablas o columnas.
+4. **No edites una migración ya aplicada.** Crea una nueva (`AAAAMMDDhhmmss_nombre.sql`). Si el script detecta que una migración aplicada cambió, se detiene con un error.
+
+`apply_all.sql` es generado y se versiona. Un test falla si no está al día; también puedes comprobarlo con `pnpm --filter @sim/db sql --check`.
+
 ## Configurar Supabase (plan Free)
 
 1. Crea el proyecto en [supabase.com](https://supabase.com).
-2. **Authentication > Sign In / Providers**: desactiva *Allow new users to sign up*. El acceso es solo por invitación.
-3. **Authentication > URL Configuration**: *Site URL* = URL pública del servicio web. En *Redirect URLs* añade `https://<web>/cuenta` y `http://localhost:5173/**`.
-4. **Authentication > Users > Invite user** para cada miembro del equipo. Al abrir el enlace entran a *Mi cuenta* y definen su contraseña.
+2. **Authentication > Sign In / Providers**: deja activos *Allow new users to sign up* y el proveedor *Email*. Con *Confirm email* activado, el usuario confirma su correo antes de entrar. Si prefieres acceso solo por invitación, desactiva el registro y usa *Users > Invite user*.
+3. **Authentication > URL Configuration**: *Site URL* = URL pública del servicio web. En *Redirect URLs* añade `https://<web>/**` y `http://localhost:5173/**` (confirmación de registro y recuperación de contraseña).
+4. Los usuarios se registran desde la web con correo y contraseña. Opcional: **Authentication > Users > Invite user**; al abrir el enlace entran a *Mi cuenta* y definen su contraseña.
 5. **Project Settings > API Keys**: copia la clave publicable y la secreta.
-6. **Connect > Session pooler**: copia la cadena de conexión para `DATABASE_URL`. No uses el *Transaction pooler* (no admite LISTEN/NOTIFY).
+6. **SQL Editor**: aplica `supabase/manual/apply_all.sql` (ver la sección anterior).
+7. **Connect > Session pooler**: copia la cadena de conexión para `DATABASE_URL` de los workers. No uses el *Transaction pooler* (no admite LISTEN/NOTIFY).
 
 Límites del plan Free a tener en cuenta: 50 MB por archivo, 1 GB de Storage, 500 MB de base de datos, y el proyecto **se pausa tras 7 días sin actividad** (se reactiva desde el panel).
 
@@ -105,13 +126,11 @@ Cada servicio se despliega desde este repositorio con la integración de GitHub 
 
    | Servicio | Variables |
    |---|---|
-   | api | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS` (URL del web), opcional `SUPABASE_JWT_SECRET` |
+   | api | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `CORS_ORIGINS` (URL del web), opcional `SUPABASE_JWT_SECRET` |
    | web | `API_URL` (URL del api), `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` |
    | sim-worker, cad-worker | `DATABASE_URL` |
 
 4. **Networking > Generate Domain** en `web` y `api`. Después pon la URL del api en `API_URL` del web y la del web en `CORS_ORIGINS` del api.
-
-El servicio `api` aplica las migraciones pendientes en su *pre-deploy* antes de arrancar. Si una migración falla, el despliegue se detiene y la versión anterior sigue activa.
 
 Si el log de build dice `using build driver railpack` en vez de construir el Dockerfile, el servicio no está leyendo su configuración:
 

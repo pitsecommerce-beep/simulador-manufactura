@@ -1,5 +1,7 @@
 // Aplica supabase/migrations/*.sql en orden, una vez cada una, dentro de una transacción.
-// Se ejecuta como pre-deploy del servicio api en Railway: `pnpm db:migrate`.
+// Uso opcional en local: `DATABASE_URL=... pnpm db:migrate`. En producción las migraciones
+// se aplican a mano con supabase/manual/apply_all.sql (ver bundle.ts); ambos caminos
+// comparten la tabla app_migrations.applied y el mismo checksum.
 // Las migraciones aplicadas son inmutables: si el contenido cambia, falla.
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -7,7 +9,7 @@ import { join, resolve } from 'node:path';
 import pg from 'pg';
 
 export const MIGRATIONS_DIR = resolve(import.meta.dirname, '../../../supabase/migrations');
-const LOCK_ID = 72_110_931; // clave arbitraria del advisory lock
+export const LOCK_ID = 72_110_931; // clave arbitraria del advisory lock
 
 export interface MigrationResult {
   applied: string[];
@@ -27,7 +29,7 @@ export function listMigrations(
     }));
 }
 
-const checksum = (sql: string) => createHash('sha256').update(sql).digest('hex');
+export const checksum = (sql: string) => createHash('sha256').update(sql).digest('hex');
 
 export async function runMigrations(
   client: pg.ClientBase,

@@ -3,16 +3,9 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "apps/api/Dockerfile",
-    "watchPatterns": [
-      "apps/api/**",
-      "packages/domain/**",
-      "packages/db/**",
-      "supabase/migrations/**",
-      "pnpm-lock.yaml"
-    ]
+    "watchPatterns": ["apps/api/**", "packages/domain/**", "packages/db/**", "pnpm-lock.yaml"]
   },
   "deploy": {
-    "preDeployCommand": ["node packages/db/src/migrate.ts"],
     "healthcheckPath": "/health",
     "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",

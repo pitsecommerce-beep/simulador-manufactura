@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { Spinner } from './components/ui';
 import { useApp } from './lib/context';
 import { AccountPage } from './pages/AccountPage';
 import { LoginPage } from './pages/LoginPage';
@@ -8,7 +9,13 @@ import { ProjectsPage } from './pages/ProjectsPage';
 
 export function App() {
   const { session, loading } = useApp();
-  if (loading) return <p className="p-6 text-slate-500">Cargando…</p>;
+  if (loading)
+    return (
+      <div className="flex min-h-screen items-center justify-center text-slate-500">
+        <Spinner />
+        <span className="ml-2 text-sm">Cargando…</span>
+      </div>
+    );
   return (
     <BrowserRouter>
       <Routes>

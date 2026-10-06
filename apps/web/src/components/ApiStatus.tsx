@@ -20,14 +20,21 @@ export function ApiStatus() {
     };
   }, [api]);
 
-  if (state.kind === 'loading')
-    return <span className="text-xs text-slate-500">Comprobando API…</span>;
-  if (state.kind === 'error')
-    return <span className="text-xs text-red-600">API sin conexión: {state.message}</span>;
-  const ok = state.health.supabase === 'ok';
-  return (
-    <span className={`text-xs ${ok ? 'text-emerald-700' : 'text-amber-700'}`}>
-      API {state.health.version} · Supabase {ok ? 'conectado' : 'sin conexión'}
+  const pill = (dot: string, text: string, title?: string) => (
+    <span
+      title={title}
+      className="badge hidden gap-1.5 border border-slate-200 bg-white text-slate-600 sm:inline-flex"
+    >
+      <span className={`h-2 w-2 rounded-full ${dot}`} />
+      {text}
     </span>
+  );
+  if (state.kind === 'loading') return pill('bg-slate-300', 'Comprobando API…');
+  if (state.kind === 'error')
+    return pill('bg-red-500', `API sin conexión: ${state.message}`, state.message);
+  const ok = state.health.supabase === 'ok';
+  return pill(
+    ok ? 'bg-emerald-500' : 'bg-amber-500',
+    `API ${state.health.version} · Supabase ${ok ? 'conectado' : 'sin conexión'}`,
   );
 }

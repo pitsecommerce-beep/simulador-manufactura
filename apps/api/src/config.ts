@@ -18,7 +18,9 @@ const Env = z.object({
     .transform((s) =>
       s
         .split(',')
-        .map((o) => o.trim())
+        // "https://x.up.railway.app/" equivale a "https://x.up.railway.app": el navegador
+        // envía el Origin sin diagonal final.
+        .map((o) => o.trim().replace(/\/+$/, ''))
         .filter(Boolean),
     ),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(300),
