@@ -1,28 +1,25 @@
 import { useState, type FormEvent } from 'react';
+import { Message, PasswordField, Spinner } from '../components/ui';
 import { useApp } from '../lib/context';
-
-const MIN_LENGTH = 10;
+import { MIN_PASSWORD_LENGTH, passwordProblem } from '../lib/password';
 
 export function AccountPage() {
   const { supabase, session } = useApp();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (password.length < MIN_LENGTH) {
-      setMessage({
-        ok: false,
-        text: `La contraseña debe tener al menos ${MIN_LENGTH} caracteres.`,
-      });
+    const problem = passwordProblem(password, confirm);
+    if (problem) {
+      setMessage({ ok: false, text: problem });
       return;
     }
-    if (password !== confirm) {
-      setMessage({ ok: false, text: 'Las contraseñas no coinciden.' });
-      return;
-    }
+    setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
+    setBusy(false);
     setMessage(
       error ? { ok: false, text: error.message } : { ok: true, text: 'Contraseña actualizada.' },
     );
@@ -33,45 +30,39 @@ export function AccountPage() {
   }
 
   return (
-    <section className="max-w-sm">
-      <h1 className="mb-1 text-2xl font-semibold">Mi cuenta</h1>
-      <p className="mb-4 text-sm text-slate-600">{session?.user.email}</p>
-      <p className="mb-4 text-sm text-slate-600">
-        Si entraste con un enlace de invitación o de recuperación, define aquí tu contraseña.
-      </p>
-      <form onSubmit={onSubmit} className="space-y-3">
-        <label className="block text-sm">
-          Nueva contraseña
-          <input
-            type="password"
+    <section className="mx-auto max-w-md space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Mi cuenta</h1>
+        <p className="mt-1 text-sm text-slate-500">{session?.user.email}</p>
+      </div>
+      <div className="card p-6">
+        <h2 className="font-semibold">Cambiar contraseña</h2>
+        <p className="mt-1 mb-5 text-sm text-slate-500">
+          Si entraste con un enlace de invitación o de recuperación, define aquí tu contraseña.
+        </p>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <PasswordField
+            label="Nueva contraseña"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border px-3 py-2"
+            hint={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres.`}
             required
           />
-        </label>
-        <label className="block text-sm">
-          Confirmar contraseña
-          <input
-            type="password"
+          <PasswordField
+            label="Confirmar contraseña"
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="mt-1 w-full rounded border px-3 py-2"
             required
           />
-        </label>
-        {message && (
-          <p
-            role="status"
-            className={`text-sm ${message.ok ? 'text-emerald-700' : 'text-red-600'}`}
-          >
-            {message.text}
-          </p>
-        )}
-        <button className="rounded bg-slate-900 px-4 py-2 text-white">Guardar contraseña</button>
-      </form>
+          {message && <Message kind={message.ok ? 'success' : 'error'}>{message.text}</Message>}
+          <button className="btn btn-primary w-full" disabled={busy}>
+            {busy && <Spinner />}
+            Guardar contraseña
+          </button>
+        </form>
+      </div>
     </section>
   );
 }

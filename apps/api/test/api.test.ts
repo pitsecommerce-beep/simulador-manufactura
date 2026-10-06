@@ -205,4 +205,14 @@ describe('configuración', () => {
     expect(c.CORS_ORIGINS).toEqual(['https://a.up.railway.app', 'https://b.mx']);
     expect(c.PORT).toBe(8080);
   });
+
+  it('normaliza orígenes CORS con espacios y diagonales finales', () => {
+    const c = loadConfig({
+      SUPABASE_URL: 'https://x.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_xxxxxxxxxxxxxxxx',
+      SUPABASE_SECRET_KEY: 'sb_secret_xxxxxxxxxxxxxxxxxxxxxx',
+      CORS_ORIGINS: ' https://x.up.railway.app/ ,https://b.mx//, ',
+    });
+    expect(c.CORS_ORIGINS).toEqual(['https://x.up.railway.app', 'https://b.mx']);
+  });
 });

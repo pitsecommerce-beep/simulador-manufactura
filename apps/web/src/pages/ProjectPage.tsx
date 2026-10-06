@@ -1,6 +1,7 @@
 import type { MemberRole, Project, ProjectAccess, ProjectMember } from '@sim/domain';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Message, Spinner } from '../components/ui';
 import { useApp } from '../lib/context';
 
 const ROLE_LABEL: Record<ProjectAccess, string> = {
@@ -50,73 +51,106 @@ export function ProjectPage() {
     }
   }
 
-  if (!data) return <p className="text-slate-500">{error ?? 'Cargando…'}</p>;
+  if (!data)
+    return error ? (
+      <Message kind="error">{error}</Message>
+    ) : (
+      <p className="flex items-center gap-2 text-sm text-slate-500">
+        <Spinner /> Cargando…
+      </p>
+    );
   const isOwner = data.access === 'owner';
 
   return (
     <section className="space-y-6">
       <div>
-        <Link to="/" className="text-sm text-slate-500 hover:underline">
+        <Link to="/" className="text-sm text-slate-500 hover:text-slate-700">
           ← Proyectos
         </Link>
-        <h1 className="text-2xl font-semibold">{data.project.name}</h1>
-        {data.access && <p className="text-sm text-slate-600">Tu rol: {ROLE_LABEL[data.access]}</p>}
-      </div>
-
-      <div className="rounded border border-dashed bg-white p-6 text-center text-slate-500">
-        El lienzo 3D y la simulación llegan en las fases 3 y 4.
-      </div>
-
-      <div>
-        <h2 className="mb-2 font-semibold">Miembros</h2>
-        {data.members.length === 0 ? (
-          <p className="text-sm text-slate-500">Solo tú tienes acceso.</p>
-        ) : (
-          <ul className="divide-y rounded border bg-white">
-            {data.members.map((m) => (
-              <li key={m.user_id} className="flex items-center justify-between px-4 py-2 text-sm">
-                <span>{m.display_name ?? m.email ?? m.user_id}</span>
-                <span className="flex items-center gap-3">
-                  {ROLE_LABEL[m.role]}
-                  {isOwner && (
-                    <button
-                      className="text-red-600 hover:underline"
-                      onClick={() => onRemove(m.user_id)}
-                    >
-                      Quitar
-                    </button>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">{data.project.name}</h1>
+          {data.access && (
+            <span className="badge bg-brand-50 text-brand-700">
+              Tu rol: {ROLE_LABEL[data.access]}
+            </span>
+          )}
+        </div>
+        {data.project.description && (
+          <p className="mt-1 text-sm text-slate-500">{data.project.description}</p>
         )}
       </div>
 
-      {isOwner && (
-        <form onSubmit={onShare} className="flex flex-wrap gap-2">
-          <input
-            type="email"
-            aria-label="Correo del miembro"
-            placeholder="correo@empresa.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 rounded border px-3 py-2"
-            required
-          />
-          <select
-            aria-label="Rol"
-            value={role}
-            onChange={(e) => setRole(e.target.value as MemberRole)}
-            className="rounded border px-3 py-2"
-          >
-            <option value="viewer">Lector</option>
-            <option value="editor">Editor</option>
-          </select>
-          <button className="rounded bg-slate-900 px-4 py-2 text-white">Compartir</button>
-        </form>
-      )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="flex h-56 items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white text-center text-sm text-slate-500">
+        El lienzo 3D y la simulación llegan en las fases 3 y 4.
+      </div>
+
+      <div className="card p-6">
+        <h2 className="font-semibold">Miembros</h2>
+        <p className="mt-1 mb-4 text-sm text-slate-500">
+          Los lectores pueden ver el proyecto; los editores también pueden modificarlo.
+        </p>
+        {data.members.length === 0 ? (
+          <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            Solo tú tienes acceso.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+            {data.members.map((m) => {
+              const label = m.display_name ?? m.email ?? m.user_id;
+              return (
+                <li
+                  key={m.user_id}
+                  className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600 uppercase">
+                      {label.slice(0, 1)}
+                    </span>
+                    <span className="truncate">{label}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="badge bg-slate-100 text-slate-600">{ROLE_LABEL[m.role]}</span>
+                    {isOwner && (
+                      <button className="btn btn-danger" onClick={() => onRemove(m.user_id)}>
+                        Quitar
+                      </button>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {isOwner && (
+          <form onSubmit={onShare} className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <input
+              type="email"
+              aria-label="Correo del miembro"
+              placeholder="correo@empresa.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input flex-1"
+              required
+            />
+            <select
+              aria-label="Rol"
+              value={role}
+              onChange={(e) => setRole(e.target.value as MemberRole)}
+              className="input sm:w-36"
+            >
+              <option value="viewer">Lector</option>
+              <option value="editor">Editor</option>
+            </select>
+            <button className="btn btn-primary">Compartir</button>
+          </form>
+        )}
+        {error && (
+          <div className="mt-4">
+            <Message kind="error">{error}</Message>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

@@ -143,7 +143,7 @@ Convenciones: `id uuid pk`, `created_at`, `updated_at`. Todos los datos de ficha
 - `robot_assets` / `component_assets`: el cliente **no** puede leer filas `kind = 'original_cad'` (política con filtro). Las rutas de Storage nunca se exponen directamente; la API firma.
 - Todo usuario autenticado puede usar el simulador y crear proyectos.
 - Datos de usuario: lectura si `auth.uid()` es propietario o miembro del proyecto; escritura si es propietario o miembro `editor`; borrar el proyecto y gestionar miembros solo el propietario. Se implementa con funciones `security definer` (`can_read_project`, `can_edit_project`) para evitar recursión en políticas.
-- Registro de usuarios: por invitación desde el panel de Supabase (registro abierto desactivado), para que "autenticado" signifique "del equipo".
+- Registro de usuarios: abierto con correo y contraseña desde la web (con confirmación por correo de Supabase). También se puede invitar desde el panel de Supabase. Los proyectos son privados por RLS: un usuario nuevo solo ve los suyos y los que le compartan.
 - `jobs`, `ai_usage`, `asset_access_log`: sin acceso de cliente; solo `service_role`.
 
 ### 5.5 Storage
@@ -273,7 +273,7 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 
 - `ci.yml` en cada PR y en `main`: `check-no-cad` → lint (ESLint, Prettier, Ruff) → typecheck (tsc, mypy) → tests (Vitest, Pytest, RLS contra Postgres de servicio) → build (web, api y las 4 imágenes Docker).
 - Despliegue: integración web de Railway con GitHub. Cada servicio apunta a su carpeta del monorepo y se despliega al hacer push a `main`, con la opción "esperar a CI" activada para no desplegar si falla.
-- Migraciones: comando *pre-deploy* del servicio `api` en Railway (`pnpm db:migrate` contra `DATABASE_URL`). Así todos los secretos viven solo en Railway y GitHub no necesita ninguno.
+- Migraciones: se aplican a mano en Supabase > SQL Editor con `supabase/manual/apply_all.sql`, generado por `pnpm db:sql` a partir de `supabase/migrations`. El script es idempotente y registra cada migración en `app_migrations.applied`. El servicio `api` no aplica migraciones al desplegar ni necesita `DATABASE_URL`. `pnpm db:migrate` queda como alternativa local opcional y es compatible con el script manual.
 
 ---
 
@@ -302,7 +302,7 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 
 ## 17. Variables de entorno (resumen, detalle en `.env.example`)
 
-`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (solo api y workers), `SUPABASE_JWT_SECRET`, `DATABASE_URL` (conexión directa para la cola), `AI_PROVIDER`, `AI_MODEL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AI_DAILY_TOKEN_LIMIT`, `AI_DAILY_REQUEST_LIMIT`, `SIGNED_URL_TTL_SECONDS`, `SIM_MAX_REPLICATIONS`, `CAD_TESSELLATION_TOLERANCE`, `CAD_MAX_TRIANGLES_PER_LINK`, `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (solo api y workers), `SUPABASE_JWT_SECRET`, `DATABASE_URL` (solo workers, para la cola; y `pnpm db:migrate` local opcional), `AI_PROVIDER`, `AI_MODEL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AI_DAILY_TOKEN_LIMIT`, `AI_DAILY_REQUEST_LIMIT`, `SIGNED_URL_TTL_SECONDS`, `SIM_MAX_REPLICATIONS`, `CAD_TESSELLATION_TOLERANCE`, `CAD_MAX_TRIANGLES_PER_LINK`, `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 
 ---
 
@@ -310,7 +310,7 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 
 1. **API**: Fastify con TypeScript.
 2. **Supabase**: plan Free (ver riesgos de cuota en la sección 16).
-3. **Despliegue**: integración web de Railway con GitHub; migraciones en el pre-deploy de `api`.
+3. **Despliegue**: integración web de Railway con GitHub; migraciones aplicadas a mano en el SQL Editor de Supabase antes de desplegar el código que las necesita.
 4. **Secretos**: solo como variables en Railway.
 5. **Robots del catálogo inicial** (todas las variantes disponibles de cada modelo):
    IRB 120, IRB 1100, IRB 1200, IRB 1300, IRB 1600, IRB 2600, IRB 4600, IRB 6700, IRB 460, IRB 660, IRB 360 FlexPicker, IRB 910SC, GoFa CRB 15000, SWIFTI CRB 1100, y un robot de pintura (IRB 52 o IRB 5500) si hay CAD.

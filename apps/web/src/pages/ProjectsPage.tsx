@@ -1,6 +1,7 @@
 import type { Project } from '@sim/domain';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { Message, Spinner } from '../components/ui';
 import { useApp } from '../lib/context';
 
 export function ProjectsPage() {
@@ -8,6 +9,7 @@ export function ProjectsPage() {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     api
@@ -21,47 +23,88 @@ export function ProjectsPage() {
   async function onCreate(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setBusy(true);
     try {
-      await api.createProject(name);
+      await api.createProject(name.trim());
       setName('');
       load();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
-    <section>
-      <h1 className="mb-4 text-2xl font-semibold">Proyectos</h1>
-      <form onSubmit={onCreate} className="mb-6 flex gap-2">
+    <section className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Proyectos</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Tus líneas de producción y las que otros compartieron contigo.
+        </p>
+      </div>
+
+      <form onSubmit={onCreate} className="card flex flex-col gap-3 p-4 sm:flex-row">
         <input
           aria-label="Nombre del proyecto"
           placeholder="Nombre del nuevo proyecto"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="flex-1 rounded border px-3 py-2"
+          className="input flex-1"
           required
           maxLength={200}
         />
-        <button className="rounded bg-slate-900 px-4 py-2 text-white">Crear</button>
+        <button className="btn btn-primary" disabled={busy || !name.trim()}>
+          {busy && <Spinner />}
+          Crear proyecto
+        </button>
       </form>
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+
+      {error && <Message kind="error">{error}</Message>}
+
       {projects === null ? (
-        <p className="text-slate-500">Cargando…</p>
+        !error && (
+          <p className="flex items-center gap-2 text-sm text-slate-500">
+            <Spinner /> Cargando…
+          </p>
+        )
       ) : projects.length === 0 ? (
-        <p className="text-slate-500">Aún no tienes proyectos ni te han compartido ninguno.</p>
+        <div className="card border-dashed p-10 text-center">
+          <p className="font-medium">Aún no tienes proyectos</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Crea el primero arriba o pide a alguien que comparta uno contigo.
+          </p>
+        </div>
       ) : (
-        <ul className="divide-y rounded border bg-white">
-          {projects.map((p) => (
-            <li key={p.id} className="flex items-center justify-between px-4 py-3">
-              <Link to={`/proyectos/${p.id}`} className="font-medium hover:underline">
-                {p.name}
-              </Link>
-              <span className="text-xs text-slate-500">
-                {p.owner_id === session?.user.id ? 'Propietario' : 'Compartido contigo'}
-              </span>
-            </li>
-          ))}
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {projects.map((p) => {
+            const mine = p.owner_id === session?.user.id;
+            return (
+              <li key={p.id}>
+                <Link
+                  to={`/proyectos/${p.id}`}
+                  className="card group flex h-full flex-col gap-3 p-5 transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 font-semibold text-brand-700 uppercase">
+                      {p.name.slice(0, 1)}
+                    </span>
+                    <span
+                      className={`badge ${mine ? 'bg-slate-100 text-slate-600' : 'bg-brand-50 text-brand-700'}`}
+                    >
+                      {mine ? 'Propietario' : 'Compartido contigo'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium group-hover:text-brand-700">{p.name}</p>
+                    {p.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-slate-500">{p.description}</p>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

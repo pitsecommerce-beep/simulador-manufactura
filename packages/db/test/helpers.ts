@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import pg from 'pg';
+import { buildBundle } from '../src/bundle.ts';
 import { runMigrations } from '../src/migrate.ts';
 
 const ADMIN_URL =
@@ -12,8 +13,11 @@ const STUB = readFileSync(
   'utf8',
 );
 
-/** Crea una base de datos desechable con el stub de Supabase y todas las migraciones. */
-export async function createTestDatabase() {
+/**
+ * Crea una base de datos desechable con el stub de Supabase y todas las migraciones,
+ * aplicadas con el ejecutor (`runner`) o con el script manual del SQL Editor (`bundle`).
+ */
+export async function createTestDatabase({ via = 'runner' }: { via?: 'runner' | 'bundle' } = {}) {
   const dbName = `sim_test_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
   const admin = new pg.Client({ connectionString: ADMIN_URL });
   try {
@@ -33,7 +37,8 @@ export async function createTestDatabase() {
   const client = new pg.Client({ connectionString: url.toString() });
   await client.connect();
   await client.query(STUB);
-  await runMigrations(client, undefined, () => {});
+  if (via === 'bundle') await client.query(buildBundle());
+  else await runMigrations(client, undefined, () => {});
 
   return {
     client,
