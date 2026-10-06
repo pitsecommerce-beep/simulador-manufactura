@@ -383,6 +383,7 @@ function docRow(d: Doc) {
 // SQL
 // ---------------------------------------------------------------------------
 const TAG = '$catalog_seed$';
+const DO_TAG = '$catalog_seed_do$';
 
 /** Texto de un arreglo jsonb: `array(...)` o null si el json no es arreglo. */
 const textArray = (expr: string) =>
@@ -401,22 +402,26 @@ export function buildCatalogSeed(data = loadSeedData()): string {
     section('component_documents', data.componentDocuments),
     section('object_types', data.objectTypes),
   ].join(',\n')}\n}`;
-  if (payload.includes(TAG)) throw new Error(`Los datos contienen el delimitador ${TAG}.`);
+  for (const tag of [TAG, DO_TAG]) {
+    if (payload.includes(tag)) throw new Error(`Los datos contienen el delimitador ${tag}.`);
+  }
 
   return `-- ============================================================================
 -- ARCHIVO GENERADO por packages/db/src/catalog-seed.ts (pnpm catalog:sql). No lo edites a mano.
 -- Origen: catalog/*/specs.json, catalog/*/source.json, catalog/manifest.json y catalog_components/.
 -- Requiere la migración 20261006000100_catalog_sheet_data (supabase/manual/apply_all.sql).
 -- Pégalo completo en Supabase > SQL Editor y pulsa Run. Es idempotente y refleja exactamente
--- los JSON: los datos no publicados quedan NULL.
+-- los JSON: los datos no publicados quedan NULL. Todo va en un solo bloque DO (atómico y sin
+-- tablas temporales, que el SQL Editor no conserva entre instrucciones).
 -- Resumen: ${data.robots.length} robots, ${data.variants.length} variantes, ${data.robotDocuments.length} documentos de robot, ${data.components.length} componentes.
 -- ============================================================================
 
-begin;
-
-create temp table _catalog_seed on commit drop as select ${TAG}
+do ${DO_TAG}
+declare
+  seed constant jsonb := ${TAG}
 ${payload}
-${TAG}::jsonb as d;
+${TAG};
+begin
 
 -- Robots -------------------------------------------------------------------
 insert into public.robots (slug, manufacturer, model, family, kinematic_type, application,
@@ -424,7 +429,7 @@ insert into public.robots (slug, manufacturer, model, family, kinematic_type, ap
 select r->>'slug', r->>'manufacturer', r->>'model', r->>'family', r->>'kinematic_type',
        r->>'application', r->>'typical_application', r->>'product_page', r->>'data_status',
        ${textArray("r->'notes'")}
-from _catalog_seed, jsonb_array_elements(d->'robots') r
+from jsonb_array_elements(seed->'robots') r
 on conflict (slug) do update set
   manufacturer = excluded.manufacturer, model = excluded.model, family = excluded.family,
   kinematic_type = excluded.kinematic_type, application = excluded.application,
@@ -433,14 +438,14 @@ on conflict (slug) do update set
 
 -- Variantes que ya no están en los JSON (solo de robots del seed) --------------------
 delete from public.robot_variants rv
-using public.robots r, _catalog_seed s
+using public.robots r
 where rv.robot_id = r.id
-  and r.slug in (select x->>'slug' from jsonb_array_elements(s.d->'robots') x)
-  and rv.slug not in (select x->>'slug' from jsonb_array_elements(s.d->'variants') x);
+  and r.slug in (select x->>'slug' from jsonb_array_elements(seed->'robots') x)
+  and rv.slug not in (select x->>'slug' from jsonb_array_elements(seed->'variants') x);
 
 insert into public.robot_variants (robot_id, slug, variant_code, reach_mm, payload_kg)
 select r.id, v->>'slug', v->>'variant_code', (v->>'reach_mm')::numeric, (v->>'payload_kg')::numeric
-from _catalog_seed, jsonb_array_elements(d->'variants') v
+from jsonb_array_elements(seed->'variants') v
 join public.robots r on r.slug = v->>'robot_slug'
 on conflict (slug) do update set
   robot_id = excluded.robot_id, variant_code = excluded.variant_code,
@@ -457,7 +462,7 @@ select rv.id, (v->>'axes_count')::int, v->>'axes_note', (v->>'reach_mm')::numeri
        v->>'ip_rating', v->>'controller', ${nullableJson("v->'axis_limits'")},
        ${nullableJson("v->'published_cycle_times'")}, (v->>'max_tcp_speed_m_s')::numeric,
        ${nullableJson("v->'extra'")}, v->'provenance'
-from _catalog_seed, jsonb_array_elements(d->'variants') v
+from jsonb_array_elements(seed->'variants') v
 join public.robot_variants rv on rv.slug = v->>'slug'
 on conflict (variant_id) do update set
   axes_count = excluded.axes_count, axes_note = excluded.axes_note, reach_mm = excluded.reach_mm,
@@ -472,10 +477,10 @@ on conflict (variant_id) do update set
 
 -- Documentos de robot (fuente y términos de uso) -----------------------------------------
 delete from public.robot_documents rd
-using public.robots r, _catalog_seed s
+using public.robots r
 where rd.robot_id = r.id
-  and r.slug in (select x->>'slug' from jsonb_array_elements(s.d->'robots') x)
-  and not exists (select 1 from jsonb_array_elements(s.d->'robot_documents') x
+  and r.slug in (select x->>'slug' from jsonb_array_elements(seed->'robots') x)
+  and not exists (select 1 from jsonb_array_elements(seed->'robot_documents') x
                   where x->>'robot_slug' = r.slug and x->>'path' = rd.path);
 
 insert into public.robot_documents (robot_id, path, kind, doc_id, revision, doc_date, title, url,
@@ -483,7 +488,7 @@ insert into public.robot_documents (robot_id, path, kind, doc_id, revision, doc_
 select r.id, x->>'path', x->>'kind', x->>'doc_id', x->>'revision', (x->>'doc_date')::date,
        x->>'title', x->>'url', x->>'library_page', (x->>'accessed_at')::timestamptz,
        x->>'sha256', (x->>'size_bytes')::bigint, x->>'license_terms'
-from _catalog_seed, jsonb_array_elements(d->'robot_documents') x
+from jsonb_array_elements(seed->'robot_documents') x
 join public.robots r on r.slug = x->>'robot_slug'
 on conflict (robot_id, path) do update set
   kind = excluded.kind, doc_id = excluded.doc_id, revision = excluded.revision,
@@ -494,29 +499,29 @@ on conflict (robot_id, path) do update set
 -- Componentes -----------------------------------------------------------------------------
 insert into public.components (slug, manufacturer, model, category, type, notes)
 select c->>'slug', c->>'manufacturer', c->>'model', c->>'category', c->>'type', ${textArray("c->'notes'")}
-from _catalog_seed, jsonb_array_elements(d->'components') c
+from jsonb_array_elements(seed->'components') c
 on conflict (slug) do update set
   manufacturer = excluded.manufacturer, model = excluded.model, category = excluded.category,
   type = excluded.type, notes = excluded.notes;
 
 insert into public.component_specs (component_id, specs, provenance)
 select co.id, c->'specs', c->'provenance'
-from _catalog_seed, jsonb_array_elements(d->'components') c
+from jsonb_array_elements(seed->'components') c
 join public.components co on co.slug = c->>'slug'
 on conflict (component_id) do update set specs = excluded.specs, provenance = excluded.provenance;
 
 delete from public.component_documents cd
-using public.components co, _catalog_seed s
+using public.components co
 where cd.component_id = co.id
-  and co.slug in (select x->>'slug' from jsonb_array_elements(s.d->'components') x)
-  and not exists (select 1 from jsonb_array_elements(s.d->'component_documents') x
+  and co.slug in (select x->>'slug' from jsonb_array_elements(seed->'components') x)
+  and not exists (select 1 from jsonb_array_elements(seed->'component_documents') x
                   where x->>'component_slug' = co.slug and x->>'path' = cd.path);
 
 insert into public.component_documents (component_id, path, kind, title, url, accessed_at, sha256,
   size_bytes, license_terms, note)
 select co.id, x->>'path', x->>'kind', x->>'title', x->>'url', (x->>'accessed_at')::timestamptz,
        x->>'sha256', (x->>'size_bytes')::bigint, x->>'license_terms', x->>'note'
-from _catalog_seed, jsonb_array_elements(d->'component_documents') x
+from jsonb_array_elements(seed->'component_documents') x
 join public.components co on co.slug = x->>'component_slug'
 on conflict (component_id, path) do update set
   kind = excluded.kind, title = excluded.title, url = excluded.url,
@@ -526,11 +531,13 @@ on conflict (component_id, path) do update set
 -- Tipos de objeto paramétricos y sus presets (catalog_components/standards/presets.json) ----
 insert into public.object_types (key, name, category, presets)
 select o->>'key', o->>'name', o->>'category', o->'presets'
-from _catalog_seed, jsonb_array_elements(d->'object_types') o
+from jsonb_array_elements(seed->'object_types') o
 on conflict (key) do update set
   name = excluded.name, category = excluded.category, presets = excluded.presets;
 
-commit;
+raise notice 'catálogo aplicado';
+end
+${DO_TAG};
 
 select
   (select count(*) from public.robots) as robots,
