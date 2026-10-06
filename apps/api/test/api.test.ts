@@ -190,6 +190,58 @@ describe('límites y seguridad', () => {
   });
 });
 
+describe('catálogo', () => {
+  const get = async (url: string, withAuth = true) => {
+    const { app } = await testApp();
+    const headers = withAuth ? auth(await signToken(randomUUID())) : {};
+    return app.inject({ method: 'GET', url, headers });
+  };
+
+  it.each(['/v1/catalog/variants', '/v1/catalog/facets', '/v1/catalog/variants/irb-1300-7-1-4'])(
+    'exige sesión en %s',
+    async (url) => {
+      expect((await get(url, false)).statusCode).toBe(401);
+    },
+  );
+
+  it('lista y filtra variantes; los filtros numéricos excluyen datos no publicados', async () => {
+    const all = await get('/v1/catalog/variants');
+    expect(all.json().variants).toHaveLength(4);
+    const heavy = await get('/v1/catalog/variants?payload_min=5');
+    expect(heavy.json().variants.map((v: { slug: string }) => v.slug)).toEqual([
+      'irb-1300-7-1-4',
+      'irb-460-110-2-4',
+    ]);
+    const family = await get('/v1/catalog/variants?family=Delta');
+    expect(family.json().variants.map((v: { slug: string }) => v.slug)).toEqual(['irb-360-1-1130']);
+    // El delta no publica alcance: se filtra por su radio de trabajo (1130/2).
+    const reach = await get('/v1/catalog/variants?reach_max=600');
+    expect(reach.json().variants.map((v: { slug: string }) => v.slug)).toEqual(['irb-360-1-1130']);
+    const text = await get('/v1/catalog/variants?q=irb%20460');
+    expect(text.json().variants).toHaveLength(1);
+  });
+
+  it('rechaza filtros inválidos', async () => {
+    expect((await get('/v1/catalog/variants?payload_min=-3')).statusCode).toBe(400);
+  });
+
+  it('devuelve facetas', async () => {
+    const res = await get('/v1/catalog/facets');
+    expect(res.json()).toMatchObject({
+      families: ['Articulated (small)', 'Delta', 'Paint', 'Palletizing 4-axis'],
+      payload: { min: 1, max: 110 },
+    });
+  });
+
+  it('devuelve el detalle de una variante y 404 si no existe', async () => {
+    const ok = await get('/v1/catalog/variants/irb-1300-7-1-4');
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().variant.variant_code).toBe('IRB 1300-7/1.4');
+    expect((await get('/v1/catalog/variants/no-existe')).statusCode).toBe(404);
+    expect((await get('/v1/catalog/variants/NO_VALIDO')).statusCode).toBe(400);
+  });
+});
+
 describe('configuración', () => {
   it('falla con un mensaje claro si faltan variables', () => {
     expect(() => loadConfig({})).toThrow(/SUPABASE_URL/);

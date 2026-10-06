@@ -1,0 +1,44 @@
+{
+  "component_id": "sick-wll180t-e632",
+  "manufacturer": "SICK",
+  "model": "WLL180T-E632 (6050763)",
+  "category": "sensors",
+  "type": "fiber-optic amplifier (photoelectric)",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "detection_distance_mm": null,
+    "detection_note": "depends on the optical fiber used",
+    "light_source": "LED red 650 nm",
+    "supply_voltage_v": [
+      12,
+      24
+    ],
+    "current_ma_max": 50,
+    "output_type": "NPN, 2 outputs",
+    "response_time_us": [
+      16,
+      70,
+      250,
+      2000,
+      8000
+    ],
+    "switching_frequency_hz": [
+      31200,
+      7100,
+      2000,
+      250,
+      62.5
+    ],
+    "ip_rating": null,
+    "dimensions_mm": null,
+    "weight_g": null
+  },
+  "notes": [
+    "Data sheet page 2 and 3."
+  ],
+  "cad": {
+    "status": "requires_login",
+    "via": "SICK site CAD download (not opened)"
+  }
+}

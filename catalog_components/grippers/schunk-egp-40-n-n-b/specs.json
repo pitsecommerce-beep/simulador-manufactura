@@ -1,0 +1,35 @@
+{
+  "component_id": "schunk-egp-40-n-n-b",
+  "manufacturer": "SCHUNK",
+  "model": "EGP 40-N-N-B (ID 0310940)",
+  "category": "grippers",
+  "type": "electric parallel gripper (small components)",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "stroke_per_jaw_mm": 6,
+    "gripping_force_n_min": 35,
+    "gripping_force_n_max": 140,
+    "recommended_workpiece_weight_kg": 0.7,
+    "repeatability_mm": 0.02,
+    "closing_opening_time_s": 0.2,
+    "weight_kg": 0.32,
+    "ip_rating": "IP30",
+    "dimensions_mm": "40 x 26 x 88.4",
+    "supply_voltage_v": 24,
+    "current_nominal_a": 0.2,
+    "current_max_a": 2,
+    "ambient_temp_c": [
+      5,
+      55
+    ],
+    "interface": "digital I/O"
+  },
+  "notes": [
+    "Technical data table, column EGP 40-N-N-B (the EGP 40-N-S-B column differs)."
+  ],
+  "cad": {
+    "status": "requires_login_or_not_checked",
+    "note": "Product page shows \"Download CAD file\"; not opened."
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "robot_id": "irb-1100",
+  "name": "IRB 1100",
+  "family": "Articulated / small (OmniCore)",
+  "typical_application": "Ensamble, prueba, carga/descarga, atornillado (alta velocidad)",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/small-robots/irb-1100",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "any angle (con limitaciones de espacio alcanzable según carga/pose)"
+      ],
+      "ip_rating": "IP40 estándar; IP67 opcional; Cleanroom ISO 4 opcional",
+      "controller": "OmniCore E10, C30, C90XT",
+      "cycle_times": [
+        {
+          "value_s": 0.42,
+          "condition": "1 kg picking cycle 25 x 300 x 25 mm; el datasheet imprime un solo valor sin indicar variante"
+        }
+      ],
+      "sources": {
+        "reach_payload_mounting_ip_controller": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification"
+        },
+        "repeatability": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance (ISO 9283)"
+        },
+        "weight": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Physical"
+        },
+        "axes": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Movement"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance"
+        }
+      },
+      "variant": "IRB 1100-4/0.475",
+      "robot_id": "irb-1100-4-0-475",
+      "axes": 6,
+      "reach_mm": 475,
+      "payload_kg": 4,
+      "armload_kg": 0.5,
+      "robot_weight_kg": 21,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 460,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -115,
+          "range_max": 113,
+          "range_unit": "deg",
+          "max_speed": 380,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -205,
+          "range_max": 55,
+          "range_unit": "deg",
+          "max_speed": 280,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 560,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -125,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 420,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 750,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.01,
+        "path_repeatability_mm": 0.05,
+        "pose_stabilization_time_s": 0.08,
+        "standard": "ISO 9283"
+      }
+    },
+    {
+      "mounting": [
+        "any angle (con limitaciones de espacio alcanzable según carga/pose)"
+      ],
+      "ip_rating": "IP40 estándar; IP67 opcional; Cleanroom ISO 4 opcional",
+      "controller": "OmniCore E10, C30, C90XT",
+      "cycle_times": [
+        {
+          "value_s": 0.42,
+          "condition": "1 kg picking cycle 25 x 300 x 25 mm; el datasheet imprime un solo valor sin indicar variante"
+        }
+      ],
+      "sources": {
+        "reach_payload_mounting_ip_controller": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification"
+        },
+        "repeatability": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance (ISO 9283)"
+        },
+        "weight": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Physical"
+        },
+        "axes": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Movement"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance"
+        }
+      },
+      "variant": "IRB 1100-4/0.58",
+      "robot_id": "irb-1100-4-0-58",
+      "axes": 6,
+      "reach_mm": 580,
+      "payload_kg": 4,
+      "armload_kg": 0.5,
+      "robot_weight_kg": 21,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 460,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -115,
+          "range_max": 113,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -205,
+          "range_max": 55,
+          "range_unit": "deg",
+          "max_speed": 280,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 560,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -125,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 420,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 750,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.01,
+        "path_repeatability_mm": 0.05,
+        "pose_stabilization_time_s": 0.19,
+        "standard": "ISO 9283"
+      }
+    }
+  ],
+  "notes": [
+    "Peso 21 kg publicado para IRB 1100 (ambas variantes)."
+  ],
+  "manual": {
+    "doc_id": "3HAC064992-001",
+    "revision": "X",
+    "doc_date": "2026-09-21",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC064992-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 2
+}

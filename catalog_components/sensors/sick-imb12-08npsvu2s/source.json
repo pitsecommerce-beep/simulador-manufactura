@@ -1,0 +1,15 @@
+{
+  "component_id": "sick-imb12-08npsvu2s",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "product datasheet",
+      "title": "Data sheet IMB12-08NPSVU2S",
+      "url": "https://www.sick.com/media/pdf/1/31/531/dataSheet_IMB12-08NPSVU2S_1072743_en.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "51e23c1dae20ed1d7798132d48488b5b58cbd4b6ba7610ba377bac4155ca4bd8",
+      "size_bytes": 485118,
+      "license_terms": "Public link. No license text shown next to the file; PDF footer says subject to change without notice. SICK terms not reviewed."
+    }
+  ]
+}

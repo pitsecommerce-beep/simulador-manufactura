@@ -29,6 +29,29 @@ test('bloquea datasheets y planos dentro de las carpetas de catálogo', () => {
   assert.equal(checkPath('docs/diagrama.png'), null);
 });
 
+test('en catálogo solo admite manifest, specs.json y source.json', () => {
+  for (const p of [
+    'catalog/manifest.json',
+    'catalog/irb-1300/specs.json',
+    'catalog/irb-1300/source.json',
+    'catalog_components/manifest_components.json',
+    'catalog_components/standards/presets.json',
+    'catalog_components/grippers/onrobot-2fg7/specs.json',
+  ]) {
+    assert.equal(checkPath(p), null, p);
+  }
+  for (const p of [
+    'catalog/irb-1300/cad/link1.zip',
+    'catalog/irb-1300/drawings/plano.dwg',
+    'catalog/irb-1300/notas.json',
+    'catalog/irb-1300/product_specification.pdf',
+    'catalog/irb-1300/datasheet.txt',
+    'catalog_components/grippers/onrobot-2fg7/datasheet.pdf',
+  ]) {
+    assert.ok(checkPath(p), p);
+  }
+});
+
 test('detecta STEP por contenido aunque se renombre', () => {
   const step = Buffer.from(STEP_SIGNATURE + ";\nHEADER;\nFILE_DESCRIPTION((''),'2;1');\n");
   assert.match(checkContent(step), /STEP/);

@@ -1,0 +1,36 @@
+{
+  "component_id": "sick-micros3-mics3-cbaz40za1",
+  "manufacturer": "SICK",
+  "model": "microScan3 MICS3-CBAZ40ZA1 (1069682)",
+  "category": "sensors",
+  "type": "safety laser scanner",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "protective_field_range_m": 4,
+    "warning_field_range_m": 40,
+    "scanning_angle_deg": 275,
+    "angular_resolution_deg": 0.39,
+    "resolution_configurable_mm": 30,
+    "response_time_ms": 95,
+    "sil": "SIL 2",
+    "pl": "PL d",
+    "supply_voltage_v": 24,
+    "supply_range_v": [
+      16.8,
+      30
+    ],
+    "power_w_typ": 7.2,
+    "dimensions_mm": "112 x 150.7 x 111.1",
+    "ip_rating": "IP65",
+    "wavelength_nm": 845,
+    "weight_g": null
+  },
+  "notes": [
+    "Data sheet page 1 to 2."
+  ],
+  "cad": {
+    "status": "requires_login",
+    "via": "SICK site CAD download (not opened)"
+  }
+}

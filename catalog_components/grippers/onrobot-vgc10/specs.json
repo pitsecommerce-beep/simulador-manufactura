@@ -1,0 +1,36 @@
+{
+  "component_id": "onrobot-vgc10",
+  "manufacturer": "OnRobot",
+  "model": "VGC10",
+  "category": "grippers",
+  "type": "electric vacuum gripper with cups (1 to 7 cups)",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "payload_default_attachments_kg": 6,
+    "payload_custom_attachments_kg_max": 15,
+    "vacuum_max_pct": 80,
+    "vacuum_max_kpa": null,
+    "air_flow_l_min_max": 12,
+    "vacuum_cups_count_max": 7,
+    "gripping_time_s": 0.35,
+    "releasing_time_s": 0.2,
+    "ip_rating": "IP54",
+    "dimensions_mm": "101 x 100 x 100",
+    "weight_kg": 0.814,
+    "supply_voltage_v_nominal": 24,
+    "supply_voltage_v_min": 20.4,
+    "supply_voltage_v_max": 28.8,
+    "current_ma_min": 50,
+    "current_ma_typ": 600,
+    "current_ma_max": 1500
+  },
+  "notes": [
+    "Datasheet page 1 General Properties.",
+    "Payload 6 kg carries an asterisk in the datasheet footnote; condition not transcribed."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "CAD selector for VGC10 not opened."
+  }
+}

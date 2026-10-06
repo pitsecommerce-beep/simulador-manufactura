@@ -1,0 +1,37 @@
+{
+  "component_id": "sick-imb12-08npsvu2s",
+  "manufacturer": "SICK",
+  "model": "IMB12-08NPSVU2S (1072743)",
+  "category": "sensors",
+  "type": "inductive proximity sensor M12",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "sensing_range_sn_mm": 8,
+    "safe_sensing_range_sa_mm": 6.48,
+    "diameter_mm": 12,
+    "housing_length_mm": 50,
+    "installation": "non-flush",
+    "switching_frequency_hz": 2000,
+    "supply_voltage_v": [
+      10,
+      30
+    ],
+    "output_type": "PNP NO",
+    "current_ma_max": 200,
+    "no_load_current_ma": 10,
+    "ip_rating": "IP68/IP69K",
+    "temp_c": [
+      -40,
+      100
+    ],
+    "weight_g": null
+  },
+  "notes": [
+    "Data sheet page 1 to 2."
+  ],
+  "cad": {
+    "status": "requires_login",
+    "via": "SICK site CAD download (not opened)"
+  }
+}

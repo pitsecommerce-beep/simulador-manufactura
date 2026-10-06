@@ -1,0 +1,23 @@
+{
+  "component_id": "banner-q4x-190074",
+  "manufacturer": "Banner Engineering",
+  "model": "Q4X stainless laser sensor, dual outputs and IO-Link (manual 190074)",
+  "category": "sensors",
+  "type": "laser distance sensor",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "sensing_range_mm": null,
+    "supply_voltage_v": null,
+    "response_time_ms": null,
+    "ip_rating": "IP69K",
+    "laser_class": "Class 1"
+  },
+  "notes": [
+    "Manual has per-model tables (100/110/300/310/600/610 mm model families); not transcribed, values null."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "Banner CAD not checked."
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-09-30",
+  "verification": "Values written from general knowledge of the cited documents. The standards themselves are paid documents and were not opened; verify against the source before relying on them. No legal interpretation is given.",
+  "pallets": [
+    {"id": "eur-epal-1", "name": "EUR / EPAL pallet", "length_mm": 1200, "width_mm": 800, "height_mm": 144, "source": "EPAL pallet specification (epal-pallets.org); ISO 6780 lists 1200 x 800 mm", "status": "to_verify"},
+    {"id": "eur-2-epal-2", "name": "EUR 2 / EPAL 2 pallet", "length_mm": 1200, "width_mm": 1000, "height_mm": null, "source": "ISO 6780 lists 1200 x 1000 mm; height not confirmed", "status": "to_verify"},
+    {"id": "gma-48x40", "name": "GMA pallet (North America)", "length_mm": 1219, "width_mm": 1016, "height_mm": null, "source": "48 x 40 in; ISO 6780 lists 1219 x 1016 mm; height varies by build", "status": "to_verify"},
+    {"id": "iso-1100", "name": "ISO pallet 1100 x 1100", "length_mm": 1100, "width_mm": 1100, "height_mm": null, "source": "ISO 6780", "status": "to_verify"}
+  ],
+  "containers_and_boxes": [
+    {"id": "euro-container-600x400", "name": "Modular plastic container 600 x 400", "length_mm": 600, "width_mm": 400, "source": "Modular footprint 600 x 400 mm used by ISO 3394 (distribution packaging); heights vary by model", "status": "to_verify"},
+    {"id": "euro-container-400x300", "name": "Modular plastic container 400 x 300", "length_mm": 400, "width_mm": 300, "source": "ISO 3394 modular footprint; heights vary by model", "status": "to_verify"},
+    {"id": "cardboard-box", "name": "Standard cardboard box", "length_mm": null, "width_mm": null, "height_mm": null, "source": "FEFCO/ESBO code system defines box styles (e.g. 0201), not fixed sizes. No standard size table was found; set per project.", "status": "no_standard_values"}
+  ],
+  "work_table_heights": [
+    {"id": "work-table-height", "height_mm": null, "source": "ISO 14738 (anthropometric requirements for machinery workstations) and EN 527-1 (office work tables) set requirements, not a single value. No value is stated here.", "status": "no_standard_values"}
+  ],
+  "fences_and_safety_zones": [
+    {"id": "guards-general", "topic": "Guards, general requirements", "value": null, "source": "EN ISO 14120", "status": "reference_only"},
+    {"id": "safety-distances-reach", "topic": "Safety distances against reaching danger zones (fence height, opening sizes)", "value": null, "source": "EN ISO 13857; tables not transcribed", "status": "reference_only"},
+    {"id": "light-curtain-approach", "topic": "Positioning of protective devices (light curtain distance S = K x T + C)", "formula": "S = K*T + C", "K_mm_per_s": 2000, "K_mm_per_s_for_S_over_500mm": 1600, "C_formula_mm": "8*(d-14) for d <= 40 mm, d = resolution", "source": "ISO 13855 / EN ISO 13855", "status": "to_verify"}
+  ]
+}

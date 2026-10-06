@@ -1,5 +1,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { MemberRole, Project, ProjectMember } from '@sim/domain';
+import type {
+  CatalogVariant,
+  CatalogVariantDetail,
+  MemberRole,
+  Project,
+  ProjectMember,
+} from '@sim/domain';
 import type { AuthUser } from './auth.ts';
 
 /**
@@ -14,6 +20,8 @@ export interface UserRepo {
   findUserIdByEmail(email: string): Promise<string | null>;
   addMember(projectId: string, userId: string, role: MemberRole): Promise<void>;
   removeMember(projectId: string, userId: string): Promise<boolean>;
+  listCatalogVariants(): Promise<CatalogVariant[]>;
+  getCatalogVariant(slug: string): Promise<CatalogVariantDetail | null>;
 }
 
 export interface SystemRepo {
@@ -35,6 +43,35 @@ function fail(error: { message: string; code?: string } | null): never {
   }
   if (error?.code === '23505') throw new RepoError('El registro ya existe', 409);
   throw new RepoError(error?.message ?? 'Error de base de datos', 500);
+}
+
+// PostgREST devuelve una relación 1:1 como objeto, pero lo tratamos con tolerancia.
+const one = <T>(x: T | T[] | null | undefined): T | null =>
+  Array.isArray(x) ? (x[0] ?? null) : (x ?? null);
+
+type Row = Record<string, unknown>;
+const VARIANT_SELECT =
+  'slug, variant_code, robots!inner(slug, model, manufacturer, family, kinematic_type, application), ' +
+  'robot_specs(axes_count, axes_note, reach_mm, workspace_diameter_mm, payload_kg)';
+
+function toVariant(row: Row): CatalogVariant {
+  const r = one(row.robots as Row | Row[])!;
+  const s = one(row.robot_specs as Row | Row[]);
+  return {
+    slug: row.slug as string,
+    variant_code: row.variant_code as string,
+    robot_slug: r.slug as string,
+    model: r.model as string,
+    manufacturer: r.manufacturer as string,
+    family: (r.family as string | null) ?? null,
+    kinematic_type: (r.kinematic_type as CatalogVariant['kinematic_type']) ?? null,
+    application: (r.application as string | null) ?? null,
+    axes_count: (s?.axes_count as number | null) ?? null,
+    axes_note: (s?.axes_note as string | null) ?? null,
+    reach_mm: (s?.reach_mm as number | null) ?? null,
+    workspace_diameter_mm: (s?.workspace_diameter_mm as number | null) ?? null,
+    payload_kg: (s?.payload_kg as number | null) ?? null,
+  };
 }
 
 export function supabaseUserRepo(url: string, publishableKey: string, user: AuthUser): UserRepo {
@@ -111,6 +148,62 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
         .select('user_id');
       if (error) fail(error);
       return (data ?? []).length > 0;
+    },
+    async listCatalogVariants() {
+      const { data, error } = await sb.from('robot_variants').select(VARIANT_SELECT);
+      if (error) fail(error);
+      return (data as unknown as Row[])
+        .map(toVariant)
+        .sort((a, b) => a.model.localeCompare(b.model, 'es') || a.slug.localeCompare(b.slug));
+    },
+    async getCatalogVariant(slug) {
+      const { data, error } = await sb
+        .from('robot_variants')
+        .select(
+          'slug, variant_code, robot_id, robots!inner(*), robot_specs(axes_count, axes_note, reach_mm, ' +
+            'workspace_diameter_mm, payload_kg, payload_note, armload_kg, weight_kg, repeatability_mm, ' +
+            'repeatability, mounting_allowed, ip_rating, controller, axis_limits, published_cycle_times, ' +
+            'max_tcp_speed_m_s, extra, notes, provenance)',
+        )
+        .eq('slug', slug)
+        .maybeSingle();
+      if (error) fail(error);
+      if (!data) return null;
+      const row = data as unknown as Row;
+      const robot = one(row.robots as Row | Row[])!;
+      const [docs, siblings] = await Promise.all([
+        sb
+          .from('robot_documents')
+          .select(
+            'path, kind, doc_id, revision, doc_date, title, url, library_page, accessed_at, license_terms',
+          )
+          .eq('robot_id', row.robot_id as string)
+          .order('kind'),
+        sb
+          .from('robot_variants')
+          .select('slug, variant_code')
+          .eq('robot_id', row.robot_id as string)
+          .order('variant_code'),
+      ]);
+      if (docs.error) fail(docs.error);
+      if (siblings.error) fail(siblings.error);
+      return {
+        variant: toVariant(row),
+        robot: {
+          slug: robot.slug as string,
+          model: robot.model as string,
+          manufacturer: robot.manufacturer as string,
+          family: (robot.family as string | null) ?? null,
+          application: (robot.application as string | null) ?? null,
+          typical_application: (robot.typical_application as string | null) ?? null,
+          product_page: (robot.product_page as string | null) ?? null,
+          data_status: (robot.data_status as 'ok' | 'partial' | null) ?? null,
+          notes: (robot.notes as string[] | null) ?? null,
+        },
+        specs: one(row.robot_specs as Row | Row[]) as CatalogVariantDetail['specs'],
+        documents: (docs.data ?? []) as CatalogVariantDetail['documents'],
+        siblings: (siblings.data ?? []) as CatalogVariantDetail['siblings'],
+      };
     },
   };
 }

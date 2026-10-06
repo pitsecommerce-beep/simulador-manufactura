@@ -1,0 +1,15 @@
+{
+  "component_id": "sick-wll180t-e632",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "product datasheet",
+      "title": "Data sheet WLL180T-E632",
+      "url": "https://www.sick.com/media/pdf/6/46/346/dataSheet_WLL180T-E632_6050763_en.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "4013dd5019a18e90392b113e7a17e8559c3c83cfc0cbd6a4ed6f608167d93d81",
+      "size_bytes": 374206,
+      "license_terms": "Public link. No license text shown next to the file; PDF footer says subject to change without notice. SICK terms not reviewed."
+    }
+  ]
+}

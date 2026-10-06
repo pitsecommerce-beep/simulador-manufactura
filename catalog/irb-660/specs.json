@@ -1,0 +1,164 @@
+{
+  "robot_id": "irb-660",
+  "name": "IRB 660",
+  "family": "Palletizing (4 ejes)",
+  "typical_application": "Paletizado y empaque",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/large-robots/irb-660",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "floor"
+      ],
+      "ip_rating": "IP67",
+      "controller": "IRC5 Single Cabinet, OmniCore V250XT, V400XT",
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Physical / Movement"
+        }
+      },
+      "variant": "IRB 660-180/3.15",
+      "robot_id": "irb-660-180-3-15",
+      "axes": 4,
+      "reach_mm": 3150,
+      "payload_kg": 180,
+      "robot_weight_kg": 1650,
+      "repeatability": {
+        "pose_repeatability_mm": 0.05,
+        "path_repeatability_mm": 0.23,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 130,
+          "speed_unit": "deg/s",
+          "note": "opción +/-220"
+        },
+        {
+          "axis": 2,
+          "range_min": -42,
+          "range_max": 85,
+          "range_unit": "deg",
+          "max_speed": 130,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -20,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 130,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -300,
+          "range_max": 300,
+          "range_unit": "deg",
+          "max_speed": 300,
+          "speed_unit": "deg/s",
+          "note": "max rev +/-150"
+        }
+      ],
+      "cycle_times": [
+        {
+          "value_cycles_per_hour": 1570,
+          "condition": "ciclos por hora en tabla de especificación; condición de medición no detallada"
+        }
+      ],
+      "armload_kg": null
+    },
+    {
+      "mounting": [
+        "floor"
+      ],
+      "ip_rating": "IP67",
+      "controller": "IRC5 Single Cabinet, OmniCore V250XT, V400XT",
+      "sources": {
+        "all": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Physical / Movement"
+        }
+      },
+      "variant": "IRB 660-250/3.15",
+      "robot_id": "irb-660-250-3-15",
+      "axes": 4,
+      "reach_mm": 3150,
+      "payload_kg": 250,
+      "robot_weight_kg": 1650,
+      "repeatability": {
+        "pose_repeatability_mm": 0.05,
+        "path_repeatability_mm": 0.17,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 95,
+          "speed_unit": "deg/s",
+          "note": "opción +/-220"
+        },
+        {
+          "axis": 2,
+          "range_min": -42,
+          "range_max": 85,
+          "range_unit": "deg",
+          "max_speed": 95,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -20,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 95,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -300,
+          "range_max": 300,
+          "range_unit": "deg",
+          "max_speed": 240,
+          "speed_unit": "deg/s",
+          "note": "max rev +/-150"
+        }
+      ],
+      "cycle_times": [
+        {
+          "value_cycles_per_hour": 1360,
+          "condition": "ciclos por hora en tabla de especificación; condición de medición no detallada"
+        }
+      ],
+      "armload_kg": null
+    }
+  ],
+  "notes": [
+    "Los STEP disponibles (180-315, rev03, 2016) corresponden a la variante 180/3.15; 250/3.15 no tiene STEP propio en el listado.",
+    "La asignación de velocidades 130/95 y 300/240 a 180/3.15 y 250/3.15 sigue el orden de columnas del datasheet."
+  ],
+  "manual": {
+    "doc_id": "3HAC025755-001",
+    "revision": "AL",
+    "doc_date": "2026-06-01",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC025755-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 1
+}

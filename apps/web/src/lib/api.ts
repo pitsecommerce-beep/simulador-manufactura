@@ -1,4 +1,13 @@
-import type { MemberRole, Project, ProjectAccess, ProjectMember } from '@sim/domain';
+import type {
+  CatalogFacets,
+  CatalogQuery,
+  CatalogVariant,
+  CatalogVariantDetail,
+  MemberRole,
+  Project,
+  ProjectAccess,
+  ProjectMember,
+} from '@sim/domain';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -52,6 +61,18 @@ export function createApi(baseUrl: string, getToken: () => Promise<string | null
       }),
     removeMember: (id: string, userId: string) =>
       request<void>(`/v1/projects/${id}/members/${userId}`, { method: 'DELETE' }),
+    listCatalog: (query: Partial<Record<keyof CatalogQuery, string | number>> = {}) => {
+      const params = new URLSearchParams();
+      for (const [k, v] of Object.entries(query))
+        if (v !== '' && v != null) params.set(k, String(v));
+      const qs = params.toString();
+      return request<{ variants: CatalogVariant[]; total: number }>(
+        `/v1/catalog/variants${qs ? `?${qs}` : ''}`,
+      );
+    },
+    catalogFacets: () => request<CatalogFacets>('/v1/catalog/facets'),
+    getCatalogVariant: (slug: string) =>
+      request<CatalogVariantDetail>(`/v1/catalog/variants/${encodeURIComponent(slug)}`),
   };
 }
 

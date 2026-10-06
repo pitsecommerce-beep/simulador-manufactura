@@ -1,0 +1,15 @@
+{
+  "component_id": "interroll-rollerdrive-ec5000-50mm-ip54",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "product catalog pages",
+      "title": "RollerDrive EC5000 o50 IP54 (12|2025)",
+      "url": "https://www.interroll.com/fileadmin/products/product_data/EC-5000-IP54/EC5000_50mm_IP54_EN.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "515a12be093d9f19e8ba22ef4315627d52cfcb8a11757f0fb36671950dbbc4cb",
+      "size_bytes": 1095224,
+      "license_terms": "Public link. No license text shown next to the file. Terms not reviewed."
+    }
+  ]
+}

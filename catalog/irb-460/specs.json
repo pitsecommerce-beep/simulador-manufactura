@@ -1,0 +1,99 @@
+{
+  "robot_id": "irb-460",
+  "name": "IRB 460",
+  "family": "Palletizing (4 ejes)",
+  "typical_application": "Paletizado de alta velocidad",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/medium-robots/irb-460",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "floor"
+      ],
+      "ip_rating": "IP67",
+      "controller": "IRC5 Single Cabinet, OmniCore V250XT, V400XT",
+      "cycle_times": [
+        {
+          "value_cycles_per_hour": 2190,
+          "condition": "hasta 2,190 ciclos/hora con carga de 60 kg (texto de introducción del datasheet, sin ciclo de referencia detallado)"
+        }
+      ],
+      "sources": {
+        "reach_payload_mounting_ip_controller_repeatability_weight_axes": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification / Performance / Physical / Movement"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 1,
+          "section": "texto de introducción"
+        }
+      },
+      "variant": "IRB 460-110/2.4",
+      "robot_id": "irb-460-110-2-4",
+      "axes": 4,
+      "reach_mm": 2400,
+      "payload_kg": 110,
+      "armload_kg": null,
+      "robot_weight_kg": 925,
+      "repeatability": {
+        "pose_repeatability_mm": 0.2,
+        "path_repeatability_mm": 0.11,
+        "standard": "ISO 9283"
+      },
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -165,
+          "range_max": 165,
+          "range_unit": "deg",
+          "max_speed": 145,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -40,
+          "range_max": 85,
+          "range_unit": "deg",
+          "max_speed": 110,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -20,
+          "range_max": 120,
+          "range_unit": "deg",
+          "max_speed": 120,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -300,
+          "range_max": 300,
+          "range_unit": "deg",
+          "max_speed": 400,
+          "speed_unit": "deg/s",
+          "note": "eje 6 (giro); el robot tiene 4 ejes"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Los STEP disponibles son de generación IRC5 (rev01, 2022); hay además un STEP-Parasolid de placa de conexión (no descargado)."
+  ],
+  "manual": {
+    "doc_id": "3HAC039842-001",
+    "revision": "AF",
+    "doc_date": "2026-09-21",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC039842-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 0
+}

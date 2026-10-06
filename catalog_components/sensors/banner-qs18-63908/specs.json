@@ -1,0 +1,22 @@
+{
+  "component_id": "banner-qs18-63908",
+  "manufacturer": "Banner Engineering",
+  "model": "WORLD-BEAM QS18 (manual 63908)",
+  "category": "sensors",
+  "type": "photoelectric sensor family",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "sensing_range_mm": null,
+    "supply_voltage_v": null,
+    "response_time_ms": null,
+    "output_type": null
+  },
+  "notes": [
+    "Family manual with modes: opposed, retro, polarized retro, diffuse, convergent, fixed field, fiber; per-model ranges not transcribed."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "Banner CAD not checked."
+  }
+}

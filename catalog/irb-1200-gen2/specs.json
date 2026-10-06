@@ -1,0 +1,373 @@
+{
+  "robot_id": "irb-1200-gen2",
+  "name": "IRB 1200 Gen2 (Next Generation)",
+  "family": "Articulated / small (OmniCore)",
+  "typical_application": "Manipulación pequeña, carga/descarga, ensamble; sustituto del IRB 1200 clásico",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/small-robots/irb-1200-next-generation",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "floor",
+        "wall",
+        "ceiling"
+      ],
+      "ip_rating": "IP40 estándar; IP67 y Foundry Plus 2 opcionales; Cleanroom ISO clase 4 opcional",
+      "controller": "OmniCore E10, C30, C90XT, V250XT",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_mounting_ip_controller_repeatability_weight": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Specification / Performance / Physical"
+        },
+        "axes_range": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Movement - working range"
+        },
+        "axes_speed": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Axis max. speed"
+        }
+      },
+      "variant": "IRB 1200-5/0.9 Gen2",
+      "robot_id": "irb-1200-5-0-9",
+      "axes": 6,
+      "reach_mm": 900,
+      "payload_kg": 5,
+      "robot_weight_kg": 44,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -220,
+          "range_max": 220,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -100,
+          "range_max": 140,
+          "range_unit": "deg",
+          "max_speed": 300,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -200,
+          "range_max": 70,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -130,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 470,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 840,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.015,
+        "standard": "ISO 9283"
+      },
+      "armload_kg": null
+    },
+    {
+      "mounting": [
+        "floor",
+        "wall",
+        "ceiling"
+      ],
+      "ip_rating": "IP40 estándar; IP67 y Foundry Plus 2 opcionales; Cleanroom ISO clase 4 opcional",
+      "controller": "OmniCore E10, C30, C90XT, V250XT",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_mounting_ip_controller_repeatability_weight": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Specification / Performance / Physical"
+        },
+        "axes_range": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Movement - working range"
+        },
+        "axes_speed": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Axis max. speed"
+        }
+      },
+      "variant": "IRB 1200-7/0.7 Gen2",
+      "robot_id": "irb-1200-7-0-7",
+      "axes": 6,
+      "reach_mm": 700,
+      "payload_kg": 7,
+      "robot_weight_kg": 42,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -220,
+          "range_max": 220,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -100,
+          "range_max": 140,
+          "range_unit": "deg",
+          "max_speed": 300,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -200,
+          "range_max": 70,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -130,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 470,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 840,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.011,
+        "standard": "ISO 9283"
+      },
+      "armload_kg": null
+    },
+    {
+      "mounting": [
+        "floor",
+        "wall",
+        "ceiling"
+      ],
+      "ip_rating": "IP40 estándar; IP67 y Foundry Plus 2 opcionales; Cleanroom ISO clase 4 opcional",
+      "controller": "OmniCore E10, C30, C90XT, V250XT",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_mounting_ip_controller_repeatability_weight": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Specification / Performance / Physical"
+        },
+        "axes_range": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Movement - working range"
+        },
+        "axes_speed": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Axis max. speed"
+        }
+      },
+      "variant": "IRB 1200-8/0.9 Gen2",
+      "robot_id": "irb-1200-8-0-9",
+      "axes": 6,
+      "reach_mm": 900,
+      "payload_kg": 8,
+      "robot_weight_kg": 44,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -220,
+          "range_max": 220,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -100,
+          "range_max": 140,
+          "range_unit": "deg",
+          "max_speed": 300,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -200,
+          "range_max": 70,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -130,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 470,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 840,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.019,
+        "standard": "ISO 9283"
+      },
+      "armload_kg": null
+    },
+    {
+      "mounting": [
+        "floor",
+        "wall",
+        "ceiling"
+      ],
+      "ip_rating": "IP40 estándar; IP67 y Foundry Plus 2 opcionales; Cleanroom ISO clase 4 opcional",
+      "controller": "OmniCore E10, C30, C90XT, V250XT",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_mounting_ip_controller_repeatability_weight": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Specification / Performance / Physical"
+        },
+        "axes_range": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Movement - working range"
+        },
+        "axes_speed": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Axis max. speed"
+        }
+      },
+      "variant": "IRB 1200-9/0.7 Gen2",
+      "robot_id": "irb-1200-9-0-7",
+      "axes": 6,
+      "reach_mm": 700,
+      "payload_kg": 9,
+      "robot_weight_kg": 42,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -220,
+          "range_max": 220,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -100,
+          "range_max": 140,
+          "range_unit": "deg",
+          "max_speed": 300,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -200,
+          "range_max": 70,
+          "range_unit": "deg",
+          "max_speed": 360,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -130,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 470,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 840,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.011,
+        "standard": "ISO 9283"
+      },
+      "armload_kg": null
+    }
+  ],
+  "notes": [
+    "Existe también IRB 1200 Hygienic (no descargado en esta pasada).",
+    "Datasheet no publica armload ni tiempos de ciclo."
+  ],
+  "manual": null,
+  "sim_models_processsimulate_available_not_downloaded": 8
+}

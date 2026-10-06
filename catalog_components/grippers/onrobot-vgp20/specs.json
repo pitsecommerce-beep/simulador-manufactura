@@ -1,0 +1,40 @@
+{
+  "component_id": "onrobot-vgp20",
+  "manufacturer": "OnRobot",
+  "model": "VGP20",
+  "category": "grippers",
+  "type": "electric vacuum gripper, 16 to 24 cups array",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "payload_typ_kg": 10,
+    "payload_max_kg": 20,
+    "vacuum_max_pct": 60,
+    "air_flow_total_l_min_max": 48,
+    "air_flow_per_channel_l_min_max": 12,
+    "vacuum_cups_count": [
+      1,
+      16,
+      24
+    ],
+    "gripping_time_s": 0.25,
+    "releasing_time_s": 0.4,
+    "noise_db_a_max": 71,
+    "ip_rating": "IP54",
+    "dimensions_mm": "264 x 184 x 92",
+    "weight_kg": 2.55,
+    "supply_voltage_v_nominal": 24,
+    "supply_voltage_v_min": 20.4,
+    "supply_voltage_v_max": 28.8,
+    "current_ma_min": 50,
+    "current_ma_typ": 2500,
+    "current_ma_max": 4500
+  },
+  "notes": [
+    "Datasheet page 1. Payload values (10) and (20) have footnotes not transcribed; which value is typical vs maximum is taken from column order."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "CAD selector for VGP20 not opened."
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "component_id": "banner-ez-screen-ls-204120",
+  "manufacturer": "Banner Engineering",
+  "model": "EZ-SCREEN LS Basic (p/n 204120)",
+  "category": "safety",
+  "type": "safety light curtain",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "resolution_mm": 23,
+    "sensing_range_m": [
+      0.1,
+      8
+    ],
+    "sensing_range_note": "decreases with corner mirrors or lens shields",
+    "supply_voltage_v": null,
+    "response_time_ms": null,
+    "defined_area_heights_mm": null
+  },
+  "notes": [
+    "Range quoted from manual text; response time per model in tables, not transcribed."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "Banner CAD not checked."
+  }
+}

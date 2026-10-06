@@ -1,0 +1,21 @@
+{
+  "component_id": "troax-machine-guarding-brochure",
+  "manufacturer": "Troax",
+  "model": "Machine guarding brochure (panels, posts, doors)",
+  "category": "fences",
+  "type": "safety fence system (brochure only)",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "panel_dimensions_mm": null,
+    "heights_mm": null,
+    "mesh_mm": null
+  },
+  "notes": [
+    "Marketing brochure; dimensions not extracted. CAD page exists at troax.com/resources/downloads/cad/ but its files did not appear in static HTML; not downloaded."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "CAD list is rendered by script; not obtained."
+  }
+}

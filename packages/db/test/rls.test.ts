@@ -97,7 +97,9 @@ describe('cobertura de RLS', () => {
       'robot_variants',
       'robot_specs',
       'robot_assets',
+      'robot_documents',
       'components',
+      'component_documents',
       'component_specs',
       'component_assets',
       'object_types',
@@ -144,6 +146,31 @@ describe('catálogo', () => {
       expect(await expectError(c, `update public.robots set model = 'hack'`)).toMatch(
         /permission denied/,
       );
+    });
+  });
+
+  it('documentos de catálogo: lectura para autenticados, sin escritura', async () => {
+    await inRollback(db, async (c) => {
+      await c.query(
+        `insert into public.robot_documents (robot_id, path, kind) values ($1, 'datasheet.pdf', 'datasheet')`,
+        [robotId],
+      );
+      await c.query(
+        `select set_config('request.jwt.claims', $1, true), set_config('role', 'authenticated', true)`,
+        [JSON.stringify({ sub: stranger, role: 'authenticated' })],
+      );
+      const { rows } = await c.query('select path from public.robot_documents');
+      expect(rows).toEqual([{ path: 'datasheet.pdf' }]);
+      for (const sql of [
+        `insert into public.robot_documents (robot_id, path, kind) values ('${robotId}', 'x.pdf', 'datasheet')`,
+        `update public.robot_documents set url = 'https://malo.example'`,
+        `delete from public.robot_documents`,
+        `update public.robot_specs set payload_kg = 999`,
+        `delete from public.robot_variants`,
+        `insert into public.component_documents (component_id, path, kind) values (gen_random_uuid(), 'x', 'y')`,
+      ]) {
+        expect(await expectError(c, sql)).toMatch(/permission denied/);
+      }
     });
   });
 

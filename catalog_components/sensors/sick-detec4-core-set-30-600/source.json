@@ -1,0 +1,15 @@
+{
+  "component_id": "sick-detec4-core-set-30-600",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "product datasheet",
+      "title": "Data sheet deTec4 Core Set 30/600",
+      "url": "https://www.sick.com/media/pdf/4/44/944/dataSheet_deTec4-Core-Set-30-600_1062911_en.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "da6203f9d222925753981cd66368a5a37aeb4886aa2dd883ce77c0576c12ac1e",
+      "size_bytes": 649862,
+      "license_terms": "Public link. No license text shown next to the file; PDF footer says subject to change without notice. SICK terms not reviewed."
+    }
+  ]
+}

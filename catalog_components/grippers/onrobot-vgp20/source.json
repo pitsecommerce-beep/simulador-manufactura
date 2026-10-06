@@ -1,0 +1,15 @@
+{
+  "component_id": "onrobot-vgp20",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "product datasheet",
+      "title": "Datasheet VGP20 v1.7",
+      "url": "https://onrobot.com/storage/datasheets/vgp20/datasheet_vgp20_v1.7_en.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "84667ade7a0fcc1abf5d3f11a23bf02bbbdf4dbc2edc6f3c7d2bc59408e880f7",
+      "size_bytes": 3149907,
+      "license_terms": "Public download without login. No license text shown next to the file. Terms of the OnRobot site not reviewed."
+    }
+  ]
+}

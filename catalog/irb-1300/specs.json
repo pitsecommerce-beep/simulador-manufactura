@@ -1,0 +1,380 @@
+{
+  "robot_id": "irb-1300",
+  "name": "IRB 1300 Type A",
+  "family": "Articulated / small (OmniCore)",
+  "typical_application": "Manipulación, ensamble, pulido; espacios reducidos",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/small-robots/irb-1300",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "any angle (con limitaciones de espacio alcanzable según carga/pose)"
+      ],
+      "ip_rating": "IP40 estándar; IP67 y Foundry Plus 2 opcionales; Cleanroom ISO 4 opcional",
+      "controller": "OmniCore",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_mounting_ip_controller": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification"
+        },
+        "repeatability_weight": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance / Physical"
+        },
+        "axes": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Movement"
+        }
+      },
+      "variant": "IRB 1300-11/0.9",
+      "robot_id": "irb-1300-11-0-9",
+      "axes": 6,
+      "reach_mm": 900,
+      "payload_kg": 11,
+      "armload_kg": 1,
+      "robot_weight_kg": 75,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 280,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -100,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 228,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -210,
+          "range_max": 65,
+          "range_unit": "deg",
+          "max_speed": 336,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -130,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 415,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 720,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.02,
+        "pose_stabilization_time_s": 0.21,
+        "path_repeatability_mm": 0.07,
+        "standard": "ISO 9283"
+      }
+    },
+    {
+      "mounting": [
+        "any angle (con limitaciones de espacio alcanzable según carga/pose)"
+      ],
+      "ip_rating": "IP40 estándar; IP67 y Foundry Plus 2 opcionales; Cleanroom ISO 4 opcional",
+      "controller": "OmniCore",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_mounting_ip_controller": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification"
+        },
+        "repeatability_weight": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance / Physical"
+        },
+        "axes": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Movement"
+        }
+      },
+      "variant": "IRB 1300-10/1.15",
+      "robot_id": "irb-1300-10-1-15",
+      "axes": 6,
+      "reach_mm": 1150,
+      "payload_kg": 10,
+      "armload_kg": 1,
+      "robot_weight_kg": 77,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 280,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -95,
+          "range_max": 155,
+          "range_unit": "deg",
+          "max_speed": 228,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -210,
+          "range_max": 65,
+          "range_unit": "deg",
+          "max_speed": 336,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -130,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 415,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 720,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.02,
+        "pose_stabilization_time_s": 0.17,
+        "path_repeatability_mm": 0.05,
+        "standard": "ISO 9283"
+      }
+    },
+    {
+      "mounting": [
+        "any angle (con limitaciones de espacio alcanzable según carga/pose)"
+      ],
+      "ip_rating": "IP40 estándar; IP67 y Foundry Plus 2 opcionales; Cleanroom ISO 4 opcional",
+      "controller": "OmniCore",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_mounting_ip_controller": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification"
+        },
+        "repeatability_weight": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance / Physical"
+        },
+        "axes": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Movement"
+        }
+      },
+      "variant": "IRB 1300-7/1.4",
+      "robot_id": "irb-1300-7-1-4",
+      "axes": 6,
+      "reach_mm": 1400,
+      "payload_kg": 7,
+      "armload_kg": 1,
+      "robot_weight_kg": 79,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 280,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -95,
+          "range_max": 155,
+          "range_unit": "deg",
+          "max_speed": 180,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -210,
+          "range_max": 69,
+          "range_unit": "deg",
+          "max_speed": 250,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -130,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 415,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 720,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.03,
+        "pose_stabilization_time_s": 0.25,
+        "path_repeatability_mm": 0.07,
+        "standard": "ISO 9283"
+      }
+    },
+    {
+      "mounting": [
+        "any angle (con limitaciones de espacio alcanzable según carga/pose)"
+      ],
+      "ip_rating": "IP40 estándar; IP67 y Foundry Plus 2 opcionales; Cleanroom ISO 4 opcional",
+      "controller": "OmniCore",
+      "cycle_times": [],
+      "sources": {
+        "reach_payload_mounting_ip_controller": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification"
+        },
+        "repeatability_weight": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance / Physical"
+        },
+        "axes": {
+          "file": "datasheet.pdf",
+          "page": 3,
+          "section": "Movement"
+        }
+      },
+      "variant": "IRB 1300-12/1.4",
+      "robot_id": "irb-1300-12-1-4",
+      "axes": 6,
+      "reach_mm": 1400,
+      "payload_kg": 12,
+      "armload_kg": 1,
+      "robot_weight_kg": 79,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -180,
+          "range_max": 180,
+          "range_unit": "deg",
+          "max_speed": 280,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -95,
+          "range_max": 155,
+          "range_unit": "deg",
+          "max_speed": 180,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -210,
+          "range_max": 69,
+          "range_unit": "deg",
+          "max_speed": 250,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -230,
+          "range_max": 230,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -130,
+          "range_max": 130,
+          "range_unit": "deg",
+          "max_speed": 415,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -400,
+          "range_max": 400,
+          "range_unit": "deg",
+          "max_speed": 720,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.04,
+        "pose_stabilization_time_s": 0.52,
+        "path_repeatability_mm": 0.08,
+        "standard": "ISO 9283"
+      }
+    }
+  ],
+  "notes": [
+    "La velocidad máxima de eje varía según controlador (el datasheet remite a la Product Specification).",
+    "Se descargaron solo los STEP de configuración STD (IP40/IP67/CleanRoom); existen también BTM y FoundryPlus."
+  ],
+  "manual": {
+    "doc_id": "3HAC070390-001",
+    "revision": "W",
+    "doc_date": "2026-09-21",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC070390-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": ">=20"
+}

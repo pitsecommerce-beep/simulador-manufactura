@@ -1,0 +1,48 @@
+{
+  "component_id": "interroll-rollerdrive-ec5000-50mm-ip54",
+  "manufacturer": "Interroll",
+  "model": "RollerDrive EC5000 o50 mm IP54",
+  "category": "conveyors",
+  "type": "motorized conveyor roller (24/48 V DC)",
+  "extracted_from": "datasheet.pdf",
+  "extraction_note": "Values copied from the PDF; null = not found in the document. Units in key names.",
+  "specs": {
+    "tube_diameter_mm": 50,
+    "rated_voltage_v": [
+      24,
+      48
+    ],
+    "power_w": [
+      20,
+      35,
+      50
+    ],
+    "rated_current_a_24v": [
+      1.4,
+      2.4,
+      3.4
+    ],
+    "rated_current_a_48v": [
+      0.7,
+      1.2,
+      1.7
+    ],
+    "max_reference_length_mm": 1500,
+    "max_load_per_roller_le_1000mm_n": 1100,
+    "max_load_with_drive_head_n": 350,
+    "ambient_temp_c": [
+      0,
+      40
+    ],
+    "ip_rating": "IP54",
+    "noise_db_a_max": 55,
+    "belt_speed_m_s": null
+  },
+  "notes": [
+    "Technical data and maximum load capacity tables; speed table by gear ratio not transcribed (null)."
+  ],
+  "cad": {
+    "status": "not_downloaded",
+    "note": "Interroll CAD portal not checked."
+  }
+}

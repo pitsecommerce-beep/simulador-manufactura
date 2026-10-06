@@ -1,0 +1,202 @@
+{
+  "generated_at": "2026-09-30",
+  "components": [
+    {
+      "id": "schmalz-fqe-xc-10-01-44-00441",
+      "category": "grippers",
+      "manufacturer": "Schmalz",
+      "model": "FQE Xc 300x130 SW100 O20 (10.01.44.00441)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 210604
+    },
+    {
+      "id": "schmalz-spb2-40-10-01-06-03459",
+      "category": "grippers",
+      "manufacturer": "Schmalz",
+      "model": "SPB2 40 ED-65 G1/4-AG (10.01.06.03459)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 242788
+    },
+    {
+      "id": "onrobot-2fg7",
+      "category": "grippers",
+      "manufacturer": "OnRobot",
+      "model": "2FG7",
+      "datasheet": true,
+      "cad": "downloaded",
+      "bytes": 10021718
+    },
+    {
+      "id": "onrobot-vgc10",
+      "category": "grippers",
+      "manufacturer": "OnRobot",
+      "model": "VGC10",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 1658627
+    },
+    {
+      "id": "onrobot-vgp20",
+      "category": "grippers",
+      "manufacturer": "OnRobot",
+      "model": "VGP20",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 3149907
+    },
+    {
+      "id": "schunk-egp-40-n-n-b",
+      "category": "grippers",
+      "manufacturer": "SCHUNK",
+      "model": "EGP 40-N-N-B (ID 0310940)",
+      "datasheet": true,
+      "cad": "requires_login_or_not_checked",
+      "bytes": 1907983
+    },
+    {
+      "id": "interroll-rollerdrive-ec5000-50mm-ip54",
+      "category": "conveyors",
+      "manufacturer": "Interroll",
+      "model": "RollerDrive EC5000 o50 mm IP54",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 1095224
+    },
+    {
+      "id": "interroll-rollerdrive-ec5000-60mm-ip54",
+      "category": "conveyors",
+      "manufacturer": "Interroll",
+      "model": "RollerDrive EC5000 o60 mm IP54",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 1302158
+    },
+    {
+      "id": "dorner-2200-851-863a",
+      "category": "conveyors",
+      "manufacturer": "Dorner",
+      "model": "2200 Series conveyor (doc 851-863a)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 4514155
+    },
+    {
+      "id": "dorner-2200-modular-belt-851-873a",
+      "category": "conveyors",
+      "manufacturer": "Dorner",
+      "model": "2200 Series modular belt conveyor (doc 851-873a)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 3789712
+    },
+    {
+      "id": "sick-wll180t-e632",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "WLL180T-E632 (6050763)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 374206
+    },
+    {
+      "id": "sick-imb12-08npsvu2s",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "IMB12-08NPSVU2S (1072743)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 485118
+    },
+    {
+      "id": "sick-pbs-rb040sg1ssnbma0z",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "PBS-RB040SG1SSNBMA0Z (6038890)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 347031
+    },
+    {
+      "id": "sick-micros3-mics3-cbaz40za1",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "microScan3 MICS3-CBAZ40ZA1 (1069682)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 570882
+    },
+    {
+      "id": "sick-detec4-core-set-30-600",
+      "category": "sensors",
+      "manufacturer": "SICK",
+      "model": "deTec4 Core Set 30/600 (1062911)",
+      "datasheet": true,
+      "cad": "requires_login",
+      "bytes": 649862
+    },
+    {
+      "id": "banner-q4x-190074",
+      "category": "sensors",
+      "manufacturer": "Banner Engineering",
+      "model": "Q4X stainless laser sensor, dual outputs and IO-Link (manual 190074)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 6548485
+    },
+    {
+      "id": "banner-qs18-63908",
+      "category": "sensors",
+      "manufacturer": "Banner Engineering",
+      "model": "WORLD-BEAM QS18 (manual 63908)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 775345
+    },
+    {
+      "id": "banner-ez-screen-ls-204120",
+      "category": "safety",
+      "manufacturer": "Banner Engineering",
+      "model": "EZ-SCREEN LS Basic (p/n 204120)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 9781490
+    },
+    {
+      "id": "troax-machine-guarding-brochure",
+      "category": "fences",
+      "manufacturer": "Troax",
+      "model": "Machine guarding brochure (panels, posts, doors)",
+      "datasheet": true,
+      "cad": "not_downloaded",
+      "bytes": 7919593
+    }
+  ],
+  "pending": [
+    {
+      "manufacturer": "Piab",
+      "reason": "CAD and per-article datasheets locked behind login (lock icon in CAD Center and Downloads tab)"
+    },
+    {
+      "manufacturer": "Cognex",
+      "reason": "In-Sight 2800 datasheet requires filling a registration form"
+    },
+    {
+      "manufacturer": "Keyence",
+      "reason": "GL-R catalog/datasheet/CAD require registration or sign-in"
+    },
+    {
+      "manufacturer": "Zimmer",
+      "reason": "No public datasheet or CAD link found on the GPP5000 product page"
+    },
+    {
+      "manufacturer": "Pilz / Bosch Rexroth / item",
+      "reason": "Not reached in this pass"
+    },
+    {
+      "manufacturer": "Schmalz, SICK",
+      "reason": "Datasheets downloaded; CAD goes through TraceParts or SICK CAD download, which need registration or were not opened"
+    }
+  ]
+}

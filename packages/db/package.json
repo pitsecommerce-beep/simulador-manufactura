@@ -7,10 +7,12 @@
     "migrate": "node src/migrate.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "sql": "node src/bundle.ts"
+    "sql": "node src/bundle.ts",
+    "catalog:sql": "node src/catalog-seed.ts"
   },
   "dependencies": {
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "zod": "^4.3.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

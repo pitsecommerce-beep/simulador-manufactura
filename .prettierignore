@@ -4,3 +4,5 @@ coverage
 .venv
 *.md
 supabase/**/*.sql
+catalog/
+catalog_components/

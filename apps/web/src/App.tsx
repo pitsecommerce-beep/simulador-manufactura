@@ -3,6 +3,8 @@ import { Layout } from './components/Layout';
 import { Spinner } from './components/ui';
 import { useApp } from './lib/context';
 import { AccountPage } from './pages/AccountPage';
+import { CatalogPage } from './pages/CatalogPage';
+import { CatalogVariantPage } from './pages/CatalogVariantPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProjectPage } from './pages/ProjectPage';
 import { ProjectsPage } from './pages/ProjectsPage';
@@ -24,6 +26,8 @@ export function App() {
             <>
               <Route index element={<ProjectsPage />} />
               <Route path="proyectos/:id" element={<ProjectPage />} />
+              <Route path="catalogo" element={<CatalogPage />} />
+              <Route path="catalogo/:slug" element={<CatalogVariantPage />} />
               <Route path="cuenta" element={<AccountPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </>

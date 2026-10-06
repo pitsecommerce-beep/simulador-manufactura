@@ -39,18 +39,16 @@ export const BLOCKED_EXTENSIONS = [
   '.urdf',
 ];
 
-// Carpetas de catálogo: además de CAD, bloquean datasheets y planos de fabricante.
+// Carpetas de catálogo: solo se versionan la documentación, los ejemplos sintéticos y los
+// metadatos JSON (cifras de ficha, fuentes y términos). Datasheets, planos, imágenes,
+// comprimidos y cualquier otro archivo de fabricante quedan bloqueados.
 const CATALOG_DIRS = ['catalog/', 'catalog_components/'];
-const CATALOG_BLOCKED_EXTENSIONS = [
-  '.pdf',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.tif',
-  '.tiff',
-  '.zip',
-  '.gz',
-  '.7z',
+const CATALOG_ALLOWED = [
+  /^catalog\/manifest\.json$/,
+  /^catalog\/[a-z0-9][a-z0-9-]*\/(specs|source)\.json$/,
+  /^catalog_components\/manifest_components\.json$/,
+  /^catalog_components\/standards\/presets\.json$/,
+  /^catalog_components\/[a-z0-9-]+\/[a-z0-9][a-z0-9.-]*\/(specs|source)\.json$/,
 ];
 
 const HEAD_BYTES = 64 * 1024;
@@ -68,9 +66,8 @@ export function checkPath(path) {
   }
   if (CATALOG_DIRS.some((d) => lower.startsWith(d))) {
     const isDoc = lower.endsWith('/readme.md') || lower.includes('/examples/');
-    for (const ext of CATALOG_BLOCKED_EXTENSIONS) {
-      if (lower.endsWith(ext) && !isDoc)
-        return `archivo de fabricante en carpeta de catálogo (${ext})`;
+    if (!isDoc && !CATALOG_ALLOWED.some((re) => re.test(lower))) {
+      return 'archivo no permitido en carpeta de catálogo (solo manifest, specs.json y source.json)';
     }
   }
   return null;

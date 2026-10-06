@@ -1,0 +1,131 @@
+{
+  "robot_id": "irb-1010",
+  "name": "IRB 1010",
+  "family": "Articulated / small (OmniCore)",
+  "typical_application": "Ensamble y manipulación de piezas pequeñas (electrónica); sustituto de IRB 120",
+  "product_page": "https://www.abb.com/global/en/areas/robotics/products/robots/articulated-robots/small-robots/irb-1010",
+  "extracted_from": [
+    "datasheet.pdf",
+    "product_specification.pdf"
+  ],
+  "extracted_at": "2026-09-30T16:29:54Z",
+  "extraction_note": "Valores copiados del datasheet PDF (texto extraído con pdftotext). Campos ausentes = null. Página = página del PDF.",
+  "variants": [
+    {
+      "mounting": [
+        "floor",
+        "ceiling"
+      ],
+      "ip_rating": "IP40",
+      "controller": "OmniCore E10, C30",
+      "cycle_times": [
+        {
+          "value_s": 0.54,
+          "condition": "1 kg picking cycle 25 x 300 x 25 mm"
+        }
+      ],
+      "sources": {
+        "reach_payload_armload_mounting_ip_controller": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Specification"
+        },
+        "repeatability": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance (ISO 9283)"
+        },
+        "weight": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Physical"
+        },
+        "axes": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Movement"
+        },
+        "cycle_times": {
+          "file": "datasheet.pdf",
+          "page": 2,
+          "section": "Performance"
+        }
+      },
+      "variant": "IRB 1010-1.5/0.37",
+      "robot_id": "irb-1010-1-5-0-37",
+      "axes": 6,
+      "reach_mm": 370,
+      "payload_kg": 1.5,
+      "armload_kg": 0.2,
+      "robot_weight_kg": 13.5,
+      "axis_data": [
+        {
+          "axis": 1,
+          "range_min": -170,
+          "range_max": 170,
+          "range_unit": "deg",
+          "max_speed": 320,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 2,
+          "range_min": -75,
+          "range_max": 125,
+          "range_unit": "deg",
+          "max_speed": 320,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 3,
+          "range_min": -180,
+          "range_max": 50,
+          "range_unit": "deg",
+          "max_speed": 375,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 4,
+          "range_min": -170,
+          "range_max": 170,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 5,
+          "range_min": -125,
+          "range_max": 125,
+          "range_unit": "deg",
+          "max_speed": 470,
+          "speed_unit": "deg/s"
+        },
+        {
+          "axis": 6,
+          "range_min": -360,
+          "range_max": 360,
+          "range_unit": "deg",
+          "max_speed": 500,
+          "speed_unit": "deg/s"
+        }
+      ],
+      "repeatability": {
+        "pose_repeatability_mm": 0.01,
+        "path_repeatability_mm": 0.01,
+        "pose_stabilization_time_s": 0.04,
+        "standard": "ISO 9283"
+      }
+    }
+  ],
+  "notes": [
+    "Datasheet lista una sola variante (1.5 kg / 0.37 m)."
+  ],
+  "manual": {
+    "doc_id": "3HAC081964-001",
+    "revision": "L",
+    "doc_date": "2026-06-04",
+    "language": "en",
+    "url": "https://search.abb.com/library/Download.aspx?DocumentID=3HAC081964-001&LanguageCode=en&DocumentPartId=&Action=Launch",
+    "downloaded": false
+  },
+  "sim_models_processsimulate_available_not_downloaded": 1
+}

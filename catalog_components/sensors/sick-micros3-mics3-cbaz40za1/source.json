@@ -1,0 +1,15 @@
+{
+  "component_id": "sick-micros3-mics3-cbaz40za1",
+  "files": [
+    {
+      "path": "datasheet.pdf",
+      "kind": "product datasheet",
+      "title": "Data sheet MICS3-CBAZ40ZA1",
+      "url": "https://www.sick.com/media/pdf/6/46/546/dataSheet_MICS3-CBAZ40ZA1_1069682_en.pdf",
+      "accessed_at": "2026-09-30",
+      "sha256": "6319b6fc0d4903bae4bbdc0c0195a8ed0e4e592d28717c70332e5d1011ef4be3",
+      "size_bytes": 570882,
+      "license_terms": "Public link. No license text shown next to the file; PDF footer says subject to change without notice. SICK terms not reviewed."
+    }
+  ]
+}
