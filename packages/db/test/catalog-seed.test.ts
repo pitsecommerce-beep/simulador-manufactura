@@ -1,6 +1,7 @@
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   buildCatalogSeed,
@@ -14,9 +15,10 @@ import { createTestDatabase, type Db } from './helpers.ts';
 
 let db: Db;
 let drop: () => Promise<void>;
+let dbUrl: string;
 
 beforeAll(async () => {
-  ({ client: db, drop } = await createTestDatabase({ via: 'bundle' }));
+  ({ client: db, drop, url: dbUrl } = await createTestDatabase({ via: 'bundle' }));
   await db.query(buildCatalogSeed());
 });
 afterAll(async () => {
@@ -56,6 +58,26 @@ const spec = async (slug: string) =>
 describe('seed del catálogo', () => {
   it('el archivo versionado está al día (pnpm catalog:sql)', () => {
     expect(readFileSync(SEED_PATH, 'utf8')).toBe(buildCatalogSeed());
+  });
+
+  it('funciona aunque cada instrucción vaya en una sesión distinta (como el SQL Editor)', async () => {
+    const sql = buildCatalogSeed();
+    expect(sql).not.toMatch(/temp(orary)? table/i);
+    // Instrucciones de nivel superior: el bloque DO y la consulta final de conteo.
+    const statements = sql.split(/^\$catalog_seed_do\$;$/m);
+    expect(statements).toHaveLength(2);
+    statements[0] += '$catalog_seed_do$;';
+    for (const statement of statements) {
+      const c = new pg.Client({ connectionString: dbUrl });
+      await c.connect();
+      try {
+        await c.query(statement);
+      } finally {
+        await c.end();
+      }
+    }
+    const { rows } = await db.query('select count(*)::int as n from public.robot_variants');
+    expect(rows[0].n).toBe(loadSeedData().variants.length);
   });
 
   it('carga todos los robots, variantes, componentes y presets', async () => {

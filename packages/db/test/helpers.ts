@@ -42,6 +42,8 @@ export async function createTestDatabase({ via = 'runner' }: { via?: 'runner' | 
 
   return {
     client,
+    /** Cadena de conexión para abrir otras sesiones contra la misma base. */
+    url: url.toString(),
     async drop() {
       await client.end();
       const a = new pg.Client({ connectionString: ADMIN_URL });
