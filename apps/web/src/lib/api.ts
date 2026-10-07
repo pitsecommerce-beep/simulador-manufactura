@@ -1,4 +1,5 @@
 import type {
+  CatalogComponent,
   CatalogFacets,
   CatalogQuery,
   CatalogVariant,
@@ -78,6 +79,7 @@ export function createApi(baseUrl: string, getToken: () => Promise<string | null
         method: 'PUT',
         body: JSON.stringify({ scene, version }),
       }),
+    listComponents: () => request<{ components: CatalogComponent[] }>('/v1/catalog/components'),
     catalogFacets: () => request<CatalogFacets>('/v1/catalog/facets'),
     getCatalogVariant: (slug: string) =>
       request<CatalogVariantDetail>(`/v1/catalog/variants/${encodeURIComponent(slug)}`),

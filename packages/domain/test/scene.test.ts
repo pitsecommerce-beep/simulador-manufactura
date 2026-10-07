@@ -15,6 +15,7 @@ import {
   type RobotModel,
   type RobotSpecInput,
   type SceneObject,
+  type WorkObject,
 } from '../src/index.ts';
 
 const deg = (axis: number, min: number, max: number): AxisLimit => ({
@@ -160,15 +161,12 @@ describe('alcance', () => {
   const r = robot('r1') as Extract<SceneObject, { kind: 'robot' }>;
 
   it('dentro, en el borde y fuera de la esfera de alcance', () => {
-    const near = box('b', 600, 0) as Exclude<SceneObject, { kind: 'robot' }>;
+    const near = box('b', 600, 0) as WorkObject;
     expect(reachExcess(r, m, near)).toBe(0);
     // Cara superior a la altura del hombro: el borde más cercano a exactamente R.
-    const edge = box('b', 1400 + 200, 0, { elevation: 290 }) as Exclude<
-      SceneObject,
-      { kind: 'robot' }
-    >;
+    const edge = box('b', 1400 + 200, 0, { elevation: 290 }) as WorkObject;
     expect(reachExcess(r, m, edge)).toBeCloseTo(0);
-    const far = box('b', 2000, 0, { elevation: 290 }) as Exclude<SceneObject, { kind: 'robot' }>;
+    const far = box('b', 2000, 0, { elevation: 290 }) as WorkObject;
     expect(reachExcess(r, m, far)).toBeCloseTo(400);
   });
 
@@ -176,32 +174,22 @@ describe('alcance', () => {
     const long = {
       ...box('b', 1800, 0, { elevation: 290 }),
       params: { length_mm: 1200, width_mm: 100, height_mm: 200, mass_kg: null },
-    } as Exclude<SceneObject, { kind: 'robot' }>;
+    } as WorkObject;
     expect(reachExcess(r, m, long)).toBeCloseTo(0); // largo apuntando al robot: borde a 1200
     expect(reachExcess(r, m, { ...long, rotation_deg: 90 })).toBeGreaterThan(300);
   });
 
   it('alcance no publicado: no se puede validar', () => {
     const nm = buildRobotModel({ ...IRB1300, reach_mm: null });
-    expect(
-      reachExcess(r, nm, box('b', 0, 0) as Exclude<SceneObject, { kind: 'robot' }>),
-    ).toBeNull();
+    expect(reachExcess(r, nm, box('b', 0, 0) as WorkObject)).toBeNull();
   });
 
   it('delta: radio del área de trabajo y objeto debajo de la base', () => {
     const dm = buildRobotModel(DELTA);
     const d = robot('d', 0, 0, 1500) as Extract<SceneObject, { kind: 'robot' }>;
-    expect(reachExcess(d, dm, box('b', 500, 0) as Exclude<SceneObject, { kind: 'robot' }>)).toBe(0);
-    expect(
-      reachExcess(d, dm, box('b', 965, 0) as Exclude<SceneObject, { kind: 'robot' }>),
-    ).toBeCloseTo(200);
-    expect(
-      reachExcess(
-        d,
-        dm,
-        box('b', 0, 0, { elevation: 1400 }) as Exclude<SceneObject, { kind: 'robot' }>,
-      ),
-    ).toBeCloseTo(100);
+    expect(reachExcess(d, dm, box('b', 500, 0) as WorkObject)).toBe(0);
+    expect(reachExcess(d, dm, box('b', 965, 0) as WorkObject)).toBeCloseTo(200);
+    expect(reachExcess(d, dm, box('b', 0, 0, { elevation: 1400 }) as WorkObject)).toBeCloseTo(100);
   });
 });
 
@@ -264,11 +252,11 @@ describe('validateScene', () => {
 
   it('el giro de 90° cambia la caja delimitadora', () => {
     const b = box('b', 0, 0) as SceneObject;
-    expect(aabb(b).max[0]).toBe(200);
-    expect(aabb({ ...b, rotation_deg: 90 }).max[0]).toBeCloseTo(150);
+    expect(aabb(b)!.max[0]).toBe(200);
+    expect(aabb({ ...b, rotation_deg: 90 })!.max[0]).toBeCloseTo(150);
     const near = box('n', 0, 330) as SceneObject;
-    expect(overlaps(aabb(b), aabb(near))).toBe(false);
-    expect(overlaps(aabb({ ...b, rotation_deg: 90 }), aabb(near))).toBe(true);
+    expect(overlaps(aabb(b)!, aabb(near)!)).toBe(false);
+    expect(overlaps(aabb({ ...b, rotation_deg: 90 })!, aabb(near)!)).toBe(true);
   });
 
   it('un robot sobre un pallet colisiona con él', () => {
@@ -298,7 +286,11 @@ describe('escena', () => {
   });
 
   it('un layout guardado vacío ({}) se lee como escena vacía', () => {
-    expect(parseStoredScene({})).toEqual({ schema: 1, objects: [] });
+    expect(parseStoredScene({})).toEqual({
+      schema: 2,
+      objects: [],
+      process: { product: { name: 'Producto', bom: [] }, nodes: [], routes: [] },
+    });
   });
 
   it('solo el EUR publica altura de pallet', () => {

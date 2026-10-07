@@ -654,8 +654,8 @@ Servicio `sim-worker` (el que ya existe, con nueva configuración): Dockerfile c
 ### 23.1 Proveedor
 
 - `apps/api/src/ai/provider.ts`: interfaz `AiProvider` (un turno con historial, herramientas y uso de tokens). Primera implementación: Anthropic con el SDK oficial `@anthropic-ai/sdk`. OpenAI se agrega después con la misma interfaz.
-- Variables: `AI_PROVIDER` (`anthropic`), `AI_MODEL` (**obligatoria**, el código no fija ningún modelo; sin ella el asistente responde "no configurado"), `ANTHROPIC_API_KEY`, `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, opcional `AI_EFFORT` (esfuerzo de razonamiento, `low` a `max`).
-- Valor sugerido en el README: `AI_MODEL=claude-opus-5-5` (o `claude-sonnet-5-5`, más barato).
+- Variables: `AI_PROVIDER` (`anthropic`), `AI_MODEL` (**obligatoria**, el código no fija ningún modelo; sin ella el asistente responde "no configurado"), `ANTHROPIC_API_KEY`, `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, `AI_GLOBAL_DAILY_TOKEN_LIMIT`, opcional `AI_EFFORT` (esfuerzo de razonamiento, `low` a `max`).
+- Valor de ejemplo en el README: `AI_MODEL=claude-sonnet-5-5`; `claude-opus-5-5` para layouts más complejos.
 - Bucle de herramientas propio en la api (máximo 8 vueltas por mensaje), con elección de herramienta `auto` y `strict: true` en los esquemas (los modelos actuales rechazan forzar una herramienta). El historial se guarda y se reenvía tal cual, sin editarlo, como piden los modelos actuales para conservar su razonamiento entre turnos.
 
 ### 23.2 Endpoint y herramientas
@@ -681,7 +681,7 @@ Reglas del asistente (system prompt), reforzadas en código:
 
 - Cada intercambio se guarda en `ai_conversations` (mensajes, llamadas a herramientas, tokens, propuestas).
 - **Nada se escribe en `layouts`.** Aceptar aplica la propuesta al editor; queda como "cambios sin guardar" y el usuario guarda con el botón de siempre. Ver la pregunta 1.
-- **Límites por usuario y día** en `ai_usage`, con una función atómica `public.consume_ai_usage(...)` que solo puede ejecutar la clave secreta. Si se supera, responde 429 con el límite y la hora de reinicio (medianoche UTC).
+- **Límites por usuario y día** en `ai_usage` y **tope global diario** de tokens, con una función atómica `public.consume_ai_usage(...)` que solo puede ejecutar la clave secreta. Si se supera, el asistente responde con un mensaje claro (qué límite y que se reinicia a medianoche UTC), sin error.
 
 ### 23.4 UI
 
@@ -708,16 +708,16 @@ Un mensaje del usuario suele implicar de 3 a 6 llamadas al modelo (búsquedas, p
 | `claude-opus-5-5` | USD 4 / 20 | USD 0.25 a 0.50 |
 | `claude-sonnet-5-5` | USD 2 / 10 | USD 0.12 a 0.25 |
 
-El caché de prompts (instrucciones y herramientas fijas) reduce la entrada repetida. Los límites diarios acotan el gasto: por ejemplo, 50 mensajes por usuario al día cuestan como máximo unos USD 25 con Opus.
+El caché de prompts (instrucciones y herramientas fijas) reduce la entrada repetida. Los límites diarios acotan el gasto: con 30 mensajes por usuario al día y Sonnet, el máximo ronda los USD 7.5 por usuario, y el tope global de tokens limita el total de la app.
 
 ### 23.7 Tests de la parte C
 
 Con un proveedor falso que reproduce respuestas guionizadas (sin llamadas reales): validación de propuestas (slug inexistente, escena inválida, corrección en una segunda vuelta), límites de uso (429 y conteo), permisos (lector 403, extraño 404), que ninguna ruta del asistente escribe en `layouts`, conversaciones guardadas y "no configurado" sin `AI_MODEL`.
 
-### 23.8 Preguntas para confirmar (partes A, B y C)
+### 23.8 Decisiones confirmadas
 
-1. **Aceptar una propuesta**: propongo que la aplique al editor y que se guarde con el botón Guardar de siempre, para que puedas revisarla y deshacer. ¿O prefieres que Aceptar guarde directamente?
-2. **Takt time**: requiere la demanda (unidades por hora), que no se puede suponer. Propongo un campo opcional "Demanda" en cada corrida; sin él, el takt se muestra como "requiere demanda".
-3. **Fallas**: propongo medir el MTBF sobre tiempo de operación (la estación no envejece mientras espera o está bloqueada), que es lo habitual para OEE. La alternativa es tiempo calendario.
-4. **Modelo de IA sugerido**: `claude-opus-5-5` (mejor calidad, unos USD 0.25 a 0.50 por mensaje) o `claude-sonnet-5-5` (la mitad). Es solo el valor sugerido para `AI_MODEL`; el código no lo fija.
-5. **Límites diarios iniciales** sugeridos: `AI_DAILY_REQUEST_LIMIT=50` y `AI_DAILY_TOKEN_LIMIT=2000000` por usuario.
+1. **Aceptar** aplica la propuesta al editor; se guarda con el botón Guardar de siempre.
+2. **Takt time**: campo opcional "Demanda (unidades/h)" por corrida; sin él, el takt se muestra como "requiere demanda".
+3. **Fallas**: MTBF medido sobre tiempo de operación.
+4. **Modelo**: el README usa `claude-sonnet-5-5` como valor de ejemplo de `AI_MODEL`, con una nota de que `claude-opus-5-5` sirve para layouts más complejos. Los identificadores se verifican en la documentación oficial antes de documentarlos.
+5. **Límites**: `AI_DAILY_REQUEST_LIMIT=30` y `AI_DAILY_TOKEN_LIMIT=1000000` por usuario y día, más un tope global `AI_GLOBAL_DAILY_TOKEN_LIMIT` (ejemplo: 5 000 000) para toda la app. Al alcanzar cualquier límite, el asistente responde con un mensaje claro (cuál límite y cuándo se reinicia) en lugar de fallar.

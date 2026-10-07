@@ -121,6 +121,28 @@ export function memoryStore() {
       layouts.set(projectId, saved);
       return saved;
     },
+    async listCatalogComponents() {
+      return [
+        {
+          slug: 'onrobot-2fg7',
+          manufacturer: 'OnRobot',
+          model: '2FG7',
+          category: 'grippers',
+          type: 'electric parallel gripper (2 jaws)',
+          specs: { weight_kg: 1.1 },
+          notes: null,
+        },
+        {
+          slug: 'sick-wll180t-e632',
+          manufacturer: 'SICK',
+          model: 'WLL180T',
+          category: 'sensors',
+          type: null,
+          specs: {},
+          notes: null,
+        },
+      ];
+    },
     async listCatalogVariants() {
       return CATALOG;
     },

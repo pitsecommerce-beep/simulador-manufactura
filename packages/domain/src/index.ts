@@ -4,3 +4,4 @@ export * from './catalog.ts';
 export * from './scene.ts';
 export * from './robot-model.ts';
 export * from './validate.ts';
+export * from './process.ts';

@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type {
+  CatalogComponent,
   CatalogVariant,
   CatalogVariantDetail,
   MemberRole,
@@ -23,6 +24,7 @@ export interface UserRepo {
   removeMember(projectId: string, userId: string): Promise<boolean>;
   listCatalogVariants(): Promise<CatalogVariant[]>;
   getCatalogVariant(slug: string): Promise<CatalogVariantDetail | null>;
+  listCatalogComponents(): Promise<CatalogComponent[]>;
   /** Layout actual del proyecto (escena sin validar) o null si aún no existe. */
   getLayout(projectId: string): Promise<StoredLayout | null>;
   /**
@@ -220,6 +222,23 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
         documents: (docs.data ?? []) as CatalogVariantDetail['documents'],
         siblings: (siblings.data ?? []) as CatalogVariantDetail['siblings'],
       };
+    },
+    async listCatalogComponents() {
+      const { data, error } = await sb
+        .from('components')
+        .select('slug, manufacturer, model, category, type, notes, component_specs(specs)')
+        .order('category')
+        .order('model');
+      if (error) fail(error);
+      return ((data ?? []) as unknown as Row[]).map((r) => ({
+        slug: r.slug as string,
+        manufacturer: (r.manufacturer as string | null) ?? null,
+        model: r.model as string,
+        category: r.category as string,
+        type: (r.type as string | null) ?? null,
+        notes: (r.notes as string[] | null) ?? null,
+        specs: (one(r.component_specs as Row | Row[])?.specs as Record<string, unknown>) ?? {},
+      }));
     },
     async getLayout(projectId) {
       const { data, error } = await sb

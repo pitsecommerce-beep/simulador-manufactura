@@ -1,6 +1,6 @@
 import { Edges } from '@react-three/drei';
-import type { RobotModel, SceneObject } from '@sim/domain';
-import { useMemo } from 'react';
+import { VISUAL_SIZE, type RobotModel, type SceneObject, type WorkObject } from '@sim/domain';
+import { useMemo, type ReactNode } from 'react';
 import { Quaternion, Vector3 } from 'three';
 
 // Geometría simplificada. Todo en mm con Z hacia arriba (el lienzo convierte a metros y Y arriba).
@@ -81,13 +81,7 @@ function Bar({
   );
 }
 
-export function ObjectMesh({
-  o,
-  highlight,
-}: {
-  o: Exclude<SceneObject, { kind: 'robot' }>;
-  highlight: Highlight;
-}) {
+export function ObjectMesh({ o, highlight }: { o: WorkObject; highlight: Highlight }) {
   const { length_mm: l, width_mm: w, height_mm: h } = o.params;
   switch (o.kind) {
     case 'pallet': {
@@ -183,11 +177,14 @@ export function RobotMesh({
   joints,
   color,
   highlight,
+  tool,
 }: {
   model: RobotModel;
   joints: number[];
   color: string;
   highlight: Highlight;
+  /** Herramienta montada en la brida, dibujada colgando hacia -Z en su propio marco. */
+  tool?: ReactNode;
 }) {
   const d = model.dims;
   const base = model.base;
@@ -234,6 +231,10 @@ export function RobotMesh({
                         r={link * 0.7}
                         color={BASE_COLOR}
                       />
+                      {/* El eje de la herramienta es +X en la brida. */}
+                      <group position={[link * 0.6, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+                        {tool}
+                      </group>
                     </group>
                   </group>
                 </group>
@@ -277,6 +278,7 @@ export function RobotMesh({
                       position={[0, 0, -link * 0.4]}
                       color={BASE_COLOR}
                     />
+                    <group position={[0, 0, -link * 0.4]}>{tool}</group>
                   </group>
                 </group>
               </group>
@@ -317,6 +319,7 @@ export function RobotMesh({
                   z={-Math.max(d.stroke!, link * 2) - link * 2.6}
                   color="#e2e8f0"
                 />
+                <group position={[0, 0, -Math.max(d.stroke!, link * 2) - link * 2.6]}>{tool}</group>
               </group>
             </group>
           </group>
@@ -350,6 +353,7 @@ export function RobotMesh({
             );
           })}
           <Cyl r={pr} h={link * 0.6} z={-d.drop! - link * 0.6} color={BASE_COLOR} />
+          <group position={[0, 0, -d.drop! - link * 0.6]}>{tool}</group>
         </group>
       );
     }
@@ -399,4 +403,82 @@ export function EnvelopeMesh({ model }: { model: RobotModel }) {
     );
   }
   return null;
+}
+
+/** Gripper simplificado: cuerpo y dos dedos, colgando hacia -Z desde el origen (la brida). */
+export function GripperMesh({ color, highlight }: { color: string; highlight: Highlight }) {
+  const { length_mm: l, width_mm: w, height_mm: h } = VISUAL_SIZE.gripper;
+  const body = h * 0.55;
+  const finger = h - body;
+  return (
+    <group>
+      <Block size={[l, w, body]} position={[0, 0, -body]} color={color} highlight={highlight} />
+      {[-1, 1].map((k) => (
+        <Block
+          key={k}
+          size={[l * 0.18, w * 0.8, finger]}
+          position={[k * l * 0.3, 0, -h]}
+          color="#cbd5e1"
+        />
+      ))}
+    </group>
+  );
+}
+
+export function SensorMesh({ color, highlight }: { color: string; highlight: Highlight }) {
+  const { length_mm: l, width_mm: w, height_mm: h } = VISUAL_SIZE.sensor;
+  return (
+    <group>
+      <Block size={[l, w, h]} color={color} highlight={highlight} />
+      <mesh position={[l / 2 + 2, 0, h / 2]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[w * 0.25, w * 0.25, 4, 16]} />
+        <meshStandardMaterial color="#0f172a" />
+      </mesh>
+    </group>
+  );
+}
+
+export function FenceMesh({
+  o,
+  highlight,
+}: {
+  o: Extract<SceneObject, { kind: 'fence' }>;
+  highlight: Highlight;
+}) {
+  const { length_mm: l, height_mm: h, thickness_mm: t } = o.params;
+  const posts = Math.max(2, Math.ceil(l / 1400) + 1);
+  return (
+    <group>
+      <mesh position={[0, 0, h / 2 + 100]}>
+        <boxGeometry args={[l, t * 0.4, h - 200]} />
+        <meshStandardMaterial color={o.color} transparent opacity={0.35} depthWrite={false} />
+        {highlight && <Edges color={EDGE_COLOR[highlight]} lineWidth={2} />}
+      </mesh>
+      {Array.from({ length: posts }, (_, i) => (
+        <Block
+          key={i}
+          size={[t, t, h]}
+          position={[-l / 2 + t / 2 + (i * (l - t)) / (posts - 1), 0, 0]}
+          color="#334155"
+        />
+      ))}
+    </group>
+  );
+}
+
+export function SafetyZoneMesh({
+  o,
+  highlight,
+}: {
+  o: Extract<SceneObject, { kind: 'safety_zone' }>;
+  highlight: Highlight;
+}) {
+  const { length_mm: l, width_mm: w } = o.params;
+  return (
+    <mesh position={[0, 0, 3]}>
+      <boxGeometry args={[l, w, 4]} />
+      <meshBasicMaterial color={o.color} transparent opacity={0.28} depthWrite={false} />
+      <Edges color={highlight ? EDGE_COLOR[highlight] : '#b45309'} lineWidth={2} />
+    </mesh>
+  );
 }

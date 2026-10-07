@@ -1,4 +1,15 @@
-import { PALLET_SIZES, type PalletPreset, type Scene, type SceneObject } from '@sim/domain';
+import {
+  PALLET_SIZES,
+  ProcessNode,
+  ROLES_BY_KIND,
+  removeObjectFromProcess,
+  type PalletPreset,
+  type ProcessModel,
+  type ProcessRole,
+  type Route,
+  type Scene,
+  type SceneObject,
+} from '@sim/domain';
 
 // Operaciones puras sobre la escena del editor (probadas sin WebGL).
 
@@ -8,6 +19,10 @@ export const DEFAULT_COLORS: Record<SceneObject['kind'], string> = {
   box: '#d6b58a',
   table: '#94a3b8',
   conveyor: '#475569',
+  gripper: '#64748b',
+  sensor: '#0ea5e9',
+  fence: '#facc15',
+  safety_zone: '#f59e0b',
 };
 
 /**
@@ -18,6 +33,8 @@ export const STARTER_DIMS = {
   box: { length_mm: 400, width_mm: 300, height_mm: 250 },
   table: { length_mm: 1200, width_mm: 800, height_mm: 750 },
   conveyor: { length_mm: 2000, width_mm: 500, height_mm: 800 },
+  fence: { length_mm: 2000, height_mm: 2000, thickness_mm: 50 },
+  safety_zone: { length_mm: 1500, width_mm: 1500 },
 } as const;
 
 export const KIND_LABEL: Record<SceneObject['kind'], string> = {
@@ -26,6 +43,10 @@ export const KIND_LABEL: Record<SceneObject['kind'], string> = {
   box: 'Caja',
   table: 'Mesa',
   conveyor: 'Banda',
+  gripper: 'Gripper',
+  sensor: 'Sensor',
+  fence: 'Valla',
+  safety_zone: 'Zona de seguridad',
 };
 
 export function newId(): string {
@@ -53,7 +74,13 @@ export type NewObject =
       width_mm: number;
       height_mm: number;
     }
-  | { kind: 'box' | 'table' | 'conveyor' };
+  | { kind: 'box' | 'table' | 'conveyor' | 'fence' | 'safety_zone' }
+  | {
+      kind: 'gripper' | 'sensor';
+      component_slug: string | null;
+      label: string;
+      mounted_on?: string | null;
+    };
 
 export function addObject(scene: Scene, spec: NewObject): { scene: Scene; id: string } {
   const id = newId();
@@ -88,6 +115,37 @@ export function addObject(scene: Scene, spec: NewObject): { scene: Scene; id: st
       name: nextName(scene, 'Caja'),
       params: { ...STARTER_DIMS.box, mass_kg: null },
     };
+  } else if (spec.kind === 'gripper') {
+    const robot = scene.objects.find((o) => o.id === spec.mounted_on && o.kind === 'robot');
+    obj = {
+      ...base,
+      position: robot ? robot.position : base.position,
+      kind: 'gripper',
+      name: nextName(scene, spec.label),
+      params: { component_slug: spec.component_slug, mounted_on: robot?.id ?? null },
+    };
+  } else if (spec.kind === 'sensor') {
+    obj = {
+      ...base,
+      elevation: 0,
+      kind: 'sensor',
+      name: nextName(scene, spec.label),
+      params: { component_slug: spec.component_slug },
+    };
+  } else if (spec.kind === 'fence') {
+    obj = {
+      ...base,
+      kind: 'fence',
+      name: nextName(scene, 'Valla'),
+      params: { ...STARTER_DIMS.fence, component_slug: null },
+    };
+  } else if (spec.kind === 'safety_zone') {
+    obj = {
+      ...base,
+      kind: 'safety_zone',
+      name: nextName(scene, 'Zona de seguridad'),
+      params: { ...STARTER_DIMS.safety_zone },
+    };
   } else {
     obj = {
       ...base,
@@ -107,13 +165,23 @@ export function updateObject(
   return { ...scene, objects: scene.objects.map((o) => (o.id === id ? patch(o) : o)) };
 }
 
-/** Quita el objeto y las referencias "atendido por" que apuntaban a él. */
+/**
+ * Quita el objeto, las referencias "atendido por" que apuntaban a él, su nodo de proceso y
+ * sus rutas. Los grippers montados en un robot borrado quedan sueltos en su posición.
+ */
 export function removeObject(scene: Scene, id: string): Scene {
   return {
     ...scene,
     objects: scene.objects
       .filter((o) => o.id !== id)
-      .map((o) => (o.served_by === id ? { ...o, served_by: null } : o)),
+      .map((o) => {
+        let next = o.served_by === id ? { ...o, served_by: null } : o;
+        if (next.kind === 'gripper' && next.params.mounted_on === id) {
+          next = { ...next, params: { ...next.params, mounted_on: null } };
+        }
+        return next;
+      }),
+    process: removeObjectFromProcess(scene.process, id),
   };
 }
 
@@ -144,3 +212,69 @@ export const PALLET_HEIGHT_HINT = `EUR publicado: ${PALLET_SIZES.eur.height_mm} 
 
 /** Ajusta un valor a la cuadrícula (mm). */
 export const snap = (v: number, step: number) => (step > 0 ? Math.round(v / step) * step : v);
+
+// ---------------------------------------------------------------------------
+// Proceso
+// ---------------------------------------------------------------------------
+
+export const rolesFor = (o: SceneObject): ProcessRole[] => ROLES_BY_KIND[o.kind] ?? [];
+
+const withProcess = (scene: Scene, fn: (p: ProcessModel) => ProcessModel): Scene => ({
+  ...scene,
+  process: fn(scene.process),
+});
+
+/**
+ * Asigna (o quita, con null) el rol de un objeto en el proceso. Los parámetros obligatorios
+ * empiezan vacíos: no hay tiempos por defecto.
+ */
+export function setRole(scene: Scene, objectId: string, role: ProcessRole | null): Scene {
+  return withProcess(scene, (p) => {
+    if (!role) return removeObjectFromProcess(p, objectId);
+    const nodes = p.nodes.filter((n) => n.object_id !== objectId);
+    const node = ProcessNode.parse({
+      role,
+      object_id: objectId,
+      ...(role === 'source' ? { item: p.product.bom.length ? null : p.product.name } : {}),
+    });
+    // Las rutas que ya no tienen sentido para el nuevo rol se eliminan.
+    const routes = p.routes.filter(
+      (r) => !(role === 'sink' && r.from === objectId) && !(role === 'source' && r.to === objectId),
+    );
+    return { ...p, nodes: [...nodes, node], routes };
+  });
+}
+
+export function updateNode(
+  scene: Scene,
+  objectId: string,
+  fn: (n: ProcessNode) => ProcessNode,
+): Scene {
+  return withProcess(scene, (p) => ({
+    ...p,
+    nodes: p.nodes.map((n) => (n.object_id === objectId ? fn(n) : n)),
+  }));
+}
+
+/** Agrega una ruta si ambos objetos tienen rol y la ruta no existe. Devuelve null si no aplica. */
+export function addRoute(scene: Scene, from: string, to: string): Scene | null {
+  const p = scene.process;
+  if (from === to) return null;
+  const a = p.nodes.find((n) => n.object_id === from);
+  const b = p.nodes.find((n) => n.object_id === to);
+  if (!a || !b || a.role === 'sink' || b.role === 'source') return null;
+  if (p.routes.some((r) => r.from === from && r.to === to && r.item == null)) return null;
+  const route: Route = { id: newId(), from, to, item: null, share: null };
+  return withProcess(scene, (q) => ({ ...q, routes: [...q.routes, route] }));
+}
+
+export function updateRoute(scene: Scene, id: string, patch: Partial<Route>): Scene {
+  return withProcess(scene, (p) => ({
+    ...p,
+    routes: p.routes.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+  }));
+}
+
+export function removeRoute(scene: Scene, id: string): Scene {
+  return withProcess(scene, (p) => ({ ...p, routes: p.routes.filter((r) => r.id !== id) }));
+}

@@ -1,53 +1,35 @@
 import {
   buildRobotModel,
-  clampJoint,
+  componentWeightKg,
   DISCLAIMERS,
-  PALLET_PRESETS,
-  PALLET_SIZES,
   PROPORTIONS_NOTICE,
   SIMPLIFIED_NOTICE,
+  validateProcess,
   validateScene,
-  type CatalogVariant,
-  type CatalogVariantDetail,
-  type PalletPreset,
+  type CatalogComponent,
   type RobotModel,
   type Scene,
-  type SceneObject,
 } from '@sim/domain';
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from 'react';
-import { Link } from 'react-router-dom';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Message, Spinner } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useApp } from '../lib/context';
-import { fmt } from '../lib/format';
-import { NumberField } from './fields';
+import { ComponentPicker, PalletForm, RobotPicker } from './dialogs';
+import { publishedCycleOptions } from './ProcessSection';
+import { ProductCard } from './ProductCard';
+import { Properties, type RobotInfo } from './Properties';
 import {
   addObject,
+  addRoute,
   duplicateObject,
   KIND_LABEL,
-  palletPreset,
-  PALLET_HEIGHT_HINT,
   removeObject,
   updateObject,
   type NewObject,
 } from './sceneOps';
+import { Warnings } from './Warnings';
 
 const Viewport = lazy(() => import('./Viewport'));
-
-interface RobotInfo {
-  detail: CatalogVariantDetail;
-  model: RobotModel;
-}
 
 type SaveState =
   { kind: 'idle' | 'saving' } | { kind: 'error'; message: string; conflict: boolean };
@@ -68,7 +50,11 @@ export default function LayoutEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [robots, setRobots] = useState<Record<string, RobotInfo | 'error'>>({});
   const [snapMm, setSnapMm] = useState(50);
-  const [adding, setAdding] = useState<'robot' | 'pallet' | null>(null);
+  const [adding, setAdding] = useState<'robot' | 'pallet' | 'gripper' | 'sensor' | null>(null);
+  const [flowMode, setFlowMode] = useState(false);
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [components, setComponents] = useState<Map<string, CatalogComponent>>(new Map());
   const requested = useRef(new Set<string>());
 
   const load = useCallback(() => {
@@ -109,6 +95,14 @@ export default function LayoutEditor({
     }
   }, [api, scene]);
 
+  // Componentes del catálogo (pocos): se cargan una vez para validar pesos y mostrar fichas.
+  useEffect(() => {
+    api
+      .listComponents()
+      .then((r) => setComponents(new Map(r.components.map((c) => [c.slug, c]))))
+      .catch(() => {});
+  }, [api]);
+
   // Aviso al salir con cambios sin guardar.
   useEffect(() => {
     if (!dirty) return;
@@ -124,13 +118,47 @@ export default function LayoutEditor({
   }, [robots]);
 
   const warnings = useMemo(
-    () => (scene ? validateScene(scene, (slug) => models[slug]) : []),
-    [scene, models],
+    () =>
+      scene
+        ? validateScene(
+            scene,
+            (slug) => models[slug],
+            (slug) => {
+              const c = components.get(slug);
+              return c
+                ? {
+                    name: `${c.manufacturer ?? ''} ${c.model}`.trim(),
+                    weight_kg: componentWeightKg(c),
+                  }
+                : null;
+            },
+          )
+        : [],
+    [scene, models, components],
   );
+  const processIssues = useMemo(() => {
+    if (!scene) return [];
+    return validateProcess(scene.process, {
+      objects: scene.objects.map((o) => ({ id: o.id, kind: o.kind, name: o.name })),
+      publishedCycles: (id) => {
+        const o = scene.objects.find((x) => x.id === id);
+        if (o?.kind !== 'robot') return undefined;
+        const info = robots[o.params.variant_slug];
+        return info && info !== 'error'
+          ? publishedCycleOptions(info.detail).map((c) => c.value_s)
+          : undefined;
+      },
+    });
+  }, [scene, robots]);
   const warned = useMemo(
-    () => new Set(warnings.filter((w) => w.level === 'warning').flatMap((w) => w.objects)),
-    [warnings],
+    () =>
+      new Set([
+        ...warnings.filter((w) => w.level === 'warning').flatMap((w) => w.objects),
+        ...processIssues.filter((i) => i.level !== 'info').flatMap((i) => i.objects),
+      ]),
+    [warnings, processIssues],
   );
+  const flowErrors = processIssues.filter((i) => i.level === 'error').length;
 
   const change = useCallback((fn: (s: Scene) => Scene) => {
     setScene((s) => (s ? fn(s) : s));
@@ -155,6 +183,10 @@ export default function LayoutEditor({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement)?.closest?.('input, select, textarea');
+      if (e.key === 'Escape') {
+        setConnectFrom(null);
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         if (dirty) void doSave();
@@ -191,6 +223,30 @@ export default function LayoutEditor({
   };
   const nWarn = warnings.filter((w) => w.level === 'warning').length;
 
+  // Con "conectar" activo, el clic en otro objeto crea la ruta en lugar de seleccionarlo.
+  const handleSelect = (id: string | null) => {
+    if (connectFrom && id && id !== connectFrom) {
+      const next = addRoute(scene, connectFrom, id);
+      const fromName = scene.objects.find((o) => o.id === connectFrom)?.name;
+      const toName = scene.objects.find((o) => o.id === id)?.name;
+      if (next) {
+        setScene(next);
+        setDirty(true);
+        setNotice(`Ruta creada: ${fromName} → ${toName}.`);
+      } else {
+        setNotice(
+          `No se puede conectar ${fromName} → ${toName}: el destino necesita un rol en el proceso (y no puede ser una fuente), o la ruta ya existe.`,
+        );
+      }
+      setConnectFrom(null);
+      setSelectedId(connectFrom);
+      return;
+    }
+    if (connectFrom && id == null) setConnectFrom(null);
+    setSelectedId(id);
+  };
+  const selectedRobot = selected?.kind === 'robot' ? selected : null;
+
   return (
     <div className="space-y-3">
       <div className="card flex flex-wrap items-center gap-2 p-2">
@@ -207,10 +263,52 @@ export default function LayoutEditor({
                 + {KIND_LABEL[k]}
               </button>
             ))}
+            <details className="relative">
+              <summary className="btn btn-secondary cursor-pointer list-none py-1.5">
+                + Más…
+              </summary>
+              <div className="card absolute z-20 mt-1 flex w-52 flex-col p-1">
+                <button
+                  className="btn btn-ghost justify-start py-1.5"
+                  onClick={() => setAdding('gripper')}
+                >
+                  Gripper {selectedRobot ? `(en ${selectedRobot.name})` : ''}
+                </button>
+                <button
+                  className="btn btn-ghost justify-start py-1.5"
+                  onClick={() => setAdding('sensor')}
+                >
+                  Sensor
+                </button>
+                <button
+                  className="btn btn-ghost justify-start py-1.5"
+                  onClick={() => add({ kind: 'fence' })}
+                >
+                  Valla
+                </button>
+                <button
+                  className="btn btn-ghost justify-start py-1.5"
+                  onClick={() => add({ kind: 'safety_zone' })}
+                >
+                  Zona de seguridad
+                </button>
+              </div>
+            </details>
           </>
         ) : (
           <span className="px-2 text-sm text-slate-500">Solo lectura: tu rol es lector.</span>
         )}
+        <button
+          className={`btn py-1.5 ${flowMode ? 'bg-violet-600 text-white hover:bg-violet-700' : 'btn-secondary'}`}
+          aria-pressed={flowMode}
+          onClick={() => {
+            setFlowMode((v) => !v);
+            setConnectFrom(null);
+          }}
+        >
+          Flujo
+          {flowErrors > 0 && <span className="badge bg-red-100 text-red-700">{flowErrors}</span>}
+        </button>
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-xs text-slate-600">
             Cuadrícula
@@ -265,6 +363,26 @@ export default function LayoutEditor({
         </Message>
       )}
 
+      {connectFrom && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm text-violet-900">
+          <span>
+            Haz clic en el objeto destino de la ruta desde{' '}
+            <strong>{scene.objects.find((o) => o.id === connectFrom)?.name}</strong>.
+          </span>
+          <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => setConnectFrom(null)}>
+            Cancelar (Esc)
+          </button>
+        </div>
+      )}
+      {notice && !connectFrom && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700">
+          <span>{notice}</span>
+          <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => setNotice(null)}>
+            Cerrar
+          </button>
+        </div>
+      )}
+
       <div className="grid gap-3 lg:grid-cols-[14rem_minmax(0,1fr)_18rem]">
         <aside className="card order-2 max-h-[34rem] overflow-y-auto p-3 lg:order-1">
           <h3 className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
@@ -313,7 +431,9 @@ export default function LayoutEditor({
               warned={warned}
               editable={canEdit}
               snapMm={snapMm}
-              onSelect={setSelectedId}
+              flowMode={flowMode || connectFrom != null}
+              connectFrom={connectFrom}
+              onSelect={handleSelect}
               onMove={(id, position) =>
                 change((s) => updateObject(s, id, (o) => ({ ...o, position })))
               }
@@ -338,7 +458,14 @@ export default function LayoutEditor({
               scene={scene}
               robot={selected.kind === 'robot' ? robots[selected.params.variant_slug] : undefined}
               canEdit={canEdit}
+              components={components}
               onChange={(fn) => change((s) => updateObject(s, selected.id, fn))}
+              changeScene={change}
+              onConnect={() => {
+                setFlowMode(true);
+                setNotice(null);
+                setConnectFrom(selected.id);
+              }}
               onDelete={() => {
                 change((s) => removeObject(s, selected.id));
                 setSelectedId(null);
@@ -358,7 +485,14 @@ export default function LayoutEditor({
         </aside>
       </div>
 
-      <Warnings warnings={warnings} onSelect={setSelectedId} />
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <Warnings warnings={warnings} processIssues={processIssues} onSelect={setSelectedId} />
+        <ProductCard
+          product={scene.process.product}
+          canEdit={canEdit}
+          onChange={(product) => change((s) => ({ ...s, process: { ...s.process, product } }))}
+        />
+      </div>
 
       <p className="text-xs text-slate-500">
         {PROPORTIONS_NOTICE} {DISCLAIMERS.estimates}
@@ -371,554 +505,21 @@ export default function LayoutEditor({
         />
       )}
       {adding === 'pallet' && <PalletForm onClose={() => setAdding(null)} onAdd={add} />}
-    </div>
-  );
-}
-
-function Warnings({
-  warnings,
-  onSelect,
-}: {
-  warnings: ReturnType<typeof validateScene>;
-  onSelect: (id: string) => void;
-}) {
-  if (warnings.length === 0) return null;
-  return (
-    <div className="card p-4">
-      <h3 className="mb-2 text-sm font-semibold">Validaciones</h3>
-      <ul className="space-y-1.5 text-sm">
-        {warnings.map((w, i) => (
-          <li key={i}>
-            <button
-              onClick={() => onSelect(w.objects[0]!)}
-              className={`w-full rounded-lg px-3 py-2 text-left ${
-                w.level === 'warning'
-                  ? 'bg-amber-50 text-amber-900 hover:bg-amber-100'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <span className="mr-2 font-medium">
-                {w.level === 'warning' ? '⚠' : 'ℹ'}{' '}
-                {
-                  { reach: 'Alcance', payload: 'Carga', collision: 'Colisión', data: 'Datos' }[
-                    w.kind
-                  ]
-                }
-                :
-              </span>
-              {w.message}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Properties({
-  o,
-  scene,
-  robot,
-  canEdit,
-  onChange,
-  onDelete,
-  onDuplicate,
-}: {
-  o: SceneObject;
-  scene: Scene;
-  robot: RobotInfo | 'error' | undefined;
-  canEdit: boolean;
-  onChange: (fn: (o: SceneObject) => SceneObject) => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-}) {
-  const set = <K extends keyof SceneObject>(k: K, v: SceneObject[K]) =>
-    onChange((x) => ({ ...x, [k]: v }));
-  const setParam = (k: string, v: unknown) =>
-    onChange((x) => ({ ...x, params: { ...x.params, [k]: v } }) as SceneObject);
-  const robotsInScene = scene.objects.filter((x) => x.kind === 'robot');
-  const dis = !canEdit;
-
-  return (
-    <fieldset disabled={dis} className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <span className="badge bg-slate-100 text-slate-600">{KIND_LABEL[o.kind]}</span>
-        {canEdit && (
-          <div className="flex gap-1">
-            <button className="btn btn-ghost px-2 py-1 text-xs" onClick={onDuplicate}>
-              Duplicar
-            </button>
-            <button className="btn btn-danger px-2 py-1 text-xs" onClick={onDelete}>
-              Eliminar
-            </button>
-          </div>
-        )}
-      </div>
-      <div className="grid grid-cols-[1fr_auto] gap-2">
-        <label className="text-xs font-medium text-slate-600">
-          Nombre
-          <input
-            className="input mt-1 px-2.5 py-1.5"
-            value={o.name}
-            maxLength={100}
-            onChange={(e) => e.target.value.trim() && set('name', e.target.value)}
-          />
-        </label>
-        <label className="text-xs font-medium text-slate-600">
-          Color
-          <input
-            type="color"
-            className="mt-1 block h-[34px] w-12 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
-            value={o.color}
-            onChange={(e) => set('color', e.target.value)}
-          />
-        </label>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <NumberField
-          label="X"
-          unit="mm"
-          value={o.position[0]}
-          min={-100000}
-          max={100000}
-          onChange={(v) => set('position', [v!, o.position[1]])}
+      {(adding === 'gripper' || adding === 'sensor') && (
+        <ComponentPicker
+          title={adding === 'gripper' ? 'Añadir gripper' : 'Añadir sensor'}
+          categories={adding === 'gripper' ? ['grippers'] : ['sensors', 'safety']}
+          onClose={() => setAdding(null)}
+          onPick={(c) =>
+            add({
+              kind: adding,
+              component_slug: c?.slug ?? null,
+              label: c ? c.model : KIND_LABEL[adding],
+              mounted_on: adding === 'gripper' ? (selectedRobot?.id ?? null) : null,
+            })
+          }
         />
-        <NumberField
-          label="Y"
-          unit="mm"
-          value={o.position[1]}
-          min={-100000}
-          max={100000}
-          onChange={(v) => set('position', [o.position[0], v!])}
-        />
-        <NumberField
-          label="Elevación"
-          unit="mm"
-          value={o.elevation}
-          min={0}
-          max={20000}
-          onChange={(v) => set('elevation', v!)}
-        />
-        <NumberField
-          label="Giro"
-          unit="°"
-          value={o.rotation_deg}
-          min={-360}
-          max={360}
-          step={5}
-          onChange={(v) => set('rotation_deg', v!)}
-        />
-      </div>
-
-      {o.kind === 'robot' ? (
-        <RobotProps o={o} robot={robot} setParam={setParam} />
-      ) : (
-        <>
-          {o.kind === 'pallet' && (
-            <label className="block text-xs font-medium text-slate-600">
-              Tipo de pallet
-              <select
-                className="input mt-1 px-2.5 py-1.5"
-                value={o.params.preset}
-                onChange={(e) => {
-                  const preset = e.target.value as PalletPreset;
-                  const p = palletPreset(preset);
-                  onChange((x) =>
-                    x.kind === 'pallet'
-                      ? {
-                          ...x,
-                          params: {
-                            ...x.params,
-                            preset,
-                            length_mm: p.length_mm ?? x.params.length_mm,
-                            width_mm: p.width_mm ?? x.params.width_mm,
-                            height_mm: p.height_mm ?? x.params.height_mm,
-                          },
-                        }
-                      : x,
-                  );
-                }}
-              >
-                {PALLET_PRESETS.map((p) => (
-                  <option key={p} value={p}>
-                    {p === 'custom' ? 'Personalizado' : PALLET_SIZES[p].label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <div className="grid grid-cols-3 gap-2">
-            {(['length_mm', 'width_mm', 'height_mm'] as const).map((k) => {
-              const fixed =
-                o.kind === 'pallet' && o.params.preset !== 'custom' && k !== 'height_mm';
-              return (
-                <NumberField
-                  key={k}
-                  label={{ length_mm: 'Largo', width_mm: 'Ancho', height_mm: 'Alto' }[k]}
-                  unit="mm"
-                  value={o.params[k]}
-                  min={1}
-                  max={50000}
-                  disabled={fixed}
-                  placeholder={
-                    o.kind === 'pallet' && k === 'height_mm' ? PALLET_HEIGHT_HINT : undefined
-                  }
-                  hint={o.kind === 'pallet' && k === 'height_mm' ? PALLET_HEIGHT_HINT : undefined}
-                  onChange={(v) => setParam(k, v)}
-                />
-              );
-            })}
-          </div>
-          {o.kind === 'pallet' && o.params.preset !== 'custom' && (
-            <p className="text-xs text-slate-500">
-              Largo y ancho del preset ({PALLET_SIZES[o.params.preset].source}). Elige
-              "Personalizado" para cambiarlos.
-            </p>
-          )}
-          {o.kind === 'box' && (
-            <NumberField
-              label="Masa"
-              unit="kg"
-              value={o.params.mass_kg}
-              min={0}
-              max={10000}
-              step={0.1}
-              required={false}
-              placeholder="Opcional, para validar carga"
-              onChange={(v) => setParam('mass_kg', v)}
-            />
-          )}
-          <label className="block text-xs font-medium text-slate-600">
-            Atendido por
-            <select
-              className="input mt-1 px-2.5 py-1.5"
-              value={o.served_by ?? ''}
-              onChange={(e) => set('served_by', e.target.value || null)}
-            >
-              <option value="">Ningún robot</option>
-              {robotsInScene.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-            <span className="mt-1 block font-normal text-slate-500">
-              Se valida el alcance{o.kind === 'box' ? ' y la carga' : ''} de ese robot.
-            </span>
-          </label>
-        </>
       )}
-    </fieldset>
-  );
-}
-
-function RobotProps({
-  o,
-  robot,
-  setParam,
-}: {
-  o: Extract<SceneObject, { kind: 'robot' }>;
-  robot: RobotInfo | 'error' | undefined;
-  setParam: (k: string, v: unknown) => void;
-}) {
-  if (robot === 'error')
-    return <Message kind="error">No se pudo cargar la ficha de {o.params.variant_slug}.</Message>;
-  if (!robot)
-    return (
-      <p className="flex items-center gap-2 text-sm text-slate-500">
-        <Spinner /> Cargando ficha…
-      </p>
-    );
-  const { detail, model } = robot;
-  const joints = model.joints.map((j, i) => clampJoint(j, o.params.joints[i] ?? j.home));
-  const setJoint = (i: number, v: number) => {
-    const next = [...joints];
-    next[i] = clampJoint(model.joints[i]!, v);
-    setParam('joints', next);
-  };
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-        <Link to={`/catalogo/${detail.variant.slug}`} className="link text-sm">
-          {detail.variant.variant_code}
-        </Link>
-        <p className="mt-1">
-          Alcance (ficha):{' '}
-          {model.reach_mm == null ? (
-            <span className="not-published">No publicado</span>
-          ) : (
-            fmt(model.kind === 'delta' ? model.reach_mm * 2 : model.reach_mm, 'mm')
-          )}
-          {model.kind === 'delta' && model.reach_mm != null && ' de diámetro de trabajo'}
-        </p>
-        <p>
-          Carga útil (ficha):{' '}
-          {model.payload_kg == null ? (
-            <span className="not-published">No publicado</span>
-          ) : (
-            fmt(model.payload_kg, 'kg')
-          )}
-        </p>
-        <p className="mt-2">
-          <span className="badge bg-amber-100 text-amber-800">Supuesto visual</span> Proporciones de
-          eslabones fijas por familia.
-        </p>
-        {model.notes.map((n) => (
-          <p key={n} className="mt-1">
-            {n}
-          </p>
-        ))}
-      </div>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={o.params.show_envelope}
-          onChange={(e) => setParam('show_envelope', e.target.checked)}
-        />
-        Mostrar envolvente de alcance
-      </label>
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h4 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Ejes</h4>
-          {model.joints.length > 0 && (
-            <button
-              className="btn btn-ghost px-2 py-0.5 text-xs"
-              onClick={() =>
-                setParam(
-                  'joints',
-                  model.joints.map((j) => j.home),
-                )
-              }
-            >
-              Posición inicial
-            </button>
-          )}
-        </div>
-        {model.joints.length === 0 ? (
-          <p className="not-published">Ejes no publicados en la ficha</p>
-        ) : (
-          <ul className="space-y-3">
-            {model.joints.map((j, i) => {
-              const u = j.unit === 'mm' ? 'mm' : '°';
-              const free = j.min != null && j.max != null;
-              return (
-                <li key={j.axis}>
-                  <div className="flex justify-between text-xs">
-                    <label htmlFor={`j-${o.id}-${i}`} className="font-medium text-slate-600">
-                      Eje {j.axis}
-                    </label>
-                    <span className="text-slate-500 tabular-nums">
-                      {free ? `${joints[i]} ${u}  [${j.min} a ${j.max}]` : 'rango no publicado'}
-                    </span>
-                  </div>
-                  <input
-                    id={`j-${o.id}-${i}`}
-                    type="range"
-                    className="w-full accent-brand-600"
-                    min={j.min ?? 0}
-                    max={j.max ?? 0}
-                    step={1}
-                    value={joints[i]}
-                    disabled={!free}
-                    onChange={(e) => setJoint(i, Number(e.target.value))}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
     </div>
-  );
-}
-
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-30 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center"
-      onMouseDown={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="card w-full max-w-lg p-5"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold">{title}</h2>
-          <button className="btn btn-ghost px-2 py-1" onClick={onClose} aria-label="Cerrar">
-            ✕
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function RobotPicker({
-  onPick,
-  onClose,
-}: {
-  onPick: (v: CatalogVariant) => void;
-  onClose: () => void;
-}) {
-  const { api } = useApp();
-  const [list, setList] = useState<CatalogVariant[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [q, setQ] = useState('');
-  useEffect(() => {
-    api
-      .listCatalog()
-      .then((r) => setList(r.variants))
-      .catch((e: Error) => setError(e.message));
-  }, [api]);
-  const shown = (list ?? []).filter((v) =>
-    `${v.variant_code} ${v.family}`.toLowerCase().includes(q.toLowerCase()),
-  );
-  return (
-    <Modal title="Añadir robot del catálogo" onClose={onClose}>
-      <input
-        autoFocus
-        type="search"
-        className="input mb-3"
-        placeholder="Buscar variante"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
-      {error && <Message kind="error">{error}</Message>}
-      {!list && !error ? (
-        <p className="flex items-center gap-2 text-sm text-slate-500">
-          <Spinner /> Cargando catálogo…
-        </p>
-      ) : (
-        <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
-          {shown.map((v) => (
-            <li key={v.slug}>
-              <button
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50"
-                onClick={() => onPick(v)}
-              >
-                <span>
-                  <span className="font-medium">{v.variant_code}</span>
-                  <span className="block text-xs text-slate-500">{v.family}</span>
-                </span>
-                <span className="text-xs text-slate-500">
-                  {fmt(v.payload_kg, 'kg') ?? 'carga n/p'} ·{' '}
-                  {fmt(v.reach_mm ?? v.workspace_diameter_mm, 'mm') ?? 'alcance n/p'}
-                </span>
-              </button>
-            </li>
-          ))}
-          {shown.length === 0 && (
-            <li className="px-3 py-4 text-sm text-slate-500">Sin resultados.</li>
-          )}
-        </ul>
-      )}
-    </Modal>
-  );
-}
-
-export function PalletForm({
-  onAdd,
-  onClose,
-}: {
-  onAdd: (spec: NewObject) => void;
-  onClose: () => void;
-}) {
-  const [preset, setPreset] = useState<PalletPreset>('eur');
-  const p = palletPreset(preset);
-  const [dims, setDims] = useState<{
-    length_mm: number | null;
-    width_mm: number | null;
-    height_mm: number | null;
-  }>(p);
-  const choose = (next: PalletPreset) => {
-    setPreset(next);
-    setDims(palletPreset(next));
-  };
-  const valid = dims.length_mm != null && dims.width_mm != null && dims.height_mm != null;
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!valid) return;
-    onAdd({
-      kind: 'pallet',
-      preset,
-      length_mm: dims.length_mm!,
-      width_mm: dims.width_mm!,
-      height_mm: dims.height_mm!,
-    });
-  }
-  return (
-    <Modal title="Añadir pallet" onClose={onClose}>
-      <form onSubmit={submit} className="space-y-4">
-        <label className="block text-sm font-medium text-slate-700">
-          Tipo
-          <select
-            className="input mt-1.5"
-            value={preset}
-            onChange={(e) => choose(e.target.value as PalletPreset)}
-          >
-            {PALLET_PRESETS.map((x) => (
-              <option key={x} value={x}>
-                {x === 'custom' ? 'Personalizado' : PALLET_SIZES[x].label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="grid grid-cols-3 gap-2">
-          <NumberField
-            label="Largo"
-            unit="mm"
-            value={dims.length_mm}
-            min={1}
-            max={50000}
-            disabled={preset !== 'custom'}
-            onChange={(v) => setDims((d) => ({ ...d, length_mm: v }))}
-          />
-          <NumberField
-            label="Ancho"
-            unit="mm"
-            value={dims.width_mm}
-            min={1}
-            max={50000}
-            disabled={preset !== 'custom'}
-            onChange={(v) => setDims((d) => ({ ...d, width_mm: v }))}
-          />
-          <NumberField
-            label="Alto"
-            unit="mm"
-            value={dims.height_mm}
-            min={1}
-            max={50000}
-            placeholder={PALLET_HEIGHT_HINT}
-            hint={PALLET_HEIGHT_HINT}
-            onChange={(v) => setDims((d) => ({ ...d, height_mm: v }))}
-          />
-        </div>
-        {preset !== 'custom' && PALLET_SIZES[preset].height_mm == null && (
-          <p className="text-xs text-amber-700">
-            La altura de este pallet no está publicada en los presets: captúrala para continuar.
-          </p>
-        )}
-        <div className="flex justify-end gap-2">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Cancelar
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={!valid}>
-            Añadir pallet
-          </button>
-        </div>
-      </form>
-    </Modal>
   );
 }

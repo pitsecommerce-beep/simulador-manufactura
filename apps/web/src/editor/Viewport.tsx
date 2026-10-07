@@ -1,9 +1,26 @@
-import { Grid, OrbitControls } from '@react-three/drei';
+import { Grid, Html, Line, OrbitControls } from '@react-three/drei';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
-import { resolveJoints, type RobotModel, type Scene, type SceneObject } from '@sim/domain';
+import {
+  ROLE_LABEL,
+  footprint,
+  isWorkObject,
+  resolveJoints,
+  type RobotModel,
+  type Scene,
+  type SceneObject,
+} from '@sim/domain';
 import { useRef, type ComponentRef } from 'react';
 import { Plane, Vector3 } from 'three';
-import { EnvelopeMesh, ObjectMesh, RobotMesh, type Highlight } from './meshes';
+import {
+  EnvelopeMesh,
+  FenceMesh,
+  GripperMesh,
+  ObjectMesh,
+  RobotMesh,
+  SafetyZoneMesh,
+  SensorMesh,
+  type Highlight,
+} from './meshes';
 import { snap } from './sceneOps';
 
 // El modelo usa mm con Z arriba; three.js usa Y arriba. Un grupo raíz convierte:
@@ -18,6 +35,10 @@ interface Props {
   warned: Set<string>;
   editable: boolean;
   snapMm: number;
+  /** Muestra rutas del proceso y roles. */
+  flowMode: boolean;
+  /** Objeto desde el que se está trazando una ruta. */
+  connectFrom: string | null;
   onSelect: (id: string | null) => void;
   onMove: (id: string, position: [number, number]) => void;
   onMoveEnd: () => void;
@@ -64,6 +85,30 @@ export default function Viewport(props: Props) {
     props.onMoveEnd();
   }
 
+  const byId = new Map(props.scene.objects.map((o) => [o.id, o]));
+  const mountedOn = new Map<string, string>();
+  const toolsByRobot = new Map<string, Extract<SceneObject, { kind: 'gripper' }>>();
+  for (const o of props.scene.objects) {
+    if (o.kind !== 'gripper' || !o.params.mounted_on) continue;
+    const robot = byId.get(o.params.mounted_on);
+    if (robot?.kind !== 'robot' || toolsByRobot.has(robot.id)) continue;
+    mountedOn.set(o.id, robot.id);
+    toolsByRobot.set(robot.id, o);
+  }
+  const roleOf = new Map(props.scene.process.nodes.map((n) => [n.object_id, n.role]));
+  const topOf = (o: SceneObject) => {
+    if (o.kind === 'robot') {
+      const m = props.models[o.params.variant_slug];
+      return m?.inverted ? 0 : (m?.base.height ?? 300);
+    }
+    return footprint(o)?.h ?? 50;
+  };
+  const anchor = (o: SceneObject): [number, number, number] => [
+    o.position[0],
+    o.position[1],
+    o.elevation + topOf(o) + 250,
+  ];
+
   const highlightOf = (id: string): Highlight =>
     id === props.selectedId ? 'selected' : props.warned.has(id) ? 'warning' : null;
 
@@ -99,7 +144,10 @@ export default function Viewport(props: Props) {
       </mesh>
       <group rotation={[-Math.PI / 2, 0, 0]} scale={MM}>
         {props.scene.objects.map((o) => {
+          // Los grippers montados se dibujan en la brida de su robot.
+          if (o.kind === 'gripper' && mountedOn.has(o.id)) return null;
           const model = o.kind === 'robot' ? props.models[o.params.variant_slug] : undefined;
+          const tool = o.kind === 'robot' ? toolsByRobot.get(o.id) : undefined;
           return (
             <group
               key={o.id}
@@ -117,6 +165,18 @@ export default function Viewport(props: Props) {
                       joints={resolveJoints(model, o.params.joints)}
                       color={o.color}
                       highlight={highlightOf(o.id)}
+                      tool={
+                        tool && (
+                          <group
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              props.onSelect(tool.id);
+                            }}
+                          >
+                            <GripperMesh color={tool.color} highlight={highlightOf(tool.id)} />
+                          </group>
+                        )
+                      }
                     />
                     {o.params.show_envelope && <EnvelopeMesh model={model} />}
                   </>
@@ -126,12 +186,54 @@ export default function Viewport(props: Props) {
                     <meshStandardMaterial color="#cbd5e1" wireframe />
                   </mesh>
                 )
-              ) : (
+              ) : isWorkObject(o) ? (
                 <ObjectMesh o={o} highlight={highlightOf(o.id)} />
+              ) : o.kind === 'gripper' ? (
+                <group position={[0, 0, footprint(o)?.h ?? 0]}>
+                  <GripperMesh color={o.color} highlight={highlightOf(o.id)} />
+                </group>
+              ) : o.kind === 'sensor' ? (
+                <SensorMesh color={o.color} highlight={highlightOf(o.id)} />
+              ) : o.kind === 'fence' ? (
+                <FenceMesh o={o} highlight={highlightOf(o.id)} />
+              ) : (
+                <SafetyZoneMesh o={o} highlight={highlightOf(o.id)} />
+              )}
+              {props.flowMode && roleOf.get(o.id) && (
+                <Html
+                  position={[0, 0, topOf(o) + 120]}
+                  center
+                  style={{ pointerEvents: 'none' }}
+                  zIndexRange={[10, 0]}
+                >
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap shadow-sm ${
+                      o.id === props.connectFrom
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-white text-slate-700'
+                    }`}
+                  >
+                    {ROLE_LABEL[roleOf.get(o.id)!]}
+                  </span>
+                </Html>
               )}
             </group>
           );
         })}
+        {props.flowMode &&
+          props.scene.process.routes.map((r) => {
+            const a = byId.get(r.from);
+            const b = byId.get(r.to);
+            if (!a || !b) return null;
+            return (
+              <RouteArrow
+                key={r.id}
+                from={anchor(a)}
+                to={anchor(b)}
+                label={r.item ?? (r.share != null ? `${Math.round(r.share * 100)} %` : null)}
+              />
+            );
+          })}
       </group>
       <OrbitControls
         ref={controls}
@@ -140,5 +242,54 @@ export default function Viewport(props: Props) {
         target={[0, 0.3, 1]}
       />
     </Canvas>
+  );
+}
+
+/** Flecha de una ruta del proceso (mm, Z arriba). */
+function RouteArrow({
+  from,
+  to,
+  label,
+}: {
+  from: [number, number, number];
+  to: [number, number, number];
+  label: string | null;
+}) {
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const dz = to[2] - from[2];
+  const len = Math.hypot(dx, dy, dz) || 1;
+  // La punta queda un poco antes del destino para no taparlo.
+  const back = Math.min(220, len * 0.3);
+  const tip: [number, number, number] = [
+    to[0] - (dx / len) * back,
+    to[1] - (dy / len) * back,
+    to[2] - (dz / len) * back,
+  ];
+  const yaw = Math.atan2(dy, dx);
+  const pitch = Math.atan2(dz, Math.hypot(dx, dy));
+  return (
+    <group>
+      <Line points={[from, tip]} color="#7c3aed" lineWidth={4} />
+      <group position={tip} rotation={[0, -pitch, yaw, 'ZYX']}>
+        {/* El cono de three apunta a +Y; se gira para que apunte a +X. */}
+        <mesh rotation={[0, 0, -Math.PI / 2]}>
+          <coneGeometry args={[70, 220, 16]} />
+          <meshBasicMaterial color="#7c3aed" />
+        </mesh>
+      </group>
+      {label && (
+        <Html
+          position={[(from[0] + tip[0]) / 2, (from[1] + tip[1]) / 2, (from[2] + tip[2]) / 2 + 60]}
+          center
+          style={{ pointerEvents: 'none' }}
+          zIndexRange={[10, 0]}
+        >
+          <span className="rounded bg-violet-600 px-1.5 py-0.5 text-[10px] text-white">
+            {label}
+          </span>
+        </Html>
+      )}
+    </group>
   );
 }

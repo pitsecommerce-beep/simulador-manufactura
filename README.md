@@ -72,6 +72,7 @@ uv run ruff check . && uv run mypy packages/jobqueue-py/src services/*/src && uv
 
 Qué cubren hoy:
 
+- **Modelo de proceso**: rutas sin salida, nodos inalcanzables, ciclos, buffers sin capacidad, repartos que no suman 1, BOM no cubierta, roles incompatibles, origen de cada tiempo (ficha, usuario o asistente), carga con gripper y zonas de seguridad.
 - **Lienzo 3D**: robots paramétricos desde la ficha (alcance y rangos de eje), límites de ejes, alcance (esfera, delta y SCARA), carga nominal, colisiones AABB con giro, escena validada con Zod, guardado con control de versión (409) y RLS de `layouts`.
 - **Catálogo**: el seed es idempotente, deja en null lo no publicado, guarda la fuente de cada dato y refleja los JSON; la API exige sesión y filtra; RLS impide escribir el catálogo.
 - **Migraciones**: el ejecutor y el script manual `apply_all.sql` registran todas las migraciones, son idempotentes y compatibles entre sí; `apply_all.sql` está al día.
