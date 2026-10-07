@@ -383,6 +383,24 @@ describe('configuración', () => {
     expect(c.PORT).toBe(8080);
   });
 
+  it('el motor de simulación exige token si tiene URL', () => {
+    const env = {
+      SUPABASE_URL: 'https://x.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_xxxxxxxxxxxxxxxx',
+      SUPABASE_SECRET_KEY: 'sb_secret_xxxxxxxxxxxxxxxxxxxxxx',
+    };
+    expect(() =>
+      loadConfig({ ...env, SIM_WORKER_URL: 'http://sim-worker.railway.internal:8080' }),
+    ).toThrow(/SIM_WORKER_TOKEN/);
+    const c = loadConfig({
+      ...env,
+      SIM_WORKER_URL: 'http://sim-worker.railway.internal:8080',
+      SIM_WORKER_TOKEN: 'x'.repeat(32),
+    });
+    expect(c.SIM_MAX_REPLICATIONS).toBe(50);
+    expect(loadConfig(env).SIM_WORKER_URL).toBeUndefined();
+  });
+
   it('normaliza orígenes CORS con espacios y diagonales finales', () => {
     const c = loadConfig({
       SUPABASE_URL: 'https://x.supabase.co',

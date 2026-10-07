@@ -8,8 +8,16 @@ import { Quaternion, Vector3 } from 'three';
 const DEG = Math.PI / 180;
 const BASE_COLOR = '#334155';
 
-export type Highlight = 'selected' | 'warning' | null;
-const EDGE_COLOR = { selected: '#2557e8', warning: '#f59e0b' } as const;
+/** Resaltado: selección, advertencia o, durante la reproducción, el estado de la estación. */
+export type Highlight = 'selected' | 'warning' | 'busy' | 'blocked' | 'idle' | 'failed' | null;
+const EDGE_COLOR = {
+  selected: '#2557e8',
+  warning: '#f59e0b',
+  busy: '#10b981',
+  blocked: '#f59e0b',
+  idle: '#94a3b8',
+  failed: '#ef4444',
+} as const;
 
 /** Caja con su cara inferior en z = 0. */
 function Block({

@@ -12,14 +12,16 @@ Aplicación web para diseñar y simular líneas de manufactura y empaque con rob
 | 2a. Catálogo con datos de ficha | ✅ |
 | 2b. Pipeline CAD | pendiente |
 | 3. Lienzo 3D con robots simplificados | ✅ |
-| 4 a 10 | pendiente |
+| 4. Motor de línea: modelo de proceso, SimPy, indicadores, reproductor | ✅ |
+| 9. Asistente de IA | en curso |
+| 5 a 8 y 10 | pendiente |
 
 ## Estructura
 
 ```
 apps/web               React + Vite + Tailwind (login, proyectos, catálogo, lienzo 3D con React Three Fiber)
 apps/api               Fastify + TypeScript (auth Supabase, proyectos, salud)
-services/sim-worker    Python, SimPy. Consume la cola de trabajos
+services/sim-worker    Python, SimPy. Servicio HTTP interno del motor de línea (sin DATABASE_URL)
 services/cad-worker    Python. Conversión STEP → GLB → URDF (fase 2)
 packages/domain        Esquemas y reglas compartidos por web y api
 packages/db            Generador del script SQL manual, ejecutor local y tests de RLS
@@ -56,8 +58,13 @@ Arrancar servicios:
 ```bash
 pnpm dev:api                                  # http://localhost:8080/health
 pnpm dev:web                                  # http://localhost:5173
-DATABASE_URL="<session pooler>" uv run sim-worker
-DATABASE_URL="<session pooler>" uv run cad-worker
+SIM_WORKER_TOKEN=dev-token-de-32-caracteres-minimo SUPABASE_URL=... SUPABASE_SECRET_KEY=... uv run sim-worker
+DATABASE_URL="<session pooler>" uv run cad-worker   # solo fase 2b
+```
+
+Para que el api local use el motor: `SIM_WORKER_URL=http://localhost:8080` y el mismo `SIM_WORKER_TOKEN` en `.env`. Sin `SIM_WORKER_URL`, el botón Simular responde que el motor no está configurado.
+
+```bash
 ```
 
 ## Tests
@@ -72,6 +79,8 @@ uv run ruff check . && uv run mypy packages/jobqueue-py/src services/*/src && uv
 
 Qué cubren hoy:
 
+- **Motor de línea (Python)**: casos analíticos (M/M/1 contra ρ, L y W teóricos; línea en serie con tiempos fijos; bloqueo sin buffer; disponibilidad con fallas = MTBF/(MTBF+MTTR); scrap y OEE; ensamblaje por BOM; reparto por fracciones; cambio de pallet), reproducibilidad con semilla, takt solo con demanda, registro de eventos, servicio HTTP con token y escritura en Supabase.
+- **Corridas (api)**: permisos, límites de réplicas y horizonte, modelo inválido, motor caído (502), corridas huérfanas y registro de eventos comprimido.
 - **Modelo de proceso**: rutas sin salida, nodos inalcanzables, ciclos, buffers sin capacidad, repartos que no suman 1, BOM no cubierta, roles incompatibles, origen de cada tiempo (ficha, usuario o asistente), carga con gripper y zonas de seguridad.
 - **Lienzo 3D**: robots paramétricos desde la ficha (alcance y rangos de eje), límites de ejes, alcance (esfera, delta y SCARA), carga nominal, colisiones AABB con giro, escena validada con Zod, guardado con control de versión (409) y RLS de `layouts`.
 - **Catálogo**: el seed es idempotente, deja en null lo no publicado, guarda la fuente de cada dato y refleja los JSON; la API exige sesión y filtra; RLS impide escribir el catálogo.
@@ -79,7 +88,7 @@ Qué cubren hoy:
 - **RLS**: todas las tablas de `public` tienen RLS; `anon` no lee nada; el catálogo es solo lectura; los metadatos de CAD original no son visibles; propietario, editor, lector y extraño tienen exactamente los permisos esperados; las tablas internas no son accesibles; los buckets son privados y sin políticas.
 - **API**: verificación de JWT (vencido, otro emisor, firma alterada, rol anónimo), validación de entrada, compartir proyectos, CORS y límite de peticiones.
 - **Anti-CAD**: detección por extensión y por contenido (STEP, IGES, GLB, glTF, STL, Parasolid, también comprimidos).
-- **Cola de trabajos**: reparto sin duplicados, reintentos con espera, estados `unsupported` y `needs_mapping`.
+- **Cola de trabajos** (cad-worker): reparto sin duplicados, reintentos con espera, estados `unsupported` y `needs_mapping`.
 
 ## Migraciones manuales (SQL Editor)
 
@@ -146,11 +155,43 @@ Cada servicio se despliega desde este repositorio con la integración de GitHub 
 
    | Servicio | Variables |
    |---|---|
-   | api | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `CORS_ORIGINS` (URL del web), opcional `SUPABASE_JWT_SECRET` |
+   | api | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `CORS_ORIGINS` (URL del web), `SIM_WORKER_URL`, `SIM_WORKER_TOKEN`, opcionales `SUPABASE_JWT_SECRET`, `SIM_MAX_REPLICATIONS`, `SIM_MAX_HORIZON_H`, `SIM_RUN_TIMEOUT_S` |
    | web | `API_URL` (URL del api), `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` |
-   | sim-worker, cad-worker | `DATABASE_URL` |
+   | sim-worker | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SIM_WORKER_TOKEN`, `PORT=8080`, opcionales `SIM_MAX_REPLICATIONS`, `SIM_MAX_CONCURRENT_RUNS` (ver sección siguiente) |
+   | cad-worker | `DATABASE_URL` (solo cuando llegue la fase 2b; mientras tanto puedes dejarlo sin desplegar) |
 
 4. **Networking > Generate Domain** en `web` y `api`. Después pon la URL del api en `API_URL` del web y la del web en `CORS_ORIGINS` del api.
+
+### Motor de línea (sim-worker)
+
+El sim-worker es un servicio HTTP **interno**: solo lo llama el api por la red privada de Railway. No necesita `DATABASE_URL`: guarda resultados en Supabase por HTTPS con la clave secreta.
+
+1. En el servicio `sim-worker` (o crea uno nuevo desde este repo): *Root Directory* vacío y *Railway Config File* `/services/sim-worker/railway.json`.
+2. **No** generes dominio público. En *Settings > Networking* verifica que tenga *Private Networking*; su nombre interno será `sim-worker.railway.internal` (si el servicio tiene otro nombre, ajústalo en `SIM_WORKER_URL`).
+3. Genera un token compartido, por ejemplo con `openssl rand -hex 32`.
+4. Variables del **sim-worker**:
+
+   | Variable | Valor |
+   |---|---|
+   | `SUPABASE_URL` | la misma del api |
+   | `SUPABASE_SECRET_KEY` | la misma del api |
+   | `SIM_WORKER_TOKEN` | el token del paso 3 |
+   | `PORT` | `8080` |
+   | `SIM_MAX_REPLICATIONS` | `50` (opcional) |
+   | `SIM_MAX_CONCURRENT_RUNS` | `1` (opcional; corridas simultáneas, cada una usa un núcleo) |
+
+5. Variables del **api**:
+
+   | Variable | Valor |
+   |---|---|
+   | `SIM_WORKER_URL` | `http://sim-worker.railway.internal:8080` |
+   | `SIM_WORKER_TOKEN` | el mismo token |
+   | `SIM_MAX_REPLICATIONS` | `50` (opcional, igual o menor que en el worker) |
+   | `SIM_MAX_HORIZON_H` | `720` (opcional) |
+   | `SIM_RUN_TIMEOUT_S` | `1800` (opcional; tras ese tiempo una corrida sin terminar se marca como fallida) |
+
+6. Si el sim-worker tenía `DATABASE_URL` o `POLL_SECONDS` de la fase 1, puedes borrarlas: ya no se usan.
+7. Comprobación: en *Deployments* del sim-worker el healthcheck `/health` debe pasar. En la web, en un proyecto con flujo válido y layout guardado, pulsa **Simular**: la corrida pasa de *En cola* a *Simulando* y a *Terminada*.
 
 Si el log de build dice `using build driver railpack` en vez de construir el Dockerfile, el servicio no está leyendo su configuración:
 
@@ -173,6 +214,6 @@ Comprobación: `https://<api>/health` debe responder `"supabase":"ok"` y el web 
 ## Decisiones técnicas de la fase 1
 
 - **Sin paso de compilación en Node**: la API y los scripts se ejecutan como TypeScript directamente (Node 22.18+); `tsc` solo verifica tipos.
-- **Cola de trabajos en Postgres** (`public.jobs`, `SKIP LOCKED`, `LISTEN/NOTIFY`) en lugar de Redis.
+- **Cola de trabajos en Postgres** (`public.jobs`, `SKIP LOCKED`, `LISTEN/NOTIFY`) para el cad-worker. El motor de línea no la usa: es un servicio HTTP interno porque el api no tiene `DATABASE_URL` (PLAN.md, sección 22).
 - **Tests de RLS con Vitest** contra Postgres local en vez de pgTAP, para no depender del CLI de Supabase en CI.
 - **Configuración del web en tiempo de ejecución** (`/config.js`), así la misma imagen sirve en cualquier entorno.

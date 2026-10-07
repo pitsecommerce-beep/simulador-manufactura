@@ -4,9 +4,13 @@ import type {
   CatalogVariant,
   CatalogVariantDetail,
   MemberRole,
-  Scene,
   Project,
   ProjectMember,
+  RunConfig,
+  Scene,
+  SimMetric,
+  SimModel,
+  SimRun,
 } from '@sim/domain';
 import type { AuthUser } from './auth.ts';
 
@@ -32,9 +36,14 @@ export interface UserRepo {
    * `version` es null). Lanza RepoError 409 si otro usuario guardó antes.
    */
   saveLayout(projectId: string, scene: Scene, version: number | null): Promise<StoredLayout>;
+  /** Corridas del proyecto (sin la foto de entrada completa), más recientes primero. */
+  listRuns(projectId: string): Promise<SimRun[]>;
+  /** Corrida con sus métricas, o null si no existe o el usuario no la puede ver. */
+  getRun(projectId: string, runId: string): Promise<{ run: SimRun; metrics: SimMetric[] } | null>;
 }
 
 export interface StoredLayout {
+  id: string;
   version: number;
   scene: unknown;
   updated_at: string;
@@ -42,10 +51,31 @@ export interface StoredLayout {
 
 export const LAYOUT_CONFLICT = 'Otro usuario guardó el layout. Recarga para ver sus cambios.';
 
+export interface NewRun {
+  projectId: string;
+  layoutId: string;
+  layoutVersion: number;
+  userId: string;
+  config: RunConfig;
+  input: { config: RunConfig; scene: Scene; model: SimModel };
+}
+
+/** Operaciones con la clave secreta. Las rutas comprueban antes los permisos del usuario. */
 export interface SystemRepo {
   /** Comprueba conectividad con Supabase usando la clave secreta. */
   ping(): Promise<boolean>;
+  /** Crea el escenario y la corrida en estado `queued`. Devuelve la corrida. */
+  createRun(input: NewRun): Promise<SimRun>;
+  updateRun(
+    runId: string,
+    fields: Partial<Pick<SimRun, 'status' | 'error' | 'finished_at'>>,
+  ): Promise<void>;
+  /** Registro de eventos comprimido (gzip) de Storage, o null si no existe. */
+  downloadEvents(path: string): Promise<Buffer | null>;
 }
+
+const RUN_COLUMNS =
+  'id, project_id, name, status, replications, seed, progress, error, summary, layout_version, engine_version, events_path, created_at, started_at, finished_at';
 
 export class RepoError extends Error {
   readonly status: number;
@@ -243,7 +273,7 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
     async getLayout(projectId) {
       const { data, error } = await sb
         .from('layouts')
-        .select('version, scene, updated_at')
+        .select('id, version, scene, updated_at')
         .eq('project_id', projectId)
         .eq('is_current', true)
         .maybeSingle();
@@ -255,7 +285,7 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
         const { data, error } = await sb
           .from('layouts')
           .insert({ project_id: projectId, version: 1, scene, is_current: true, name: 'Principal' })
-          .select('version, scene, updated_at')
+          .select('id, version, scene, updated_at')
           .single();
         if (error?.code === '23505') throw new RepoError(LAYOUT_CONFLICT, 409);
         if (error) fail(error);
@@ -267,11 +297,42 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
         .eq('project_id', projectId)
         .eq('is_current', true)
         .eq('version', version)
-        .select('version, scene, updated_at');
+        .select('id, version, scene, updated_at');
       if (error) fail(error);
       const row = (data as StoredLayout[] | null)?.[0];
       if (!row) throw new RepoError(LAYOUT_CONFLICT, 409);
       return row;
+    },
+    async listRuns(projectId) {
+      const { data, error } = await sb
+        .from('simulation_runs')
+        .select(`${RUN_COLUMNS}, config:input->config`)
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) fail(error);
+      return ((data ?? []) as unknown as (SimRun & { config: RunConfig | null })[]).map(
+        ({ config, ...r }) => ({ ...r, input: config ? ({ config } as SimRun['input']) : null }),
+      );
+    },
+    async getRun(projectId, runId) {
+      const { data, error } = await sb
+        .from('simulation_runs')
+        .select(`${RUN_COLUMNS}, input`)
+        .eq('project_id', projectId)
+        .eq('id', runId)
+        .maybeSingle();
+      if (error) fail(error);
+      if (!data) return null;
+      const { data: metrics, error: mErr } = await sb
+        .from('simulation_metrics')
+        .select(
+          'metric, scope, label, unit, replication, value, min, mean, max, p5, p95, ci_low, ci_high',
+        )
+        .eq('run_id', runId)
+        .order('metric');
+      if (mErr) fail(mErr);
+      return { run: data as unknown as SimRun, metrics: (metrics ?? []) as SimMetric[] };
     },
   };
 }
@@ -284,6 +345,45 @@ export function supabaseSystemRepo(url: string, secretKey: string): SystemRepo {
     async ping() {
       const { error } = await sb.from('object_types').select('id', { head: true, count: 'exact' });
       return !error;
+    },
+    async createRun(n) {
+      const { data: scenario, error: sErr } = await sb
+        .from('scenarios')
+        .insert({
+          project_id: n.projectId,
+          layout_id: n.layoutId,
+          name: n.config.name,
+          config: n.config,
+        })
+        .select('id')
+        .single();
+      if (sErr) fail(sErr);
+      const { data, error } = await sb
+        .from('simulation_runs')
+        .insert({
+          project_id: n.projectId,
+          scenario_id: scenario.id,
+          name: n.config.name,
+          status: 'queued',
+          replications: n.config.replications,
+          seed: n.config.seed,
+          input: n.input,
+          layout_version: n.layoutVersion,
+          created_by: n.userId,
+        })
+        .select(RUN_COLUMNS)
+        .single();
+      if (error) fail(error);
+      return { ...(data as unknown as SimRun), input: n.input };
+    },
+    async updateRun(runId, fields) {
+      const { error } = await sb.from('simulation_runs').update(fields).eq('id', runId);
+      if (error) fail(error);
+    },
+    async downloadEvents(path) {
+      const { data, error } = await sb.storage.from('sim-artifacts').download(path);
+      if (error || !data) return null;
+      return Buffer.from(await data.arrayBuffer());
     },
   };
 }

@@ -24,13 +24,24 @@ const Env = z.object({
         .filter(Boolean),
     ),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(300),
+  // Motor de línea (sim-worker) en la red privada de Railway. Sin URL, simular está desactivado.
+  SIM_WORKER_URL: z.url().optional(),
+  SIM_WORKER_TOKEN: z.string().min(16).optional(),
+  SIM_MAX_REPLICATIONS: z.coerce.number().int().positive().max(10_000).default(50),
+  SIM_MAX_HORIZON_H: z.coerce.number().positive().max(10_000).default(720),
+  SIM_RUN_TIMEOUT_S: z.coerce.number().int().positive().default(1800),
   APP_VERSION: z.string().default(process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev'),
 });
 
 export type Config = z.infer<typeof Env>;
 
+const SimPair = Env.refine((c) => !c.SIM_WORKER_URL || c.SIM_WORKER_TOKEN, {
+  message: 'SIM_WORKER_TOKEN es obligatoria si se define SIM_WORKER_URL',
+  path: ['SIM_WORKER_TOKEN'],
+});
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = Env.safeParse(env);
+  const parsed = SimPair.safeParse(env);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Configuración inválida:\n${issues}`);

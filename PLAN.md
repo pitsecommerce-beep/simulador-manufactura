@@ -54,7 +54,7 @@ Costo aceptado: dos lenguajes en el monorepo. Se mitiga con esquemas generados y
 
 ### Cola de trabajos
 
-Tabla `jobs` en Postgres con `SELECT ... FOR UPDATE SKIP LOCKED`, reintentos y `LISTEN/NOTIFY`. Evita añadir Redis. Tipos: `convert_cad`, `simulate`, `render_thumbnail`, `train_policy` (este último se acepta y se marca como `unsupported` en etapa 1; queda la interfaz lista para un worker con GPU externo).
+Tabla `jobs` en Postgres con `SELECT ... FOR UPDATE SKIP LOCKED`, reintentos y `LISTEN/NOTIFY`. Evita añadir Redis. La usa el cad-worker (`convert_cad`, `render_thumbnail`). El motor de línea ya no la usa: es un servicio HTTP interno (sección 22) porque el api no tiene `DATABASE_URL`. `train_policy` queda como contrato para un worker externo con GPU.
 
 ### Flujo de simulación
 
@@ -307,7 +307,7 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 
 ## 17. Variables de entorno (resumen, detalle en `.env.example`)
 
-`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (solo api y workers), `SUPABASE_JWT_SECRET`, `DATABASE_URL` (solo workers, para la cola; y `pnpm db:migrate` local opcional), `AI_PROVIDER`, `AI_MODEL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AI_DAILY_TOKEN_LIMIT`, `AI_DAILY_REQUEST_LIMIT`, `SIGNED_URL_TTL_SECONDS`, `SIM_MAX_REPLICATIONS`, `CAD_TESSELLATION_TOLERANCE`, `CAD_MAX_TRIANGLES_PER_LINK`, `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (solo api y workers), `SUPABASE_JWT_SECRET`, `DATABASE_URL` (solo cad-worker, para la cola; y `pnpm db:migrate` local opcional), `SIM_WORKER_URL`, `SIM_WORKER_TOKEN`, `SIM_MAX_HORIZON_H`, `SIM_RUN_TIMEOUT_S`, `SIM_MAX_CONCURRENT_RUNS`, `AI_GLOBAL_DAILY_TOKEN_LIMIT`, `AI_PROVIDER`, `AI_MODEL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AI_DAILY_TOKEN_LIMIT`, `AI_DAILY_REQUEST_LIMIT`, `SIGNED_URL_TTL_SECONDS`, `SIM_MAX_REPLICATIONS`, `CAD_TESSELLATION_TOLERANCE`, `CAD_MAX_TRIANGLES_PER_LINK`, `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 
 ---
 
@@ -566,7 +566,7 @@ web ──► api (Fastify) ──HTTP privado──► sim-worker (Python, SimP
       Supabase ◄──────────────────────────────┘ (clave secreta)
 ```
 
-- **sim-worker como servicio HTTP interno** (FastAPI + uvicorn) en la red privada de Railway (`sim-worker.railway.internal`), sin dominio público. Escucha en IPv6 (`::`), que es lo que exige la red privada de Railway.
+- **sim-worker como servicio HTTP interno** (FastAPI + uvicorn) en la red privada de Railway (`sim-worker.railway.internal`), sin dominio público. Escucha en IPv6 (`::`), que es lo que exige la red privada de Railway; si el sistema no tiene IPv6 (desarrollo local) usa `0.0.0.0`, y `SIM_WORKER_HOST` lo fuerza.
 - La api lo llama con un token compartido (`SIM_WORKER_TOKEN`). El worker responde `202` y simula en un proceso aparte (`ProcessPoolExecutor`), con `SIM_MAX_CONCURRENT_RUNS` corridas a la vez.
 - El worker guarda estado, métricas y eventos en Supabase por HTTPS con la clave secreta (PostgREST y Storage). No necesita conexión directa a Postgres.
 - **Alternativas descartadas**:
@@ -641,7 +641,14 @@ Servicio `sim-worker` (el que ya existe, con nueva configuración): Dockerfile c
 | sim-worker | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SIM_WORKER_TOKEN`, `SIM_MAX_REPLICATIONS`, `SIM_MAX_CONCURRENT_RUNS`. Ya no usa `DATABASE_URL` |
 | api | `SIM_WORKER_URL=http://sim-worker.railway.internal:8080`, `SIM_WORKER_TOKEN` (el mismo), `SIM_MAX_REPLICATIONS`, `SIM_MAX_HORIZON_H`, `SIM_RUN_TIMEOUT_S` |
 
-### 22.9 Tests de la parte B
+### 22.9 Estado de la implementación
+
+- Hecho tal como está diseñado, con dos precisiones:
+  - Una fuente que no puede entregar espera (no se acumulan llegadas fuera del sistema). Para modelar una cola infinita se pone un buffer grande después de la fuente.
+  - Con más de una unidad en paralelo, las fallas usan el tiempo de operación de la estación en conjunto.
+- El sim-worker dejó de consumir la cola `jobs` (sus trabajos `ping` y `train_policy` se retiraron con el servicio).
+
+### 22.10 Tests de la parte B
 
 - **Analíticos**: M/M/1 con buffer amplio (utilización ρ, WIP L = ρ/(1−ρ) y producción = λ, dentro de una tolerancia con muchas réplicas); línea en serie con tiempos fijos (producción = 1 / ciclo máximo, utilización = ciclo / ciclo máximo, cuello de botella correcto); línea con buffer 0 y bloqueo; disponibilidad con fallas fijas = MTBF / (MTBF + MTTR).
 - **Reproducibilidad**: misma semilla, mismos resultados; semilla distinta, resultados distintos.

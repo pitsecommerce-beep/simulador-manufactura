@@ -1,9 +1,24 @@
 import { randomUUID } from 'node:crypto';
-import type { CatalogVariant, MemberRole, Project, ProjectMember } from '@sim/domain';
+import type {
+  CatalogVariant,
+  MemberRole,
+  Project,
+  ProjectMember,
+  SimMetric,
+  SimRequest,
+  SimRun,
+} from '@sim/domain';
 import { SignJWT } from 'jose';
 import { buildApp } from '../src/app.ts';
 import { supabaseTokenVerifier, type AuthUser } from '../src/auth.ts';
-import { LAYOUT_CONFLICT, RepoError, type StoredLayout, type UserRepo } from '../src/repo.ts';
+import {
+  LAYOUT_CONFLICT,
+  RepoError,
+  type StoredLayout,
+  type SystemRepo,
+  type UserRepo,
+} from '../src/repo.ts';
+import { SimWorkerError, type SimSettings } from '../src/sim.ts';
 
 export const SUPABASE_URL = 'https://test-project.supabase.co';
 export const JWT_SECRET = 'test-secret-with-at-least-32-characters!!';
@@ -64,6 +79,9 @@ export function memoryStore() {
   const members: { project_id: string; user_id: string; role: MemberRole }[] = [];
   const profiles = new Map<string, string>(); // email -> user_id
   const layouts = new Map<string, StoredLayout>(); // project_id -> layout actual
+  const runs: SimRun[] = [];
+  const metrics: (SimMetric & { run_id: string })[] = [];
+  const files = new Map<string, Buffer>();
 
   const canRead = (p: Project, uid: string) =>
     p.owner_id === uid || members.some((m) => m.project_id === p.id && m.user_id === uid);
@@ -114,12 +132,24 @@ export function memoryStore() {
       const current = layouts.get(projectId);
       if ((current?.version ?? null) !== version) throw new RepoError(LAYOUT_CONFLICT, 409);
       const saved = {
+        id: current?.id ?? randomUUID(),
         version: (version ?? 0) + 1,
         scene,
         updated_at: new Date().toISOString(),
       };
       layouts.set(projectId, saved);
       return saved;
+    },
+    async listRuns(projectId) {
+      const p = projects.find((x) => x.id === projectId);
+      if (!p || !canRead(p, user.id)) return [];
+      return runs.filter((r) => r.project_id === projectId).reverse();
+    },
+    async getRun(projectId, runId) {
+      const p = projects.find((x) => x.id === projectId);
+      const run = runs.find((r) => r.id === runId && r.project_id === projectId);
+      if (!p || !canRead(p, user.id) || !run) return null;
+      return { run, metrics: metrics.filter((m) => m.run_id === runId) };
     },
     async listCatalogComponents() {
       return [
@@ -169,15 +199,71 @@ export function memoryStore() {
     },
   });
 
-  return { projects, members, profiles, layouts, repoFor };
+  const systemRepo = (pingOk: boolean): SystemRepo => ({
+    ping: async () => pingOk,
+    async createRun(n) {
+      const run: SimRun = {
+        id: randomUUID(),
+        project_id: n.projectId,
+        name: n.config.name,
+        status: 'queued',
+        replications: n.config.replications,
+        seed: n.config.seed,
+        progress: null,
+        error: null,
+        summary: null,
+        input: n.input,
+        layout_version: n.layoutVersion,
+        engine_version: null,
+        events_path: null,
+        created_at: new Date().toISOString(),
+        started_at: null,
+        finished_at: null,
+      };
+      runs.push(run);
+      return run;
+    },
+    async updateRun(runId, fields) {
+      const r = runs.find((x) => x.id === runId);
+      if (r) Object.assign(r, fields);
+    },
+    async downloadEvents(path) {
+      return files.get(path) ?? null;
+    },
+  });
+
+  return { projects, members, profiles, layouts, runs, metrics, files, repoFor, systemRepo };
 }
 
-export async function testApp(opts: { pingOk?: boolean; rateLimit?: number } = {}) {
+/** Motor falso: guarda las peticiones; `fail` simula que no responde. */
+export function fakeSim(opts: { fail?: boolean } = {}) {
+  const requests: SimRequest[] = [];
+  const settings: SimSettings = {
+    client: {
+      async submit(req) {
+        if (opts.fail)
+          throw new SimWorkerError('No se pudo contactar al motor de simulación (ECONNREFUSED)');
+        requests.push(req);
+      },
+    },
+    maxReplications: 20,
+    maxHorizonH: 100,
+    runTimeoutS: 600,
+    playbackWindowS: 900,
+    maxEvents: 1000,
+  };
+  return { settings, requests };
+}
+
+export async function testApp(
+  opts: { pingOk?: boolean; rateLimit?: number; sim?: SimSettings | null } = {},
+) {
   const store = memoryStore();
   const app = await buildApp({
     verifyToken: supabaseTokenVerifier({ supabaseUrl: SUPABASE_URL, jwtSecret: JWT_SECRET }),
     userRepo: store.repoFor,
-    systemRepo: { ping: async () => opts.pingOk ?? true },
+    systemRepo: store.systemRepo(opts.pingOk ?? true),
+    sim: opts.sim ?? null,
     corsOrigins: ['http://localhost:5173'],
     rateLimitPerMinute: opts.rateLimit ?? 1000,
     version: 'test',

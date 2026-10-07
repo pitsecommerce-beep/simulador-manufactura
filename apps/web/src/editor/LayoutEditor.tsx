@@ -7,8 +7,10 @@ import {
   validateProcess,
   validateScene,
   type CatalogComponent,
+  type EventLog,
   type RobotModel,
   type Scene,
+  type SimRun,
 } from '@sim/domain';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Message, Spinner } from '../components/ui';
@@ -28,6 +30,9 @@ import {
   type NewObject,
 } from './sceneOps';
 import { Warnings } from './Warnings';
+import { PlayerBar } from '../sim/PlayerBar';
+import { SimulationPanel } from '../sim/SimulationPanel';
+import { usePlayer } from '../sim/usePlayer';
 
 const Viewport = lazy(() => import('./Viewport'));
 
@@ -55,6 +60,10 @@ export default function LayoutEditor({
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [components, setComponents] = useState<Map<string, CatalogComponent>>(new Map());
+  // Reproducción de una corrida: se muestra la escena simulada (foto), no la actual.
+  const [playing, setPlaying] = useState<{ run: SimRun; log: EventLog } | null>(null);
+  const [playError, setPlayError] = useState<string | null>(null);
+  const player = usePlayer(playing?.log ?? null);
   const requested = useRef(new Set<string>());
 
   const load = useCallback(() => {
@@ -247,6 +256,25 @@ export default function LayoutEditor({
   };
   const selectedRobot = selected?.kind === 'robot' ? selected : null;
 
+  async function startPlayback(run: SimRun) {
+    setPlayError(null);
+    try {
+      const [{ run: full }, log] = await Promise.all([
+        api.getRun(projectId, run.id),
+        api.getRunEvents(projectId, run.id),
+      ]);
+      if (!full.input?.scene) throw new Error('La corrida no guarda la escena simulada.');
+      setConnectFrom(null);
+      setPlaying({ run: full, log });
+      player.setT(log.start_s);
+      player.setPlaying(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      setPlayError((e as Error).message);
+    }
+  }
+  const viewScene = playing?.run.input?.scene ?? scene;
+
   return (
     <div className="space-y-3">
       <div className="card flex flex-wrap items-center gap-2 p-2">
@@ -425,11 +453,12 @@ export default function LayoutEditor({
             }
           >
             <Viewport
-              scene={scene}
+              scene={viewScene}
+              playback={playing ? player.frame : null}
               models={models}
               selectedId={selectedId}
               warned={warned}
-              editable={canEdit}
+              editable={canEdit && !playing}
               snapMm={snapMm}
               flowMode={flowMode || connectFrom != null}
               connectFrom={connectFrom}
@@ -445,9 +474,26 @@ export default function LayoutEditor({
               {SIMPLIFIED_NOTICE}
             </span>
           </div>
-          <div className="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-white/90 px-2.5 py-1 text-[11px] text-slate-500 shadow-sm">
-            Arrastra para mover · Botón derecho para desplazar la vista · Rueda para acercar
-          </div>
+          {playing ? (
+            <PlayerBar
+              log={playing.log}
+              name={playing.run.name ?? 'Corrida'}
+              t={player.t}
+              playing={player.playing}
+              speed={player.speed}
+              onSeek={(t) => player.setT(t)}
+              onToggle={() => player.setPlaying((p) => !p)}
+              onSpeed={player.setSpeed}
+              onClose={() => {
+                player.setPlaying(false);
+                setPlaying(null);
+              }}
+            />
+          ) : (
+            <div className="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-white/90 px-2.5 py-1 text-[11px] text-slate-500 shadow-sm">
+              Arrastra para mover · Botón derecho para desplazar la vista · Rueda para acercar
+            </div>
+          )}
         </div>
 
         <aside className="card order-3 max-h-[34rem] overflow-y-auto p-4">
@@ -493,6 +539,15 @@ export default function LayoutEditor({
           onChange={(product) => change((s) => ({ ...s, process: { ...s.process, product } }))}
         />
       </div>
+
+      {playError && <Message kind="error">{playError}</Message>}
+      <SimulationPanel
+        projectId={projectId}
+        canEdit={canEdit}
+        dirty={dirty}
+        flowErrors={flowErrors}
+        onPlay={startPlayback}
+      />
 
       <p className="text-xs text-slate-500">
         {PROPORTIONS_NOTICE} {DISCLAIMERS.estimates}

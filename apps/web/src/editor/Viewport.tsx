@@ -5,6 +5,7 @@ import {
   footprint,
   isWorkObject,
   resolveJoints,
+  type PlaybackFrame,
   type RobotModel,
   type Scene,
   type SceneObject,
@@ -21,6 +22,7 @@ import {
   SensorMesh,
   type Highlight,
 } from './meshes';
+import { STATE_COLOR } from '../sim/format';
 import { snap } from './sceneOps';
 
 // El modelo usa mm con Z arriba; three.js usa Y arriba. Un grupo raíz convierte:
@@ -39,6 +41,8 @@ interface Props {
   flowMode: boolean;
   /** Objeto desde el que se está trazando una ruta. */
   connectFrom: string | null;
+  /** Reproducción de una corrida: estados de estación y unidades en movimiento. */
+  playback?: PlaybackFrame | null;
   onSelect: (id: string | null) => void;
   onMove: (id: string, position: [number, number]) => void;
   onMoveEnd: () => void;
@@ -109,7 +113,11 @@ export default function Viewport(props: Props) {
     o.elevation + topOf(o) + 250,
   ];
 
-  const highlightOf = (id: string): Highlight =>
+  const highlightOf = (id: string): Highlight => {
+    if (props.playback) return props.playback.states.get(id) ?? null;
+    return selectionHighlight(id);
+  };
+  const selectionHighlight = (id: string): Highlight =>
     id === props.selectedId ? 'selected' : props.warned.has(id) ? 'warning' : null;
 
   return (
@@ -220,6 +228,52 @@ export default function Viewport(props: Props) {
             </group>
           );
         })}
+        {props.playback &&
+          props.scene.objects.map((o) => {
+            const st = props.playback!.states.get(o.id);
+            if (!st) return null;
+            const f = footprint(o);
+            const r =
+              o.kind === 'robot'
+                ? (props.models[o.params.variant_slug]?.base.radius ?? 150) * 2
+                : 0;
+            const l = f ? f.l + 300 : r * 2;
+            const w = f ? f.w + 300 : r * 2;
+            return (
+              <mesh
+                key={`halo-${o.id}`}
+                position={[o.position[0], o.position[1], 6]}
+                rotation={[0, 0, (o.rotation_deg * Math.PI) / 180]}
+              >
+                <boxGeometry args={[l, w, 6]} />
+                <meshBasicMaterial
+                  color={STATE_COLOR[st]}
+                  transparent
+                  opacity={0.45}
+                  depthWrite={false}
+                />
+              </mesh>
+            );
+          })}
+        {props.playback &&
+          [...props.playback.units].map(([unit, [prev, node, f]]) => {
+            const to = byId.get(node);
+            if (!to) return null;
+            const b = anchor(to);
+            const from = prev ? byId.get(prev) : undefined;
+            const a = from ? anchor(from) : b;
+            const p: [number, number, number] = [
+              a[0] + (b[0] - a[0]) * f,
+              a[1] + (b[1] - a[1]) * f,
+              a[2] + (b[2] - a[2]) * f - 150,
+            ];
+            return (
+              <mesh key={unit} position={p}>
+                <boxGeometry args={[160, 160, 160]} />
+                <meshStandardMaterial color="#7c3aed" />
+              </mesh>
+            );
+          })}
         {props.flowMode &&
           props.scene.process.routes.map((r) => {
             const a = byId.get(r.from);

@@ -9,14 +9,22 @@ import type {
   Project,
   ProjectAccess,
   ProjectMember,
+  ProcessIssue,
+  RunConfig,
   Scene,
+  SimMetric,
+  SimRun,
+  EventLog,
 } from '@sim/domain';
 
 export class ApiError extends Error {
   readonly status: number;
-  constructor(status: number, message: string) {
+  /** Problemas del modelo de proceso cuando la api rechaza una corrida. */
+  readonly issues: ProcessIssue[];
+  constructor(status: number, message: string, issues: ProcessIssue[] = []) {
     super(message);
     this.status = status;
+    this.issues = issues;
   }
 }
 
@@ -41,7 +49,8 @@ export function createApi(baseUrl: string, getToken: () => Promise<string | null
     }
     if (res.status === 204) return undefined as T;
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new ApiError(res.status, body.message ?? `Error ${res.status}`);
+    if (!res.ok)
+      throw new ApiError(res.status, body.message ?? `Error ${res.status}`, body.issues ?? []);
     return body as T;
   }
 
@@ -79,6 +88,16 @@ export function createApi(baseUrl: string, getToken: () => Promise<string | null
         method: 'PUT',
         body: JSON.stringify({ scene, version }),
       }),
+    createRun: (projectId: string, config: RunConfig) =>
+      request<{ run: SimRun }>(`/v1/projects/${projectId}/runs`, {
+        method: 'POST',
+        body: JSON.stringify(config),
+      }),
+    listRuns: (projectId: string) => request<{ runs: SimRun[] }>(`/v1/projects/${projectId}/runs`),
+    getRun: (projectId: string, runId: string) =>
+      request<{ run: SimRun; metrics: SimMetric[] }>(`/v1/projects/${projectId}/runs/${runId}`),
+    getRunEvents: (projectId: string, runId: string) =>
+      request<EventLog>(`/v1/projects/${projectId}/runs/${runId}/events`),
     listComponents: () => request<{ components: CatalogComponent[] }>('/v1/catalog/components'),
     catalogFacets: () => request<CatalogFacets>('/v1/catalog/facets'),
     getCatalogVariant: (slug: string) =>
