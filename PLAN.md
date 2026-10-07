@@ -208,6 +208,8 @@ Robots sintéticos: `packages/synthetic` genera robots de 6 ejes con geometría 
 
 ## 10. Motor de simulación (sim-worker)
 
+> El diseño vigente de la fase 4 está en las secciones 21 y 22. Esta sección es la visión general.
+
 - Entidades: estación, buffer, robot, banda, persona, sensor, alimentador, salida, pieza (con atributos y BOM).
 - Procesos: rutas de producto, ensamblaje por BOM, fallas (MTBF/MTTR con distribuciones), paros planificados, turnos, descansos, scrap y retrabajo.
 - Personas: tiempos de tarea con distribución, velocidad de desplazamiento, tasa de error; al entrar en zona de seguridad el robot reduce velocidad o se detiene según configuración.
@@ -227,6 +229,8 @@ Robots sintéticos: `packages/synthetic` genera robots de 6 ejes con geometría 
 ---
 
 ## 12. Asistente de IA
+
+> El diseño vigente de la fase 9 está en la sección 23. Esta sección es la visión general.
 
 - Capa `LLMProvider` con implementaciones `anthropic` y `openai`. Variables: `AI_PROVIDER`, `AI_MODEL`, `AI_MAX_TOKENS`, `AI_TIMEOUT_MS`. Ningún nombre de modelo en el código.
 - Herramientas (tool calling), todas validadas con Zod en la API:
@@ -256,12 +260,12 @@ Robots sintéticos: `packages/synthetic` genera robots de 6 ejes con geometría 
 | 2a | Catálogo con datos de ficha | `pnpm catalog:sql` genera un seed idempotente desde `catalog/*.json`; API y página de catálogo de solo lectura con la procedencia de cada dato (ver sección 19) |
 | 2b | Pipeline CAD | Ingesta de archivos, worker STEP→GLB→URDF probado con STEP sintético generado por CadQuery, URLs firmadas, test de no-descarga |
 | 3 | Lienzo 3D | Robots paramétricos desde la ficha, objetos paramétricos, ejes con límites, colores, guardar/cargar layouts, advertencias AABB/alcance/carga (ver sección 20). IK y personas/sensores pasan a fases posteriores |
-| 4 | Motor de línea | SimPy con estaciones, buffers, BOM, fallas, Monte Carlo, dashboard con rangos, reproductor de eventos |
+| 4 | Motor de línea | Modelo de proceso en la escena (parte A), sim-worker HTTP con SimPy, Monte Carlo, indicadores con rangos, reproductor de eventos y comparación de corridas (parte B). Ver secciones 21 y 22 |
 | 5 | Robots por ficha | Perfil trapezoidal, calibración con ciclos publicados, etiqueta ESTIMACIÓN en toda la UI |
 | 6 | Personas | Agentes con turnos, descansos, errores, zonas de seguridad que afectan al robot |
 | 7 | Sensores y visión | Sensores lógicos, cámara virtual con render y detección simulada |
 | 8 | Código visible | RAPID/Python/Arduino generados, línea activa y E/S sincronizadas |
-| 9 | Asistente IA | Chat con tools, miniaturas, validaciones, iteración, límites de uso |
+| 9 | Asistente IA | Chat lateral que propone layout y modelo de proceso con tools, vista previa, aceptar/descartar/deshacer, límites de uso (parte C). Ver sección 23 |
 | 10 | Etapa 2 prep | Protocolo, capa de seguridad, demo Web Serial, modos realtime/acelerado, documento de diseño |
 
 Al cerrar cada fase: resumen de qué funciona, qué falta y decisiones pendientes.
@@ -464,3 +468,256 @@ Funciones puras que, a partir de `robot_specs`, devuelven una cadena de eslabone
 1. **Proporciones de eslabones**: como las fichas no publican longitudes de eslabón, ¿aceptas proporciones fijas por familia, marcadas como supuesto visual?
 2. **Altura de pallets GMA y 1200×1000**: no está publicada en `presets.json`. ¿Campo vacío obligatorio (propuesta) o un valor por defecto editable marcado como supuesto?
 3. **Componentes**: ¿los cargo ya en el seed (sin UI) o los dejo para cuando haya objetos de catálogo en el lienzo?
+
+---
+
+## 21. Diseño: parte A, modelo de proceso (base de las fases 4 y 9)
+
+### 21.1 Principio
+
+El flujo de producción vive en la misma escena (`layouts.scene`) que el lienzo, ligado a los objetos colocados. No hace falta migración: es `jsonb`. La escena pasa a `schema: 2`; al leer una escena `schema: 1` se convierte sola (proceso vacío), así que los layouts guardados siguen funcionando.
+
+Cada parámetro de tiempo o tasa lleva su **origen**:
+
+| Origen | Significado | Cómo se muestra |
+|---|---|---|
+| `catalog` | Tiempo de ciclo publicado en la ficha (con su condición de medición, ej. "25/305/25 mm, 1 kg") | Fuente del catálogo, como en la ficha |
+| `user` | Lo capturó el usuario | Etiqueta **"Supuesto del usuario"** |
+| `assistant` | Lo propuso el asistente de IA (parte C) | Etiqueta **"Supuesto del asistente"**, hasta que el usuario lo confirme |
+
+Nunca hay un valor por defecto escondido: si un tiempo no viene de la ficha, el campo empieza vacío y la validación exige capturarlo.
+
+### 21.2 Modelo (`packages/domain/src/process.ts`, Zod)
+
+```
+Distribución (segundos):
+  fixed {value} | exponential {mean} | normal {mean, sd} (truncada en 0)
+  | triangular {min, mode, max} | uniform {min, max} | lognormal {mean, sd}
+
+scene.process = {
+  product: { name, bom: [{ item, qty }] }          // BOM simple: componentes por unidad
+  nodes: [ ...uno por objeto con rol en el proceso... ]
+  routes: [{ id, from, to, item | null, share | null }]
+}
+
+Roles de nodo (node.object_id apunta a un objeto del lienzo):
+  source   en banda, mesa, pallet o caja: item, interarrival (Distribución + origen), lote
+  station  en robot, banda o mesa (manual): cycle (Distribución + origen), capacidad (unidades
+           en paralelo), operación process | assemble (consume la BOM), scrap_rate (+ origen),
+           failures { mtbf_s, mttr_s, distribuciones } | null (+ origen)
+  buffer   en banda o mesa: capacity (entero >= 1), transfer (Distribución, tiempo de recorrido)
+  sink     en pallet o mesa: units_per_pallet (pallet lleno), pallet_change (Distribución)
+```
+
+- **Rutas**: flechas de un nodo a otro. `item` restringe qué pasa por la ruta (para ensamblaje). `share` reparte el flujo cuando un nodo tiene varias salidas (deben sumar 1).
+- **Bloqueo**: una estación que termina y no tiene espacio aguas abajo queda **bloqueada** con la pieza (bloqueo tras servicio). Entre estaciones sin buffer explícito la capacidad es 0: es una decisión explícita, no un supuesto escondido.
+- **Ensamblaje**: una estación `assemble` espera a tener en sus entradas los componentes de la BOM y produce una unidad de producto.
+
+### 21.3 Validación (`validateProcess`, pura)
+
+Errores (impiden simular):
+- Ruta a un nodo inexistente, de un `sink`, hacia un `source`, o rol incompatible con el tipo de objeto (un robot no puede ser buffer).
+- **Ruta sin salida**: algún nodo no llega a ningún `sink`.
+- Nodo inalcanzable desde un `source`.
+- **Ciclos** en el grafo de rutas (el retrabajo queda para después).
+- **Buffer sin capacidad** o con capacidad no entera o menor que 1.
+- Estación sin tiempo de ciclo, fuente sin tasa de llegada, `sink` sin unidades por pallet.
+- Reparto (`share`) que no suma 1 o que falta en un nodo con varias salidas.
+- Estación `assemble` cuyas entradas no aportan todos los componentes de la BOM.
+- Parámetros fuera de rango (tiempos negativos, `scrap_rate` fuera de [0, 1), MTTR sin MTBF).
+
+Advertencias (se puede simular):
+- Parámetros con origen `user` o `assistant` ("supuesto").
+- Robot usado como estación cuya ficha publica tiempos de ciclo, pero el usuario usó otro valor.
+- Estación de robot cuya carga (pieza + gripper) excede la carga útil (reutiliza `validateScene`).
+
+### 21.4 Objetos nuevos en la escena
+
+| Tipo | Medidas | Ligado al catálogo | Validaciones |
+|---|---|---|---|
+| `gripper` | Se monta en un robot (`mounted_on`) | `component_slug` de `catalog_components/grippers` | Su peso publicado (si existe) se suma a la carga del robot; si no está publicado, se avisa |
+| `sensor` | Posición y orientación | `component_slug` de `sensors` | Se dibuja con un volumen simple; la lógica de detección llega en la fase 7 |
+| `fence` | Largo, alto, grosor | Opcional (`fences`) | Entra en colisiones AABB |
+| `safety_zone` | Rectángulo en el piso | No | No colisiona; avisa si la envolvente de un robot la invade |
+
+Las medidas iniciales de valla y zona son editables y no se presentan como dato de fabricante. Para elegir componentes, la API agrega `GET /v1/catalog/components` (solo lectura, con sesión).
+
+### 21.5 Lienzo
+
+- **Modo flujo** en la barra: muestra las flechas de las rutas. Para conectar: clic en el objeto origen y luego en el destino (o desde el panel, con "Conectar a…").
+- Panel del objeto seleccionado: sección **"Proceso"** con rol, parámetros, distribución (selector con sus campos) y origen. Los robots con ciclo publicado ofrecen "Usar ciclo de la ficha" con su condición de medición.
+- Panel **"Validación del flujo"**, junto al de alcance, carga y colisiones.
+
+### 21.6 Tests de la parte A
+
+Rutas sin salida, nodos inalcanzables, ciclos, buffer sin capacidad o fraccionaria, repartos que no suman 1, BOM no cubierta, roles incompatibles, conversión de escenas `schema: 1`, limpieza de rutas al borrar un objeto, carga con gripper (con y sin peso publicado) y orígenes de los parámetros.
+
+---
+
+## 22. Diseño: parte B, motor de línea (fase 4)
+
+### 22.1 Arquitectura sin `DATABASE_URL`
+
+```
+web ──► api (Fastify) ──HTTP privado──► sim-worker (Python, SimPy)
+         │ valida, crea la corrida            │ simula en segundo plano
+         │ (supabase-js + clave secreta)      │ escribe estado y métricas en PostgREST
+         ▼                                    │ y el registro de eventos en Storage
+      Supabase ◄──────────────────────────────┘ (clave secreta)
+```
+
+- **sim-worker como servicio HTTP interno** (FastAPI + uvicorn) en la red privada de Railway (`sim-worker.railway.internal`), sin dominio público. Escucha en IPv6 (`::`), que es lo que exige la red privada de Railway.
+- La api lo llama con un token compartido (`SIM_WORKER_TOKEN`). El worker responde `202` y simula en un proceso aparte (`ProcessPoolExecutor`), con `SIM_MAX_CONCURRENT_RUNS` corridas a la vez.
+- El worker guarda estado, métricas y eventos en Supabase por HTTPS con la clave secreta (PostgREST y Storage). No necesita conexión directa a Postgres.
+- **Alternativas descartadas**:
+  - *Cola en Postgres (`public.jobs`)*: necesita `DATABASE_URL`, que no tenemos.
+  - *Simular dentro de la api*: obligaría a reescribir el motor en TypeScript en lugar de SimPy, y una corrida larga bloquearía la api.
+  - *Edge Functions de Supabase*: corren en Deno, sin Python.
+- **Corridas huérfanas**: si el worker se reinicia, una corrida `running` se marca como `failed` ("el motor se reinició") cuando supera `SIM_RUN_TIMEOUT_S`. Esto se revisa al listar corridas.
+- El `cad-worker` sigue como está (cola con `DATABASE_URL`); no forma parte de esta fase.
+
+### 22.2 Flujo de una corrida
+
+1. `POST /v1/projects/:id/runs` (propietario o editor) con `{ name, horizon_h, warmup_h, replications, seed, demand_per_hour | null }`. La api:
+   - carga el layout actual, valida escena y proceso (`validateProcess`) y rechaza con 400 si hay errores;
+   - limita `replications` a `SIM_MAX_REPLICATIONS` y `horizon_h` a `SIM_MAX_HORIZON_H`;
+   - crea un `scenario` con la configuración y un `simulation_run` (`queued`) con la **foto** de la escena (los resultados quedan ligados a lo que se simuló, aunque el layout cambie después);
+   - envía el modelo compilado al worker.
+2. El worker marca `running`, simula, escribe `simulation_metrics`, sube el registro de eventos y marca `succeeded` o `failed` con el error.
+3. La web consulta `GET /v1/projects/:id/runs/:runId` cada pocos segundos mientras la corrida está en curso.
+4. `GET /v1/projects/:id/runs` lista corridas; `GET …/runs/:runId/events` devuelve el registro de eventos (la api lo lee de Storage tras comprobar con RLS que el usuario puede ver la corrida).
+
+### 22.3 Motor (SimPy)
+
+- Recursos SimPy por estación (capacidad = unidades en paralelo) y `Store` con capacidad por buffer.
+- Bloqueo tras servicio; fallas como procesos que interrumpen la estación (MTBF y MTTR). Ver la pregunta 3 sobre cómo se mide el MTBF.
+- Calentamiento: las estadísticas se reinician al terminar `warmup_h`.
+- **Semillas**: réplica *i* usa `Random(hash(seed, i, flujo))`, con un flujo independiente por fuente, estación y falla. Misma semilla y mismo modelo producen exactamente los mismos resultados.
+- Las réplicas corren en paralelo dentro del proceso de la corrida.
+
+### 22.4 Indicadores
+
+Por réplica y agregados (mínimo, promedio, máximo, p5, p95 e intervalo de confianza al 95 % de la media):
+
+| Indicador | Definición |
+|---|---|
+| Producción por hora | Unidades buenas que llegan a un `sink` / horas medidas (sin calentamiento) |
+| Total ensamblado o empacado | Unidades buenas; pallets llenos completados |
+| Tiempo de ciclo de la línea | 3600 / producción por hora (s por unidad) |
+| Tiempo de flujo | Promedio desde que una unidad entra hasta que sale (s) |
+| Takt time | 3600 / demanda por hora. **Solo si el usuario captura la demanda** (no se supone) |
+| Utilización por estación | Fracción del tiempo ocupada; también bloqueada, en espera y en falla |
+| Cuello de botella | Estación con mayor fracción ocupada + en falla. Se indica el criterio y la segunda estación más cercana |
+| WIP | Unidades en el sistema, promedio (y ocupación promedio por buffer) |
+| OEE por estación y de la línea | Disponibilidad × rendimiento × calidad. Disponibilidad = 1 − falla; rendimiento = (ciclo ideal × unidades) / tiempo operando, con ciclo ideal = media del ciclo; calidad = buenas / (buenas + scrap). OEE de la línea = el del cuello de botella |
+| Scrap | Unidades descartadas por estación y total |
+
+Cada métrica guarda `is_estimate = true` y su origen de datos. Los supuestos usados (parámetros con origen `user` o `assistant`) se listan junto a los resultados.
+
+### 22.5 Registro de eventos y reproducción
+
+- Réplica representativa: la de producción por hora más cercana a la media.
+- Eventos `{t, kind: 'state', node, state}` y `{t, kind: 'move', unit, from, to, dur}` de una ventana de reproducción (por defecto, los primeros 30 min tras el calentamiento, con un tope de 200 000 eventos). Se guardan comprimidos en `sim-artifacts/runs/<run_id>/events.json.gz`.
+- En el lienzo, barra de reproducción con reproducir, pausar, velocidad (1× a 120×) y línea de tiempo. Las unidades se mueven como cajas pequeñas por las rutas (interpolación lineal entre objetos) y cada estación cambia de color: **ocupada** (verde), **bloqueada** (ámbar), **en espera** (gris) y **en falla** (rojo).
+
+### 22.6 Resultados y comparación
+
+- Página de resultados en el proyecto, con tarjetas de indicadores (valor promedio y rango mín–máx), tabla por estación y cuello de botella resaltado.
+- **Comparar dos corridas**: tabla lado a lado con la diferencia y si los intervalos se solapan ("diferencia no concluyente").
+- Aviso fijo: **"Resultados estimados con supuestos y datos de ficha. No son garantías de rendimiento."**
+
+### 22.7 Cambios de esquema (migración nueva)
+
+- `simulation_runs`: `name`, `input jsonb` (foto de la escena y configuración), `summary jsonb` (cuello de botella, supuestos, notas), `layout_version int`, `progress numeric`.
+- `simulation_metrics`: `ci_low`, `ci_high`, `label text` (nombre legible del alcance, ej. la estación).
+- Sin cambios de RLS: los miembros leen y escriben solo la api y el worker con la clave secreta.
+
+### 22.8 Railway
+
+Servicio `sim-worker` (el que ya existe, con nueva configuración): Dockerfile con `uvicorn`, `railway.json` con healthcheck `/health`, sin dominio público.
+
+| Servicio | Variables nuevas |
+|---|---|
+| sim-worker | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SIM_WORKER_TOKEN`, `SIM_MAX_REPLICATIONS`, `SIM_MAX_CONCURRENT_RUNS`. Ya no usa `DATABASE_URL` |
+| api | `SIM_WORKER_URL=http://sim-worker.railway.internal:8080`, `SIM_WORKER_TOKEN` (el mismo), `SIM_MAX_REPLICATIONS`, `SIM_MAX_HORIZON_H`, `SIM_RUN_TIMEOUT_S` |
+
+### 22.9 Tests de la parte B
+
+- **Analíticos**: M/M/1 con buffer amplio (utilización ρ, WIP L = ρ/(1−ρ) y producción = λ, dentro de una tolerancia con muchas réplicas); línea en serie con tiempos fijos (producción = 1 / ciclo máximo, utilización = ciclo / ciclo máximo, cuello de botella correcto); línea con buffer 0 y bloqueo; disponibilidad con fallas fijas = MTBF / (MTBF + MTTR).
+- **Reproducibilidad**: misma semilla, mismos resultados; semilla distinta, resultados distintos.
+- Indicadores (OEE, takt solo con demanda, scrap), límites de réplicas y horizonte, token del worker, escritura en Supabase con cliente falso, endpoints de corridas (permisos, 400 por proceso inválido), RLS de lectura y reproductor (interpolación de eventos).
+
+---
+
+## 23. Diseño: parte C, asistente de IA (fase 9)
+
+### 23.1 Proveedor
+
+- `apps/api/src/ai/provider.ts`: interfaz `AiProvider` (un turno con historial, herramientas y uso de tokens). Primera implementación: Anthropic con el SDK oficial `@anthropic-ai/sdk`. OpenAI se agrega después con la misma interfaz.
+- Variables: `AI_PROVIDER` (`anthropic`), `AI_MODEL` (**obligatoria**, el código no fija ningún modelo; sin ella el asistente responde "no configurado"), `ANTHROPIC_API_KEY`, `AI_DAILY_REQUEST_LIMIT`, `AI_DAILY_TOKEN_LIMIT`, opcional `AI_EFFORT` (esfuerzo de razonamiento, `low` a `max`).
+- Valor sugerido en el README: `AI_MODEL=claude-opus-5-5` (o `claude-sonnet-5-5`, más barato).
+- Bucle de herramientas propio en la api (máximo 8 vueltas por mensaje), con elección de herramienta `auto` y `strict: true` en los esquemas (los modelos actuales rechazan forzar una herramienta). El historial se guarda y se reenvía tal cual, sin editarlo, como piden los modelos actuales para conservar su razonamiento entre turnos.
+
+### 23.2 Endpoint y herramientas
+
+`POST /v1/projects/:id/assistant` (solo propietario o editor; lector 403) con `{ conversation_id | null, message, current_scene }`. `current_scene` es la escena que el usuario tiene en el editor, aunque no esté guardada, para poder iterar ("agrega otra banda").
+
+| Herramienta | Qué hace (siempre con el JWT del usuario y RLS) |
+|---|---|
+| `search_catalog` | Busca variantes con los filtros del catálogo |
+| `get_variant` | Ficha completa con procedencia; los datos no publicados llegan como `null` |
+| `list_components` | Componentes del catálogo por categoría |
+| `propose_scene` | Recibe layout + modelo de proceso. La api valida el esquema, que cada `variant_slug` y `component_slug` exista, alcance, carga, AABB y flujo, y devuelve la propuesta con id y advertencias |
+| `validate_scene` | Las mismas validaciones sobre una escena, sin registrarla como propuesta |
+| `run_simulation` | Opcional: corrida rápida (pocas réplicas, horizonte corto) con espera máxima de 60 s; si tarda más, devuelve "sin estimación" |
+
+Reglas del asistente (system prompt), reforzadas en código:
+- Solo usa robots y componentes que existan en el catálogo; `propose_scene` rechaza slugs inexistentes.
+- La escena guarda referencias al catálogo, nunca cifras de ficha copiadas por el modelo: alcance, carga y rangos siempre se leen del catálogo.
+- Los tiempos que proponga el asistente quedan con origen `assistant` ("supuesto del asistente").
+- Antes de responder valida (`propose_scene` ya valida) y, si hay errores, corrige y vuelve a proponer. Al final explica sus supuestos y qué datos no están publicados.
+
+### 23.3 Guardado y aceptación
+
+- Cada intercambio se guarda en `ai_conversations` (mensajes, llamadas a herramientas, tokens, propuestas).
+- **Nada se escribe en `layouts`.** Aceptar aplica la propuesta al editor; queda como "cambios sin guardar" y el usuario guarda con el botón de siempre. Ver la pregunta 1.
+- **Límites por usuario y día** en `ai_usage`, con una función atómica `public.consume_ai_usage(...)` que solo puede ejecutar la clave secreta. Si se supera, responde 429 con el límite y la hora de reinicio (medianoche UTC).
+
+### 23.4 UI
+
+- Panel lateral de chat en el editor (se abre con "Asistente").
+- Cada propuesta se dibuja en la cuadrícula como **vista previa diferenciada**: objetos semitransparentes con borde punteado violeta, superpuestos a la escena actual.
+- Junto a la propuesta:
+  - robots y componentes elegidos, con miniatura y enlace a su ficha;
+  - advertencias de validación;
+  - producción estimada si se simuló, con su rango;
+  - botones **Aceptar (reemplazar)**, **Aceptar (fusionar)**, **Descartar** y **Deshacer** (vuelve a la escena previa a la última aceptación).
+- **Miniaturas**: todavía no hay renders de CAD (llegan en la fase 2b), así que la miniatura es un ícono paramétrico de la familia del robot generado por código. Se indica así en la UI.
+
+### 23.5 Cambios de esquema (migración nueva)
+
+- `ai_conversations`: `proposals jsonb` (propuestas con id, escena, advertencias, estado `pending | accepted | discarded`).
+- Función `public.consume_ai_usage(user_id, requests, tokens_in, tokens_out, request_limit, token_limit)`: `security definer`, ejecutable solo por `service_role`.
+
+### 23.6 Costo aproximado (se detallará en el README)
+
+Un mensaje del usuario suele implicar de 3 a 6 llamadas al modelo (búsquedas, propuesta, corrección), con unos 40 000 a 80 000 tokens de entrada acumulados y 5 000 a 10 000 de salida.
+
+| Modelo | Precio (entrada / salida por millón de tokens) | Costo aproximado por mensaje |
+|---|---|---|
+| `claude-opus-5-5` | USD 4 / 20 | USD 0.25 a 0.50 |
+| `claude-sonnet-5-5` | USD 2 / 10 | USD 0.12 a 0.25 |
+
+El caché de prompts (instrucciones y herramientas fijas) reduce la entrada repetida. Los límites diarios acotan el gasto: por ejemplo, 50 mensajes por usuario al día cuestan como máximo unos USD 25 con Opus.
+
+### 23.7 Tests de la parte C
+
+Con un proveedor falso que reproduce respuestas guionizadas (sin llamadas reales): validación de propuestas (slug inexistente, escena inválida, corrección en una segunda vuelta), límites de uso (429 y conteo), permisos (lector 403, extraño 404), que ninguna ruta del asistente escribe en `layouts`, conversaciones guardadas y "no configurado" sin `AI_MODEL`.
+
+### 23.8 Preguntas para confirmar (partes A, B y C)
+
+1. **Aceptar una propuesta**: propongo que la aplique al editor y que se guarde con el botón Guardar de siempre, para que puedas revisarla y deshacer. ¿O prefieres que Aceptar guarde directamente?
+2. **Takt time**: requiere la demanda (unidades por hora), que no se puede suponer. Propongo un campo opcional "Demanda" en cada corrida; sin él, el takt se muestra como "requiere demanda".
+3. **Fallas**: propongo medir el MTBF sobre tiempo de operación (la estación no envejece mientras espera o está bloqueada), que es lo habitual para OEE. La alternativa es tiempo calendario.
+4. **Modelo de IA sugerido**: `claude-opus-5-5` (mejor calidad, unos USD 0.25 a 0.50 por mensaje) o `claude-sonnet-5-5` (la mitad). Es solo el valor sugerido para `AI_MODEL`; el código no lo fija.
+5. **Límites diarios iniciales** sugeridos: `AI_DAILY_REQUEST_LIMIT=50` y `AI_DAILY_TOKEN_LIMIT=2000000` por usuario.
