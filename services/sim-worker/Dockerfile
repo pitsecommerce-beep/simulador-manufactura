@@ -4,9 +4,12 @@ RUN pip install --no-cache-dir uv==0.8.17
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
+# El espacio de trabajo uv necesita los pyproject de todos sus miembros.
 COPY packages/jobqueue-py packages/jobqueue-py
 COPY services services
 RUN uv sync --frozen --no-dev --package sim-worker
 RUN useradd --create-home worker
 USER worker
+EXPOSE 8080
+# Servicio HTTP interno (red privada de Railway). Escucha en "::" (IPv6).
 CMD ["/app/.venv/bin/sim-worker"]

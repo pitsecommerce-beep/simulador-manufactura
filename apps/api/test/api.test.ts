@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { emptyScene } from '@sim/domain';
 import { loadConfig } from '../src/config.ts';
 import { signToken, testApp } from './fakes.ts';
 
@@ -234,11 +235,7 @@ describe('layout del proyecto', () => {
   it('sin layout devuelve una escena vacía; al guardar crea la versión 1', async () => {
     const { app, url, owner } = await setup();
     const empty = await app.inject({ method: 'GET', url, headers: owner });
-    expect(empty.json()).toEqual({
-      version: null,
-      scene: { schema: 1, objects: [] },
-      updated_at: null,
-    });
+    expect(empty.json()).toEqual({ version: null, scene: emptyScene(), updated_at: null });
     const saved = await app.inject({
       method: 'PUT',
       url,
@@ -249,6 +246,9 @@ describe('layout del proyecto', () => {
     expect(saved.json().version).toBe(1);
     const loaded = await app.inject({ method: 'GET', url, headers: owner });
     expect(loaded.json().scene.objects[0].name).toBe('Pallet 1');
+    // Una escena schema 1 (cliente anterior) se guarda convertida a schema 2 con proceso vacío.
+    expect(loaded.json().scene.schema).toBe(2);
+    expect(loaded.json().scene.process.nodes).toEqual([]);
   });
 
   it('el editor guarda; una versión desactualizada da 409', async () => {
@@ -295,7 +295,7 @@ describe('layout del proyecto', () => {
         schema: 1,
         objects: [{ ...scene.objects[0], params: { ...scene.objects[0]!.params, width_mm: -1 } }],
       },
-      { schema: 2, objects: [] },
+      { schema: 3, objects: [] },
     ]) {
       const res = await app.inject({
         method: 'PUT',
@@ -339,6 +339,13 @@ describe('catálogo', () => {
     expect(text.json().variants).toHaveLength(1);
   });
 
+  it('lista componentes del catálogo, con filtro por categoría y sesión obligatoria', async () => {
+    expect((await get('/v1/catalog/components', false)).statusCode).toBe(401);
+    expect((await get('/v1/catalog/components')).json().components).toHaveLength(2);
+    const grippers = (await get('/v1/catalog/components?category=grippers')).json().components;
+    expect(grippers.map((c: { slug: string }) => c.slug)).toEqual(['onrobot-2fg7']);
+  });
+
   it('rechaza filtros inválidos', async () => {
     expect((await get('/v1/catalog/variants?payload_min=-3')).statusCode).toBe(400);
   });
@@ -374,6 +381,24 @@ describe('configuración', () => {
     });
     expect(c.CORS_ORIGINS).toEqual(['https://a.up.railway.app', 'https://b.mx']);
     expect(c.PORT).toBe(8080);
+  });
+
+  it('el motor de simulación exige token si tiene URL', () => {
+    const env = {
+      SUPABASE_URL: 'https://x.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_xxxxxxxxxxxxxxxx',
+      SUPABASE_SECRET_KEY: 'sb_secret_xxxxxxxxxxxxxxxxxxxxxx',
+    };
+    expect(() =>
+      loadConfig({ ...env, SIM_WORKER_URL: 'http://sim-worker.railway.internal:8080' }),
+    ).toThrow(/SIM_WORKER_TOKEN/);
+    const c = loadConfig({
+      ...env,
+      SIM_WORKER_URL: 'http://sim-worker.railway.internal:8080',
+      SIM_WORKER_TOKEN: 'x'.repeat(32),
+    });
+    expect(c.SIM_MAX_REPLICATIONS).toBe(50);
+    expect(loadConfig(env).SIM_WORKER_URL).toBeUndefined();
   });
 
   it('normaliza orígenes CORS con espacios y diagonales finales', () => {

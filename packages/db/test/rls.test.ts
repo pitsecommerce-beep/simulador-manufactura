@@ -307,6 +307,45 @@ describe('proyectos compartidos', () => {
     });
   });
 
+  it('corridas y métricas: los miembros leen, nadie escribe desde el cliente', async () => {
+    await inRollback(db, async (c) => {
+      await c.query(
+        `insert into public.simulation_metrics (project_id, run_id, metric, scope, mean, ci_low, ci_high, label)
+         values ($1, $2, 'throughput_per_hour', 'line', 360, 350, 370, 'Línea')`,
+        [projectId, runId],
+      );
+      await c.query(
+        `update public.simulation_runs set name = 'Base', summary = '{}', input = '{}', progress = 1 where id = $1`,
+        [runId],
+      );
+      for (const [u, expected] of [
+        [viewer, 1],
+        [stranger, 0],
+      ] as const) {
+        await c.query(
+          `select set_config('request.jwt.claims', $1, true), set_config('role', 'authenticated', true)`,
+          [JSON.stringify({ sub: u, role: 'authenticated' })],
+        );
+        expect((await c.query('select ci_low from public.simulation_metrics')).rowCount).toBe(
+          expected,
+        );
+        expect((await c.query('select name from public.simulation_runs')).rowCount).toBe(expected);
+        await c.query(`select set_config('role', 'postgres', true)`);
+      }
+      await c.query(
+        `select set_config('request.jwt.claims', $1, true), set_config('role', 'authenticated', true)`,
+        [JSON.stringify({ sub: owner, role: 'authenticated' })],
+      );
+      for (const sql of [
+        `update public.simulation_runs set status = 'succeeded'`,
+        `insert into public.simulation_metrics (project_id, run_id, metric) values ('${projectId}', '${runId}', 'x')`,
+        `delete from public.simulation_metrics`,
+      ]) {
+        expect(await expectError(c, sql)).toMatch(/permission denied/);
+      }
+    });
+  });
+
   it('solo el propietario borra el proyecto y gestiona miembros', async () => {
     await asUser(db, editor, async (c) => {
       expect(

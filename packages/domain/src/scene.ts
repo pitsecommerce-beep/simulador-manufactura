@@ -1,8 +1,19 @@
 import { z } from 'zod';
+import { ProcessModel, emptyProcess } from './process.ts';
 
 // Escena del lienzo 3D (layouts.scene). Unidades: milímetros y grados. Eje Z hacia arriba.
 
-export const OBJECT_KINDS = ['robot', 'pallet', 'box', 'table', 'conveyor'] as const;
+export const OBJECT_KINDS = [
+  'robot',
+  'pallet',
+  'box',
+  'table',
+  'conveyor',
+  'gripper',
+  'sensor',
+  'fence',
+  'safety_zone',
+] as const;
 export type ObjectKind = (typeof OBJECT_KINDS)[number];
 
 export const MAX_SCENE_OBJECTS = 500;
@@ -22,6 +33,12 @@ const Base = z.object({
 });
 
 const Dims = z.object({ length_mm: size, width_mm: size, height_mm: size });
+const ComponentSlug = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9.-]*$/)
+  .max(120)
+  .nullable()
+  .default(null);
 
 export const PALLET_PRESETS = ['eur', 'gma', '1200x1000', 'custom'] as const;
 export type PalletPreset = (typeof PALLET_PRESETS)[number];
@@ -50,14 +67,38 @@ export const SceneObject = z.discriminatedUnion('kind', [
   }),
   Base.extend({ kind: z.literal('table'), params: Dims }),
   Base.extend({ kind: z.literal('conveyor'), params: Dims }),
+  Base.extend({
+    kind: z.literal('gripper'),
+    params: z.object({
+      component_slug: ComponentSlug,
+      /** Robot en cuya brida va montado; null = suelto en el piso. */
+      mounted_on: z.string().max(64).nullable().default(null),
+    }),
+  }),
+  Base.extend({ kind: z.literal('sensor'), params: z.object({ component_slug: ComponentSlug }) }),
+  Base.extend({
+    kind: z.literal('fence'),
+    params: z.object({
+      length_mm: size,
+      height_mm: size,
+      thickness_mm: size,
+      component_slug: ComponentSlug,
+    }),
+  }),
+  // Zona en el piso: no colisiona; se avisa si la envolvente de un robot la invade.
+  Base.extend({
+    kind: z.literal('safety_zone'),
+    params: z.object({ length_mm: size, width_mm: size }),
+  }),
 ]);
 export type SceneObject = z.infer<typeof SceneObject>;
 export type RobotObject = Extract<SceneObject, { kind: 'robot' }>;
 
-export const Scene = z
+const SceneV2 = z
   .object({
-    schema: z.literal(1),
+    schema: z.literal(2),
     objects: z.array(SceneObject).max(MAX_SCENE_OBJECTS),
+    process: ProcessModel.default(emptyProcess()),
   })
   .superRefine((s, ctx) => {
     const ids = new Set<string>();
@@ -67,13 +108,23 @@ export const Scene = z
       ids.add(o.id);
     }
   });
-export type Scene = z.infer<typeof Scene>;
 
-export const emptyScene = (): Scene => ({ schema: 1, objects: [] });
+/** Convierte escenas antiguas: `{}` y `schema: 1` (sin proceso) pasan a `schema: 2`. */
+export function upgradeScene(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw;
+  const r = raw as Record<string, unknown>;
+  if (Object.keys(r).length === 0) return { schema: 2, objects: [], process: emptyProcess() };
+  if (r.schema === 1) return { ...r, schema: 2, process: emptyProcess() };
+  return raw;
+}
 
-/** Escena guardada: tolera layouts antiguos con `{}` devolviendo una escena vacía. */
+export const Scene = z.preprocess(upgradeScene, SceneV2);
+export type Scene = z.infer<typeof SceneV2>;
+
+export const emptyScene = (): Scene => ({ schema: 2, objects: [], process: emptyProcess() });
+
+/** Escena guardada: tolera layouts antiguos (`{}` o `schema: 1`). */
 export function parseStoredScene(raw: unknown): Scene {
-  if (raw && typeof raw === 'object' && Object.keys(raw).length === 0) return emptyScene();
   return Scene.parse(raw);
 }
 

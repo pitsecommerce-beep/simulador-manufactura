@@ -196,3 +196,20 @@ export function catalogFacets(list: CatalogVariant[]): CatalogFacets {
     reach: range(list.map(effectiveReachMm)),
   };
 }
+
+/** Componente del catálogo (gripper, sensor, banda, valla...). `specs` va tal cual de la ficha. */
+export interface CatalogComponent {
+  slug: string;
+  manufacturer: string | null;
+  model: string;
+  category: string;
+  type: string | null;
+  specs: Record<string, unknown>;
+  notes: string[] | null;
+}
+
+/** Peso publicado de un componente, si su ficha lo trae como número. */
+export function componentWeightKg(c: Pick<CatalogComponent, 'specs'>): number | null {
+  const w = c.specs.weight_kg;
+  return typeof w === 'number' && Number.isFinite(w) ? w : null;
+}

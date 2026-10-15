@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
-import { PalletForm } from '../src/editor/LayoutEditor';
+import { PalletForm } from '../src/editor/dialogs';
 
 it('EUR trae su altura publicada; GMA exige capturarla y muestra la ayuda sin guardarla', () => {
   const onAdd = vi.fn();

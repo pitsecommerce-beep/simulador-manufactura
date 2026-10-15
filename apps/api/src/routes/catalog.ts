@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { httpError } from '../errors.ts';
 
+const ComponentQuery = z.object({ category: z.string().trim().max(60).optional() });
 const SlugParams = z.object({
   slug: z
     .string()
@@ -23,6 +24,13 @@ export async function catalogRoutes(app: FastifyInstance) {
   app.get('/catalog/facets', async (req) => {
     const repo = app.deps.userRepo(app.requireUser(req));
     return catalogFacets(await repo.listCatalogVariants());
+  });
+
+  app.get('/catalog/components', async (req) => {
+    const repo = app.deps.userRepo(app.requireUser(req));
+    const { category } = ComponentQuery.parse(req.query);
+    const all = await repo.listCatalogComponents();
+    return { components: category ? all.filter((c) => c.category === category) : all };
   });
 
   app.get('/catalog/variants/:slug', async (req) => {

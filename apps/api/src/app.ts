@@ -11,6 +11,8 @@ import { catalogRoutes } from './routes/catalog.ts';
 import { healthRoutes } from './routes/health.ts';
 import { meRoutes } from './routes/me.ts';
 import { projectRoutes } from './routes/projects.ts';
+import { runRoutes } from './routes/runs.ts';
+import type { SimSettings } from './sim.ts';
 
 export interface AppDeps {
   verifyToken: TokenVerifier;
@@ -18,6 +20,8 @@ export interface AppDeps {
   systemRepo: SystemRepo;
   corsOrigins: string[];
   rateLimitPerMinute: number;
+  /** null = motor de simulación no configurado (las corridas responden 503). */
+  sim: SimSettings | null;
   version: string;
   logLevel?: string;
 }
@@ -85,6 +89,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       return reply.status(err.status).send({ error: 'repo', message: err.message });
     }
     const status = (err as { statusCode?: number }).statusCode ?? 500;
+    if ((err as { expose?: boolean }).expose && status >= 500) {
+      req.log.warn(err);
+      return reply.status(status).send({ error: 'unavailable', message: (err as Error).message });
+    }
     if (status >= 500) {
       req.log.error(err);
       return reply.status(500).send({ error: 'internal', message: 'Error interno' });
@@ -96,5 +104,6 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(meRoutes, { prefix: '/v1' });
   await app.register(projectRoutes, { prefix: '/v1' });
   await app.register(catalogRoutes, { prefix: '/v1' });
+  await app.register(runRoutes, { prefix: '/v1' });
   return app;
 }
