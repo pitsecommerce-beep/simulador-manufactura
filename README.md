@@ -14,6 +14,7 @@ Aplicación web para diseñar y simular líneas de manufactura y empaque con rob
 | 3. Lienzo 3D con robots simplificados | ✅ |
 | 4. Motor de línea: modelo de proceso, SimPy, indicadores, reproductor | ✅ |
 | 9. Asistente de IA: chat que propone layout y proceso con el catálogo | ✅ |
+| Animación de la operación y telemetría de robots (PLAN 24) | ✅ |
 | 5 a 8 y 10 | pendiente |
 
 ## Estructura
@@ -232,6 +233,18 @@ Los límites se cuentan por día UTC (se reinician a medianoche UTC). Al alcanza
 | `claude-opus-5-5` | USD 4 / 20 | USD 0.25 a 0.50 |
 
 Con los límites por defecto (30 mensajes por usuario y día con Sonnet) el máximo ronda USD 7.5 por usuario y día; `AI_GLOBAL_DAILY_TOKEN_LIMIT` acota el total de la app. Precios de la lista pública de Anthropic en octubre de 2026; revísalos antes de ajustar los límites.
+
+### Animación de la operación (PLAN 24)
+
+Al pulsar **Simular**, una pastilla sobre el lienzo muestra la cola y el progreso; al terminar, la corrida se reproduce sola. La animación es **representativa**: se arma con los eventos de una réplica y no es la trayectoria real del robot.
+
+- Robots: tomar y dejar en cada ciclo, con la duración del ciclo de la réplica y cinemática inversa sobre la cadena simplificada respetando los rangos de la ficha. Si un punto no se alcanza, el robot no se fuerza y aparece una advertencia.
+- Material: unidades del tamaño del producto (tarjeta **Producto**, campo Medidas), acumulación en bandas, contadores con barra de llenado y alerta, pallets que se llenan por capas y se cambian, y **Mapa de calor** del tiempo de espera.
+- Al pasar el cursor por un objeto del proceso se ven su estado y contadores en ese instante.
+- **Cámara en la herramienta**: actívala en las propiedades del robot y elígela en la barra de reproducción.
+- **Telemetría de los robots** (bajo el lienzo y en los resultados de cada corrida, botón *Ver gráficas de los robots*): una fila por eje con el valor comandado y el ejecutado, velocidad, fases, comandos de la garra, eventos y exportación a CSV.
+
+**Despliegue**: no hay SQL nuevo. Redespliega **sim-worker** (registro de eventos versión 2) y **web**. Las corridas anteriores se reproducen con menos detalle (sin fin de ciclo exacto ni foto inicial).
 
 ## CAD de fabricantes: reglas y derechos
 

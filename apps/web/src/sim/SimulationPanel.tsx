@@ -1,10 +1,11 @@
 import type { ProcessIssue, RunConfig, SimMetric, SimRun } from '@sim/domain';
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Message, Spinner } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useApp } from '../lib/context';
 import { NumberField } from '../editor/fields';
 import { RunCompare } from './RunCompare';
+import { RobotCharts } from './RobotCharts';
 import { RunResults } from './RunResults';
 import { agg, num } from './format';
 
@@ -25,12 +26,18 @@ export function SimulationPanel({
   dirty,
   flowErrors,
   onPlay,
+  onActive,
+  onFinished,
 }: {
   projectId: string;
   canEdit: boolean;
   dirty: boolean;
   flowErrors: number;
   onPlay: (run: SimRun) => void;
+  /** Corrida en cola o simulando (para mostrar su progreso sobre el lienzo). */
+  onActive?: (run: SimRun | null) => void;
+  /** Una corrida lanzada desde aquí terminó bien y tiene registro de eventos. */
+  onFinished?: (run: SimRun) => void;
 }) {
   const { api } = useApp();
   const [runs, setRuns] = useState<SimRun[] | null>(null);
@@ -61,6 +68,15 @@ export function SimulationPanel({
 
   // Mientras haya corridas en curso, se consulta cada 3 s.
   const active = runs?.some((r) => r.status === 'queued' || r.status === 'running');
+  const launched = useRef(new Set<string>());
+  useEffect(() => {
+    onActive?.(runs?.find((r) => r.status === 'queued' || r.status === 'running') ?? null);
+    for (const r of runs ?? []) {
+      if (!launched.current.has(r.id) || r.status === 'queued' || r.status === 'running') continue;
+      launched.current.delete(r.id);
+      if (r.status === 'succeeded' && r.events_path) onFinished?.(r);
+    }
+  }, [runs, onActive, onFinished]);
   useEffect(() => {
     if (!active) return;
     const t = setInterval(refresh, 3000);
@@ -101,6 +117,7 @@ export function SimulationPanel({
     setBusy(true);
     try {
       const { run } = await api.createRun(projectId, config);
+      launched.current.add(run.id);
       setRuns((r) => [run, ...(r ?? [])]);
       setView({ kind: 'run', id: run.id });
       setForm((f) => ({ ...f, name: '' }));
@@ -296,7 +313,10 @@ export function SimulationPanel({
                   <Spinner /> {r.status === 'queued' ? 'En cola en el motor…' : 'Simulando…'}
                 </p>
               ) : d ? (
-                <RunResults run={d.run} metrics={d.metrics} />
+                <>
+                  <RunResults run={d.run} metrics={d.metrics} />
+                  <RobotCharts key={d.run.id} projectId={projectId} run={d.run} />
+                </>
               ) : (
                 <p className="flex items-center gap-2 text-sm text-slate-500">
                   <Spinner /> Cargando resultados…

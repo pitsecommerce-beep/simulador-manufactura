@@ -143,6 +143,7 @@ export function buildMotionPlan(
   let rest: number[] | null = null;
   let current: number[] = restSeed;
   let busyUntil = -Infinity;
+  let atAbovePick = true;
   const name = (id: string | null) => (id ? (tl.objects.get(id)?.name ?? id) : '');
 
   const push = (seg: MotionSegment) => {
@@ -200,7 +201,21 @@ export function buildMotionPlan(
     const tD = v.tDone ?? (v.tLeave != null ? v.tLeave : t0 + 1);
     const D = Math.max(1e-3, tD - t0);
     const s = CYCLE_SPLIT;
-    const tGrip = t0 + s.down * D;
+    // Si el ciclo anterior no alcanzó a regresar (estaba bloqueado y este empezó al soltar),
+    // este ciclo empieza regresando: usa la parte del regreso (20 %) al inicio y suelta al 90 %.
+    let tStart = t0;
+    if (!atAbovePick) {
+      tStart = t0 + s.back * D;
+      push({
+        t0,
+        t1: tStart,
+        from: current,
+        to: sol.abovePick.joints,
+        phase: 'regresando',
+        carrying: null,
+      });
+    }
+    const tGrip = tStart + s.down * D;
     const tUp = tGrip + s.up * D;
     const tMoved = tUp + s.move * D;
     const tLowered = tMoved + s.lower * D;
@@ -208,21 +223,9 @@ export function buildMotionPlan(
     const blocked = v.tDone != null && (v.tLeave == null || v.tLeave > v.tDone + 1e-6);
     const tRelease = blocked ? Math.max(tLowered, v.tLeave ?? tLowered) : tLowered;
     const nextStart = visits[i + 1]?.tAt ?? Infinity;
-    let tUp2 = tRelease + s.release_up * D;
-    let tBack = tUp2 + s.back * D;
-    // El siguiente ciclo puede empezar antes de terminar el regreso (o justo al soltar, si
-    // estaba bloqueado): se acorta el regreso o se omite y el robot va directo a recoger.
-    const returns = nextStart > tRelease + 1e-9;
-    if (returns && tBack > nextStart) {
-      const k = (nextStart - tRelease) / (tBack - tRelease);
-      tUp2 = tRelease + (tUp2 - tRelease) * k;
-      tBack = nextStart;
-    }
-    if (!returns) tBack = tRelease;
 
-    // Si el robot no está sobre la recogida (primer ciclo), llega antes de bajar.
     push({
-      t0,
+      t0: tStart,
       t1: tGrip,
       from: current,
       to: sol.pick.joints,
@@ -263,25 +266,36 @@ export function buildMotionPlan(
         phase: 'esperando destino',
         carrying: v.unit,
       });
+    // Tras soltar: subir (10 %) y regresar (20 %) solo si cabe completo antes del siguiente
+    // ciclo; si no, el siguiente ciclo empieza regresando. Nunca se comprime un movimiento.
+    let tEnd = tRelease;
+    atAbovePick = false;
     if (Number.isFinite(tRelease)) {
       grips.push({ t: tRelease, command: 'open', unit: v.unit });
-      if (returns) {
+      const tRise = tRelease + s.release_up * D;
+      if (tRise <= nextStart + 1e-9) {
         push({
           t0: tRelease,
-          t1: tUp2,
+          t1: tRise,
           from: current,
           to: sol.aboveDrop.joints,
           phase: 'subiendo',
           carrying: null,
         });
-        push({
-          t0: tUp2,
-          t1: tBack,
-          from: current,
-          to: sol.abovePick.joints,
-          phase: 'regresando',
-          carrying: null,
-        });
+        tEnd = tRise;
+        const tBack = tRise + s.back * D;
+        if (tBack <= nextStart + 1e-9) {
+          push({
+            t0: tRise,
+            t1: tBack,
+            from: current,
+            to: sol.abovePick.joints,
+            phase: 'regresando',
+            carrying: null,
+          });
+          tEnd = tBack;
+          atAbovePick = true;
+        }
       }
     }
     cycles.push({
@@ -289,7 +303,7 @@ export function buildMotionPlan(
       t0,
       tGrip,
       tRelease,
-      tEnd: tBack,
+      tEnd,
       pick,
       drop,
       unitHeight: size.height_mm,

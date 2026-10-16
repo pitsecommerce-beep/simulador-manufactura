@@ -407,6 +407,20 @@ function RobotProps({
         />
         Mostrar envolvente de alcance
       </label>
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={o.params.wrist_camera}
+          onChange={(e) => setParam('wrist_camera', e.target.checked)}
+        />
+        <span>
+          Cámara en la herramienta
+          <span className="block text-xs text-slate-500">
+            Al reproducir una corrida, muestra lo que ve la garra.
+          </span>
+        </span>
+      </label>
       <div>
         <div className="mb-2 flex items-center justify-between">
           <h4 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Ejes</h4>

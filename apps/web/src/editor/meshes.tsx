@@ -1,16 +1,15 @@
 import { Edges } from '@react-three/drei';
 import { VISUAL_SIZE, type RobotModel, type SceneObject, type WorkObject } from '@sim/domain';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Quaternion, Vector3 } from 'three';
 
 // Geometría simplificada. Todo en mm con Z hacia arriba (el lienzo convierte a metros y Y arriba).
 
-const DEG = Math.PI / 180;
-const BASE_COLOR = '#334155';
+export const BASE_COLOR = '#334155';
 
 /** Resaltado: selección, advertencia o, durante la reproducción, el estado de la estación. */
 export type Highlight = 'selected' | 'warning' | 'busy' | 'blocked' | 'idle' | 'failed' | null;
-const EDGE_COLOR = {
+export const EDGE_COLOR = {
   selected: '#2557e8',
   warning: '#f59e0b',
   busy: '#10b981',
@@ -20,7 +19,7 @@ const EDGE_COLOR = {
 } as const;
 
 /** Caja con su cara inferior en z = 0. */
-function Block({
+export function Block({
   size,
   position = [0, 0, 0],
   color,
@@ -41,7 +40,7 @@ function Block({
 }
 
 /** Cilindro de eje Z con su base en z = 0. */
-function Cyl({
+export function Cyl({
   r,
   h,
   color,
@@ -63,7 +62,7 @@ function Cyl({
 }
 
 /** Barra entre dos puntos. */
-function Bar({
+export function Bar({
   from,
   to,
   r,
@@ -169,209 +168,6 @@ export function ObjectMesh({ o, highlight }: { o: WorkObject; highlight: Highlig
     }
     case 'box':
       return <Block size={[l, w, h]} color={o.color} highlight={highlight} />;
-  }
-}
-
-/** Valor de eje en radianes (revoluta) o mm (prismática). */
-const jv = (model: RobotModel, values: number[], i: number) => {
-  const j = model.joints[i];
-  const v = values[i] ?? 0;
-  if (!j) return 0;
-  return j.type === 'revolute' ? v * DEG : v;
-};
-
-export function RobotMesh({
-  model,
-  joints,
-  color,
-  highlight,
-  tool,
-}: {
-  model: RobotModel;
-  joints: number[];
-  color: string;
-  highlight: Highlight;
-  /** Herramienta montada en la brida, dibujada colgando hacia -Z en su propio marco. */
-  tool?: ReactNode;
-}) {
-  const d = model.dims;
-  const base = model.base;
-  const ring = highlight && (
-    <mesh position={[0, 0, model.inverted ? 2 : 2]}>
-      <ringGeometry args={[base.radius * 1.15, base.radius * 1.3, 48]} />
-      <meshBasicMaterial color={EDGE_COLOR[highlight]} />
-    </mesh>
-  );
-  const link = Math.max(20, (d.reach ?? 1000) * 0.045);
-
-  switch (model.kind) {
-    case 'serial6':
-      return (
-        <group>
-          {ring}
-          <Cyl r={base.radius} h={base.height * 0.5} color={BASE_COLOR} />
-          <group rotation={[0, 0, jv(model, joints, 0)]}>
-            <Cyl
-              r={base.radius * 0.8}
-              h={d.shoulder! - base.height * 0.5}
-              z={base.height * 0.5}
-              color={color}
-            />
-            <group position={[0, 0, d.shoulder!]} rotation={[0, jv(model, joints, 1), 0]}>
-              <Block size={[link * 1.6, link * 1.6, d.upper!]} color={color} />
-              <group position={[0, 0, d.upper!]} rotation={[0, jv(model, joints, 2), 0]}>
-                <Block
-                  size={[d.fore!, link * 1.3, link * 1.3]}
-                  position={[d.fore! / 2, 0, -link * 0.65]}
-                  color={color}
-                />
-                <group position={[d.fore!, 0, 0]} rotation={[jv(model, joints, 3), 0, 0]}>
-                  <group rotation={[0, jv(model, joints, 4), 0]}>
-                    <Block
-                      size={[d.wrist!, link, link]}
-                      position={[d.wrist! / 2, 0, -link / 2]}
-                      color="#e2e8f0"
-                    />
-                    <group position={[d.wrist!, 0, 0]} rotation={[jv(model, joints, 5), 0, 0]}>
-                      <Bar
-                        from={[0, 0, 0]}
-                        to={[link * 0.6, 0, 0]}
-                        r={link * 0.7}
-                        color={BASE_COLOR}
-                      />
-                      {/* El eje de la herramienta es +X en la brida. */}
-                      <group position={[link * 0.6, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
-                        {tool}
-                      </group>
-                    </group>
-                  </group>
-                </group>
-              </group>
-            </group>
-          </group>
-        </group>
-      );
-    case 'palletizer4': {
-      const q2 = jv(model, joints, 1);
-      const q3 = jv(model, joints, 2);
-      return (
-        <group>
-          {ring}
-          <Cyl r={base.radius} h={base.height * 0.5} color={BASE_COLOR} />
-          <group rotation={[0, 0, jv(model, joints, 0)]}>
-            <Cyl
-              r={base.radius * 0.85}
-              h={d.shoulder! - base.height * 0.5}
-              z={base.height * 0.5}
-              color={color}
-            />
-            <group position={[0, 0, d.shoulder!]} rotation={[0, q2, 0]}>
-              <Block size={[link * 2, link * 1.6, d.upper!]} color={color} />
-              <group position={[0, 0, d.upper!]} rotation={[0, q3, 0]}>
-                <Block
-                  size={[d.fore!, link * 1.4, link * 1.4]}
-                  position={[d.fore! / 2, 0, -link * 0.7]}
-                  color={color}
-                />
-                {/* Paralelogramo: la herramienta queda vertical. */}
-                <group position={[d.fore!, 0, 0]} rotation={[0, -(q2 + q3), 0]}>
-                  <Block
-                    size={[link * 1.2, link * 1.2, link * 2.5]}
-                    position={[0, 0, -link * 2.5]}
-                    color="#e2e8f0"
-                  />
-                  <group position={[0, 0, -link * 2.5]} rotation={[0, 0, jv(model, joints, 3)]}>
-                    <Block
-                      size={[link * 3, link * 3, link * 0.4]}
-                      position={[0, 0, -link * 0.4]}
-                      color={BASE_COLOR}
-                    />
-                    <group position={[0, 0, -link * 0.4]}>{tool}</group>
-                  </group>
-                </group>
-              </group>
-            </group>
-          </group>
-        </group>
-      );
-    }
-    case 'scara':
-      return (
-        <group>
-          {ring}
-          <Block
-            size={[base.radius * 2.4, base.radius * 2.4, link]}
-            position={[0, 0, -link]}
-            color={BASE_COLOR}
-          />
-          <Cyl r={base.radius * 0.7} h={d.drop! - link} z={-d.drop!} color={color} />
-          <group position={[0, 0, -d.drop!]} rotation={[0, 0, jv(model, joints, 0)]}>
-            <Block
-              size={[d.arm1!, link * 2, link * 1.4]}
-              position={[d.arm1! / 2, 0, -link * 1.4]}
-              color={color}
-            />
-            <group position={[d.arm1!, 0, 0]} rotation={[0, 0, jv(model, joints, 1)]}>
-              <Block
-                size={[d.arm2!, link * 1.6, link * 1.2]}
-                position={[d.arm2! / 2, 0, -link * 2.6]}
-                color={color}
-              />
-              <group
-                position={[d.arm2!, 0, jv(model, joints, 2)]}
-                rotation={[0, 0, jv(model, joints, 3)]}
-              >
-                <Cyl
-                  r={link * 0.35}
-                  h={Math.max(d.stroke!, link * 2)}
-                  z={-Math.max(d.stroke!, link * 2) - link * 2.6}
-                  color="#e2e8f0"
-                />
-                <group position={[0, 0, -Math.max(d.stroke!, link * 2) - link * 2.6]}>{tool}</group>
-              </group>
-            </group>
-          </group>
-        </group>
-      );
-    case 'delta': {
-      const pr = d.platform_r!;
-      const br = d.base_r!;
-      const angles = [0, 120, 240].map((a) => a * DEG);
-      return (
-        <group>
-          {ring}
-          <Cyl r={base.radius} h={base.height} z={-base.height} color={BASE_COLOR} segments={6} />
-          {angles.map((a) => {
-            const shoulder: [number, number, number] = [
-              Math.cos(a) * br,
-              Math.sin(a) * br,
-              -base.height,
-            ];
-            const elbow: [number, number, number] = [
-              Math.cos(a) * br * 1.6,
-              Math.sin(a) * br * 1.6,
-              -d.drop! * 0.4,
-            ];
-            const wrist: [number, number, number] = [Math.cos(a) * pr, Math.sin(a) * pr, -d.drop!];
-            return (
-              <group key={a}>
-                <Bar from={shoulder} to={elbow} r={link * 0.5} color={color} />
-                <Bar from={elbow} to={wrist} r={link * 0.25} color="#cbd5e1" />
-              </group>
-            );
-          })}
-          <Cyl r={pr} h={link * 0.6} z={-d.drop! - link * 0.6} color={BASE_COLOR} />
-          <group position={[0, 0, -d.drop! - link * 0.6]}>{tool}</group>
-        </group>
-      );
-    }
-    case 'block':
-      return (
-        <group>
-          {ring}
-          <Cyl r={base.radius} h={base.height} color={color} />
-        </group>
-      );
   }
 }
 

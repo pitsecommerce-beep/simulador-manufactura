@@ -441,7 +441,17 @@ function dims(o: SceneObject): { l: number; w: number; h: number } | null {
   return null;
 }
 
+const geoCache = new WeakMap<LineTimeline, Map<string, NodeGeometry | null>>();
+
+/** Geometría de apoyo de un objeto del proceso (en caché por línea de tiempo). */
 export function nodeGeometry(tl: LineTimeline, id: string): NodeGeometry | null {
+  let cache = geoCache.get(tl);
+  if (!cache) geoCache.set(tl, (cache = new Map()));
+  if (!cache.has(id)) cache.set(id, computeGeometry(tl, id));
+  return cache.get(id)!;
+}
+
+function computeGeometry(tl: LineTimeline, id: string): NodeGeometry | null {
   const o = tl.objects.get(id);
   if (!o) return null;
   const d = dims(o);
@@ -630,11 +640,14 @@ export function placeUnits(
               ? g.length / distMean(n.transfer.dist)
               : DEFAULT_CONVEYOR_SPEED_MM_S;
           const pitch = size.length_mm * GAP;
+          // Fila de acumulación: caben `lane` unidades; las demás se apilan en capas.
+          const lane = Math.max(1, Math.floor(g.length / pitch));
+          const layer = Math.floor(ahead / lane);
+          const front = g.length - ((ahead % lane) + 0.5) * pitch;
           const travel = Math.max(0, (t - u.tAt) * speed);
-          const along = Math.min(pitch / 2 + travel, g.length - (ahead + 0.5) * pitch);
-          const k = along < pitch / 2 ? Math.ceil((pitch / 2 - along) / pitch) : 0;
-          pos = m4.add(g.entry, m4.scale(g.dir, Math.max(pitch / 2, along)));
-          if (k) pos = [pos[0], pos[1], pos[2] + k * size.height_mm];
+          const along = layer ? front : Math.min(pitch / 2 + travel, front);
+          pos = m4.add(g.entry, m4.scale(g.dir, along));
+          if (layer) pos = [pos[0], pos[1], pos[2] + layer * size.height_mm];
           ahead++;
         } else if (n.role === 'station' && !u.done) {
           pos = g.top;

@@ -73,7 +73,7 @@ const robot = (id: string, x = 0, y = 0, elevation = 0): SceneObject => ({
   rotation_deg: 0,
   color: '#ff6600',
   served_by: null,
-  params: { variant_slug: id, joints: [], show_envelope: false },
+  params: { variant_slug: id, joints: [], show_envelope: false, wrist_camera: false },
 });
 const box = (
   id: string,

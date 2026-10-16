@@ -1,6 +1,7 @@
 import type { EventLog } from '@sim/domain';
+import { REPRESENTATIVE_NOTICE } from './animation';
 import { clock, STATE_COLOR, STATE_LABEL } from './format';
-import { SPEEDS } from './usePlayer';
+import { SPEEDS } from './useClock';
 
 export function PlayerBar({
   log,
@@ -8,9 +9,15 @@ export function PlayerBar({
   t,
   playing,
   speed,
+  heat,
+  cameras,
+  camera,
+  warnings,
   onSeek,
   onToggle,
   onSpeed,
+  onHeat,
+  onCamera,
   onClose,
 }: {
   log: EventLog;
@@ -18,9 +25,16 @@ export function PlayerBar({
   t: number;
   playing: boolean;
   speed: number;
+  heat: boolean;
+  /** Robots con cámara en la herramienta. */
+  cameras: { id: string; name: string }[];
+  camera: string | null;
+  warnings: string[];
   onSeek: (t: number) => void;
   onToggle: () => void;
   onSpeed: (s: number) => void;
+  onHeat: (on: boolean) => void;
+  onCamera: (id: string | null) => void;
   onClose: () => void;
 }) {
   return (
@@ -48,11 +62,32 @@ export function PlayerBar({
           </select>
         </label>
         <span className="font-mono text-slate-700 tabular-nums">t = {clock(t)}</span>
+        <label className="flex items-center gap-1 text-slate-600">
+          <input type="checkbox" checked={heat} onChange={(e) => onHeat(e.target.checked)} />
+          Mapa de calor
+        </label>
+        {cameras.length > 0 && (
+          <label className="flex items-center gap-1 text-slate-600">
+            Cámara
+            <select
+              className="input w-auto px-2 py-0.5 text-xs"
+              value={camera ?? ''}
+              onChange={(e) => onCamera(e.target.value || null)}
+            >
+              <option value="">Ninguna</option>
+              {cameras.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <span className="truncate text-slate-500">
           {name} · réplica {log.replication + 1}
           {log.truncated && ' · registro recortado'}
         </span>
-        <ul className="ml-auto flex gap-2">
+        <ul className="ml-auto flex flex-wrap gap-2">
           {(['busy', 'blocked', 'idle', 'failed'] as const).map((s) => (
             <li key={s} className="flex items-center gap-1 text-slate-600">
               <span className="h-2.5 w-2.5 rounded-sm" style={{ background: STATE_COLOR[s] }} />
@@ -70,10 +105,25 @@ export function PlayerBar({
         className="w-full accent-brand-600"
         min={log.start_s}
         max={log.end_s}
-        step={0.5}
+        step={0.05}
         value={t}
         onChange={(e) => onSeek(Number(e.target.value))}
       />
+      <p className="text-[11px] text-slate-500">
+        {REPRESENTATIVE_NOTICE}
+        {warnings.length > 0 && (
+          <details className="inline">
+            <summary className="ml-1 inline cursor-pointer text-amber-700">
+              {warnings.length} advertencia{warnings.length > 1 ? 's' : ''}
+            </summary>
+            <ul className="mt-1 list-disc pl-4 text-amber-800">
+              {warnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </p>
     </div>
   );
 }

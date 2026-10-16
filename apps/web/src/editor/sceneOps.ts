@@ -98,7 +98,12 @@ export function addObject(scene: Scene, spec: NewObject): { scene: Scene; id: st
       ...base,
       kind: 'robot',
       name: nextName(scene, spec.label),
-      params: { variant_slug: spec.variant_slug, joints: [], show_envelope: true },
+      params: {
+        variant_slug: spec.variant_slug,
+        joints: [],
+        show_envelope: true,
+        wrist_camera: false,
+      },
     };
   } else if (spec.kind === 'pallet') {
     const { preset, length_mm, width_mm, height_mm } = spec;

@@ -769,7 +769,7 @@ interface RobotVisual {
 - **Hoy**: `simplifiedVisual(model: RobotModel)` construye la cadena con las proporciones actuales por familia (serial de 6 ejes, paletizador de 4, SCARA, delta). El componente de dibujo coloca una geometría simple en la pose de cada eslabón (`linkPoses`).
 - **Con CAD (fase 2b)**: un `cadVisual(urdf, glb)` implementa la misma interfaz con los orígenes del URDF y un GLB por eslabón. La animación, el reproductor y la simulación no cambian: solo se cambia la fábrica que entrega el `RobotVisual` y el mapa de mallas por eslabón.
 - El editor (pose estática con los ejes de la escena) y la animación usan el mismo `RobotVisual`, así que `RobotMesh` deja de tener un dibujo distinto por familia con ángulos incrustados.
-- `solve` tiene una implementación genérica numérica (mínimos cuadrados amortiguados sobre la Jacobiana, con recorte a los rangos) que solo usa `setJointValues` y `toolPose`, así que cualquier cadena serie nueva (incluida una de CAD) tiene cinemática inversa sin código extra. Paletizador, SCARA y delta usan además soluciones analíticas, más estables.
+- `solve` tiene una implementación genérica numérica (mínimos cuadrados amortiguados sobre la Jacobiana, con recorte a los rangos) que solo usa la pose de la herramienta, así que cualquier cadena serie nueva (incluida una de CAD) tiene cinemática inversa sin código extra. Serie de 6 ejes, paletizador y SCARA usan esa solución (con varias semillas deterministas); el delta, cadena cerrada, usa cinemática inversa y directa analíticas.
 - Un test implementa `RobotVisual` con un brazo de prueba distinto al simplificado (por ejemplo, 3 ejes planos) y le aplica la misma animación: debe llegar a los puntos de recogida y entrega dentro de sus rangos. Ese test comprueba que el cambio a CAD será transparente.
 
 ### 24.2 Movimiento del robot (tomar y dejar)
@@ -780,7 +780,8 @@ interface RobotVisual {
   - El sentido de una banda se deduce del flujo: entra por el extremo más cercano al objeto anterior y sale por el más cercano al siguiente (por defecto, hacia +X local).
 - Ciclo, con t0 = la unidad entra a la estación, tD = termina el ciclo y tA = el destino la acepta:
   1. bajar a la recogida y tomar (12 % del ciclo), subir (12 %), girar hacia la entrega (34 %), bajar (12 %);
-  2. si el destino está libre, soltar, subir y regresar en el 30 % restante; si está bloqueado, el robot espera sosteniendo la pieza sobre la entrega hasta tA y entonces suelta y regresa. El regreso se acorta si el siguiente ciclo empieza antes.
+  2. si el destino está libre, soltar, subir (10 %) y regresar (20 %); si está bloqueado, el robot espera sosteniendo la pieza sobre la entrega hasta tA y entonces suelta.
+  - Ningún movimiento se comprime: si tras soltar no cabe completo el regreso antes del siguiente ciclo (pasa cuando estaba bloqueado, porque la siguiente unidad entra al soltar), el siguiente ciclo empieza regresando (20 %) y suelta al 90 % de su duración.
   - La duración D = tD − t0 es el ciclo de esa unidad en la réplica (incluye fallas). Entre poses clave se interpola en el espacio de ejes con suavizado.
 - La pieza viaja pegada a la herramienta (pose del TCP) entre la toma y la entrega.
 - **Alcance**: al cargar la reproducción se resuelve la cinemática inversa de cada punto (y de las posiciones extremas del patrón del pallet). Si un punto no se alcanza dentro de los rangos de la ficha, el robot no se fuerza: queda en reposo, la pieza se traslada en línea recta y aparece una advertencia ("IRB … no alcanza Banda 1 con los rangos de la ficha").
@@ -788,7 +789,7 @@ interface RobotVisual {
   - Serie de 6 ejes: IK numérica con la herramienta apuntando hacia abajo.
   - Paletizador (IRB 460/660): IK analítica en el plano del eje 1, herramienta siempre vertical.
   - SCARA (IRB 910INV, invertido): IK analítica de dos eslabones (con el codo que respete los rangos) y eje 3 prismático para bajar.
-  - Delta (IRB 360): IK analítica de la plataforma. La ficha no publica rangos de eje ni la altura del volumen de trabajo: se limita al diámetro publicado y a una carrera vertical supuesta (proporción visual), y se indica como supuesto.
+  - Delta (IRB 360): IK analítica de la plataforma. La ficha no publica rangos de eje ni la altura del volumen de trabajo: se limita al diámetro publicado y a una carrera vertical supuesta (30 % del radio de trabajo bajo la posición de reposo), con brazos de 0.8 R, antebrazos de 1.2 R y ángulos de −60° a 95° (supuestos), y se indica así.
 - Los ejes sin rango publicado no se mueven (regla actual). Si eso impide un punto, se trata como no alcanzable.
 
 ### 24.3 Registro de eventos versión 2 (sim-worker)

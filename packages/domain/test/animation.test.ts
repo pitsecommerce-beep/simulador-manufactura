@@ -27,6 +27,7 @@ import {
 } from '../src/index.ts';
 import { IRB1300 } from './fixtures.ts';
 
+const round = (x: number) => Math.round(x * 1000) / 1000;
 const fixed = (value: number) => ({ dist: { type: 'fixed', value }, origin: 'user', note: null });
 
 /** Banda de entrada → robot → pallet EUR (2 cajas por pallet, cambio de 9 s). */
@@ -220,12 +221,15 @@ describe('movimiento del robot (tomar y dejar)', () => {
 
   it('cierra la garra al tomar y la abre al soltar; espera bloqueado sosteniendo la pieza', () => {
     expect(plan.warnings).toEqual([]);
-    expect(plan.grips).toEqual([
-      { t: 1 + 0.12 * 4, command: 'close', unit: 1 },
-      { t: 7, command: 'open', unit: 1 },
-      { t: 7 + 0.12 * 4, command: 'close', unit: 2 },
-      { t: 7 + 0.7 * 4, command: 'open', unit: 2 },
+    // Unidad 2: empieza al soltar la 1 (bloqueado), así que su ciclo arranca regresando
+    // (20 %) y suelta al 90 % del ciclo.
+    expect(plan.grips.map((g) => [round(g.t), g.command, g.unit])).toEqual([
+      [1.48, 'close', 1],
+      [7, 'open', 1],
+      [8.28, 'close', 2],
+      [10.6, 'open', 2],
     ]);
+    expect(poseAt(plan, 7.4)).toMatchObject({ phase: 'regresando', carrying: null });
     expect(poseAt(plan, 3)).toMatchObject({ phase: 'trasladando', carrying: 1, gripper: 'closed' });
     expect(poseAt(plan, 6)).toMatchObject({ phase: 'esperando destino', carrying: 1 });
     expect(poseAt(plan, 12)).toMatchObject({ phase: 'reposo', gripper: 'open', carrying: null });
@@ -325,11 +329,11 @@ describe('RobotVisual: la animación funciona con otro modelo (cambio a CAD tran
 
   it('mismo plan de tomar y dejar, mismos comandos de garra y pieza en la herramienta', () => {
     expect(plan.warnings).toEqual([]);
-    expect(plan.grips.map((g) => [g.t, g.command])).toEqual([
+    expect(plan.grips.map((g) => [round(g.t), g.command])).toEqual([
       [1.48, 'close'],
       [7, 'open'],
-      [7.48, 'close'],
-      [9.8, 'open'],
+      [8.28, 'close'],
+      [10.6, 'open'],
     ]);
     const c = plan.cycles[0]!;
     const tcp = toolAt(plan, c.tGrip).position;
@@ -357,11 +361,11 @@ describe('telemetría del robot', () => {
 
   it('registra los comandos de la garra en su instante y los contadores', () => {
     const grips = tel.events.filter((e) => e.kind === 'grip');
-    expect(grips.map((e) => [e.t, e.label])).toEqual([
+    expect(grips.map((e) => [round(e.t), e.label])).toEqual([
       [1.48, 'Vacío activado (unidad 1)'],
       [7, 'Vacío liberado (unidad 1)'],
-      [7.48, 'Vacío activado (unidad 2)'],
-      [9.8, 'Vacío liberado (unidad 2)'],
+      [8.28, 'Vacío activado (unidad 2)'],
+      [10.6, 'Vacío liberado (unidad 2)'],
     ]);
     expect(tel.counters).toMatchObject({ cycles: 2, picks: 2, places: 2 });
     expect(tel.counters.tcp_distance_m).toBeGreaterThan(1);

@@ -1,4 +1,4 @@
-import type { Product } from '@sim/domain';
+import { DEFAULT_PRODUCT_SIZE, type Product, type ProductSize } from '@sim/domain';
 import { useState } from 'react';
 import { NumberField } from './fields';
 
@@ -31,6 +31,47 @@ export function ProductCard({
           onChange={(e) => e.target.value.trim() && onChange({ ...product, name: e.target.value })}
         />
       </label>
+      <div>
+        <p className="mb-1 text-xs font-medium text-slate-600">
+          Medidas (para dibujar y paletizar)
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              ['length_mm', 'Largo'],
+              ['width_mm', 'Ancho'],
+              ['height_mm', 'Alto'],
+            ] as const
+          ).map(([k, label]) => (
+            <NumberField
+              key={k}
+              label={label}
+              unit="mm"
+              value={product.size_mm?.[k] ?? null}
+              min={1}
+              max={10000}
+              required={false}
+              placeholder={String(DEFAULT_PRODUCT_SIZE[k])}
+              onChange={(v) => {
+                const next: ProductSize = {
+                  ...(product.size_mm ?? DEFAULT_PRODUCT_SIZE),
+                  [k]: v ?? 0,
+                };
+                onChange({
+                  ...product,
+                  size_mm: v == null ? null : next,
+                });
+              }}
+            />
+          ))}
+        </div>
+        {!product.size_mm && (
+          <p className="mt-1 text-xs text-slate-500">
+            Sin medidas se dibuja de {DEFAULT_PRODUCT_SIZE.length_mm} ×{' '}
+            {DEFAULT_PRODUCT_SIZE.width_mm} × {DEFAULT_PRODUCT_SIZE.height_mm} mm (supuesto visual).
+          </p>
+        )}
+      </div>
       <div>
         <p className="mb-1 text-xs font-medium text-slate-600">Componentes por unidad</p>
         {product.bom.length === 0 ? (
