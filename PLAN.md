@@ -837,6 +837,7 @@ Sin `done` (registro viejo), el fin de ciclo se estima con la media del ciclo de
 | `RobotVisual`, cadena simplificada, IK (numérica y analíticas), matrices 4×4 | `packages/domain` (`robot-visual.ts`, `kinematics.ts`) |
 | Estado de reproducción en un instante (unidades, filas, pallets, calor, ciclos de robot) | `packages/domain` (`playback.ts`) |
 | Plan de movimiento del robot y patrón de pallet | `packages/domain` (`robot-motion.ts`, `palletizing.ts`) |
+| Telemetría del robot (señales, eventos, advertencias, CSV) | `packages/domain` (`robot-telemetry.ts`) y panel en `apps/web/src/sim/` |
 | Dibujo por eslabón, unidades con instancing, contadores, calor, tooltip | `apps/web/src/sim/` y `apps/web/src/editor/` |
 | Eventos `done`, `pal`, `pchg` y foto inicial | `services/sim-worker` |
 
@@ -853,8 +854,40 @@ Sin `done` (registro viejo), el fin de ciclo se estima con la media del ciclo de
 - **Sin SQL nuevo**: el tamaño del producto vive en la escena (JSON del layout) y el registro de eventos en Storage.
 - Hay que redesplegar **sim-worker** (eventos v2) y **web**. Las corridas viejas se reproducen con el nivel de detalle anterior.
 
-### 24.11 Pendiente de confirmar
+### 24.11 Telemetría del robot en la línea de tiempo
+
+Cada robot genera señales sincronizadas con la reproducción para rastrear movimientos, velocidades y estados de sus componentes. Se calculan en la web a partir del plan de movimiento (24.2) y del `RobotVisual`, no del controlador real: son la **telemetría de la animación representativa** y así se rotulan.
+
+**Señales por robot**
+
+| Señal | Contenido |
+|---|---|
+| Ejes (actuadores) | Posición de cada eje (° o mm), velocidad (°/s o mm/s) y porcentaje de la velocidad máxima publicada en la ficha (`axis_limits.max_speed`) |
+| Estado de cada eje | En movimiento, detenido o en tope (a menos de 1 % del extremo del rango de la ficha) |
+| Herramienta (TCP) | Posición x, y, z y velocidad lineal (m/s), comparada con `max_tcp_speed_m_s` si la ficha la publica |
+| Garra | Comandos en el instante en que ocurren: **cerrar** al tomar y **abrir** al soltar (en grippers de vacío: **vacío activado** / **vacío liberado**, según el tipo del componente del catálogo). Estado: abierta, cerrada sin pieza o con pieza |
+| Fase del robot | Reposo, aproximación, bajando, tomando, subiendo, trasladando, bajando, soltando, regresando, esperando destino (bloqueado), en falla, sin alcance |
+| Contadores | Ciclos, tomas y entregas, distancia recorrida por el TCP y recorrido acumulado de cada eje en la ventana |
+
+**Eventos derivados**: además de las curvas, se genera una lista de eventos con hora de simulación, por ejemplo `[t, robot, 'grip', 'close']`, `[t, robot, 'phase', 'trasladando']`, `[t, robot, 'axis_limit', 2]` y `[t, robot, 'overspeed', 3, 127]` (el eje 3 iría al 127 % de su velocidad publicada).
+
+**Advertencias**: si para cumplir el ciclo de la réplica un eje o el TCP tendría que superar la velocidad publicada, se marca en la telemetría y en la lista de advertencias de la reproducción ("el eje 2 de IRB 460 necesitaría 135 % de su velocidad publicada para este ciclo"). Indica que el ciclo usado es más corto de lo que el robot puede hacer con ese recorrido. No cambia la simulación.
+
+**Interfaz** (panel "Telemetría" bajo el lienzo, sincronizado con la barra de reproducción):
+- Selector de robot.
+- Pistas tipo diagrama de Gantt: fase del robot, estado de la garra con marcas de abrir y cerrar, y estado de la estación.
+- Gráficas pequeñas, una por eje, con posición y velocidad, las bandas del rango de la ficha y la línea de la hora actual. Clic en cualquier gráfica: salta a ese instante.
+- Tabla de valores en el instante actual: ejes, TCP, garra, fase y contadores.
+- Lista de eventos filtrable (garra, fases, topes, sobrevelocidad); clic en un evento: salta a ese instante.
+- Exportar CSV con las señales muestreadas (20 Hz de tiempo de simulación) y los eventos de la ventana.
+
+**Cálculo**: el plan de movimiento es una función del tiempo por tramos, así que cada muestra es determinista. Las curvas se muestrean a 20 Hz de tiempo simulado solo para el robot elegido y se reducen a mínimo y máximo por píxel para dibujarlas; la velocidad sale de la derivada analítica de la interpolación (no de diferencias de cuadros de pantalla). Todo usa solo `RobotVisual` (`jointValues`, `toolPose`, `joints` con rangos y velocidades), así que con el CAD las mismas señales siguen funcionando.
+
+**Tests**: comandos de garra en el instante esperado del ciclo, velocidad de eje igual a la derivada del plan, detección de tope y de sobrevelocidad contra la ficha, contadores de ciclos y distancia, y CSV con las columnas esperadas.
+
+### 24.12 Pendiente de confirmar
 
 1. Fracciones del ciclo del robot (24.2) y que, si el destino está bloqueado, el robot espere sosteniendo la pieza sobre la entrega.
 2. Tamaño visual por defecto del producto (300 × 200 × 200 mm) y velocidad supuesta de banda (0.3 m/s) cuando no hay datos.
 3. Delta: aceptar la carrera vertical supuesta mientras la ficha no publique la altura del volumen de trabajo.
+4. Telemetría (24.11): señales, muestreo de 20 Hz, exportación CSV y que la sobrevelocidad sea solo una advertencia (no cambia la simulación).
