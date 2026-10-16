@@ -143,7 +143,10 @@ describe('modelo paramétrico de robot', () => {
     expect(clampJoint(m.joints[1]!, -500)).toBe(-95);
     expect(resolveJoints(m, [10])).toEqual([10, 0, 0, 0, 0, 0]);
     expect(
-      clampJoint({ axis: 1, type: 'revolute', min: null, max: 10, unit: 'deg', home: 0 }, 5),
+      clampJoint(
+        { axis: 1, type: 'revolute', min: null, max: 10, unit: 'deg', home: 0, max_speed: null },
+        5,
+      ),
     ).toBe(0);
     // Si 0 queda fuera del rango, el valor inicial es el punto medio.
     expect(buildRobotModel(SCARA).joints[2]!.home).toBe(0);

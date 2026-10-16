@@ -29,6 +29,22 @@ export interface JointDef {
   unit: 'deg' | 'mm';
   /** Valor inicial: 0 si está dentro del rango; si no, el punto medio. */
   home: number;
+  /** Velocidad máxima publicada (°/s o mm/s). null = no publicada. */
+  max_speed: number | null;
+}
+
+/** Velocidad de eje de la ficha en °/s (giratorio) o mm/s (lineal). null si no se entiende. */
+export function normalizeSpeed(
+  value: number | null | undefined,
+  unit: string | null | undefined,
+  type: 'revolute' | 'prismatic',
+): number | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  const u = (unit ?? '').replace(/\s/g, '').toLowerCase();
+  if (type === 'revolute') return u === 'deg/s' || u === '°/s' ? value : null;
+  if (u === 'm/s') return value * 1000;
+  if (u === 'mm/s') return value;
+  return null;
 }
 
 export type Envelope =
@@ -91,7 +107,16 @@ function joint(
   const min = limit?.min ?? null;
   const max = limit?.max ?? null;
   const home = min != null && max != null ? (min <= 0 && max >= 0 ? 0 : (min + max) / 2) : 0;
-  return { axis, type: unit === 'mm' ? 'prismatic' : 'revolute', min, max, unit, home };
+  const type = unit === 'mm' ? 'prismatic' : 'revolute';
+  return {
+    axis,
+    type,
+    min,
+    max,
+    unit,
+    home,
+    max_speed: normalizeSpeed(limit?.max_speed, limit?.speed_unit, type),
+  };
 }
 
 const jointsFor = (count: number, limits: AxisLimit[] | null, types: JointDef['type'][] = []) =>
