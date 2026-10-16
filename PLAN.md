@@ -741,3 +741,120 @@ Con un proveedor falso que reproduce respuestas guionizadas (sin llamadas reales
 - **Corrida rápida**: necesita un layout guardado (las corridas se ligan a un layout); se registra como "Asistente: estimación rápida" con 5 réplicas de 8 h y espera hasta 60 s.
 - **Proveedor Anthropic**: SDK oficial `@anthropic-ai/sdk`, pensamiento adaptativo, `tool_choice: auto`, caché automática del prefijo y `AI_EFFORT` opcional. No se activa el reintento automático con otro modelo ante una negativa (`fallbacks`) porque el modelo es configurable; una negativa se informa como aviso.
 
+
+---
+
+## 24. Diseño: animación de la operación (robots simplificados, lista para CAD)
+
+Objetivo: al pulsar Simular, ver la operación moviéndose y dónde se acumula el material. Todo es una **animación representativa** construida con el registro de eventos de una réplica: no es la trayectoria real del robot ni sustituye a RobotStudio. La UI lo dice junto al reproductor.
+
+### 24.1 Capa de representación del robot (`RobotVisual`)
+
+Separa la cinemática y la pose (lo que usa la animación) de la geometría (lo que se dibuja).
+
+```ts
+// packages/domain/src/robot-visual.ts (TypeScript puro, sin three.js)
+interface RobotVisual {
+  readonly kind: ModelKind;
+  readonly joints: JointDef[];          // ejes accionados con los rangos de la ficha
+  readonly links: LinkSpec[];           // cadena: nombre, padre, origen del eje (xyz + rpy), eje de giro
+  setJointValues(q: number[]): void;    // recorta cada valor al rango de la ficha
+  jointValues(): number[];
+  linkPoses(): LinkPose[];              // matriz 4x4 de cada eslabón en el marco de la base
+  toolPose(): { position: Vec3; approach: Vec3 }  // TCP y dirección de la herramienta
+  solve(target: ToolTarget, seed?: number[]): IkResult  // cinemática inversa sobre su cadena
+}
+```
+
+- **Hoy**: `simplifiedVisual(model: RobotModel)` construye la cadena con las proporciones actuales por familia (serial de 6 ejes, paletizador de 4, SCARA, delta). El componente de dibujo coloca una geometría simple en la pose de cada eslabón (`linkPoses`).
+- **Con CAD (fase 2b)**: un `cadVisual(urdf, glb)` implementa la misma interfaz con los orígenes del URDF y un GLB por eslabón. La animación, el reproductor y la simulación no cambian: solo se cambia la fábrica que entrega el `RobotVisual` y el mapa de mallas por eslabón.
+- El editor (pose estática con los ejes de la escena) y la animación usan el mismo `RobotVisual`, así que `RobotMesh` deja de tener un dibujo distinto por familia con ángulos incrustados.
+- `solve` tiene una implementación genérica numérica (mínimos cuadrados amortiguados sobre la Jacobiana, con recorte a los rangos) que solo usa `setJointValues` y `toolPose`, así que cualquier cadena serie nueva (incluida una de CAD) tiene cinemática inversa sin código extra. Paletizador, SCARA y delta usan además soluciones analíticas, más estables.
+- Un test implementa `RobotVisual` con un brazo de prueba distinto al simplificado (por ejemplo, 3 ejes planos) y le aplica la misma animación: debe llegar a los puntos de recogida y entrega dentro de sus rangos. Ese test comprueba que el cambio a CAD será transparente.
+
+### 24.2 Movimiento del robot (tomar y dejar)
+
+- Para cada estación cuyo objeto es un robot, los puntos salen del flujo:
+  - **Recogida**: el objeto de la ruta de entrada (banda de entrada: extremo de salida; mesa o pallet: cara superior).
+  - **Entrega**: el objeto de la ruta de salida (banda: extremo de entrada; pallet: la posición de esa unidad en el patrón; mesa: cara superior).
+  - El sentido de una banda se deduce del flujo: entra por el extremo más cercano al objeto anterior y sale por el más cercano al siguiente (por defecto, hacia +X local).
+- Ciclo, con t0 = la unidad entra a la estación, tD = termina el ciclo y tA = el destino la acepta:
+  1. bajar a la recogida y tomar (12 % del ciclo), subir (12 %), girar hacia la entrega (34 %), bajar (12 %);
+  2. si el destino está libre, soltar, subir y regresar en el 30 % restante; si está bloqueado, el robot espera sosteniendo la pieza sobre la entrega hasta tA y entonces suelta y regresa. El regreso se acorta si el siguiente ciclo empieza antes.
+  - La duración D = tD − t0 es el ciclo de esa unidad en la réplica (incluye fallas). Entre poses clave se interpola en el espacio de ejes con suavizado.
+- La pieza viaja pegada a la herramienta (pose del TCP) entre la toma y la entrega.
+- **Alcance**: al cargar la reproducción se resuelve la cinemática inversa de cada punto (y de las posiciones extremas del patrón del pallet). Si un punto no se alcanza dentro de los rangos de la ficha, el robot no se fuerza: queda en reposo, la pieza se traslada en línea recta y aparece una advertencia ("IRB … no alcanza Banda 1 con los rangos de la ficha").
+- **Por familia**:
+  - Serie de 6 ejes: IK numérica con la herramienta apuntando hacia abajo.
+  - Paletizador (IRB 460/660): IK analítica en el plano del eje 1, herramienta siempre vertical.
+  - SCARA (IRB 910INV, invertido): IK analítica de dos eslabones (con el codo que respete los rangos) y eje 3 prismático para bajar.
+  - Delta (IRB 360): IK analítica de la plataforma. La ficha no publica rangos de eje ni la altura del volumen de trabajo: se limita al diámetro publicado y a una carrera vertical supuesta (proporción visual), y se indica como supuesto.
+- Los ejes sin rango publicado no se mueven (regla actual). Si eso impide un punto, se trata como no alcanzable.
+
+### 24.3 Registro de eventos versión 2 (sim-worker)
+
+Se amplía el registro sin romper los existentes (`version: 2`; los registros viejos se siguen reproduciendo con menos detalle):
+
+| Evento | Cuándo |
+|---|---|
+| `[t, 'done', unidad, nodo]` | La estación termina el ciclo de la unidad (antes de entregarla). Da la duración exacta del ciclo para la animación |
+| `[t, 'pal', salida, llenado]` | Cambia el llenado del pallet de una salida |
+| `[t, 'pchg', salida, 1 \| 0]` | Empieza o termina el cambio de pallet |
+| Foto inicial en `start_s` | `at`, `done`, `st` y `pal` de todo lo que ya está en la línea al empezar la ventana, para no arrancar vacía |
+
+Sin `done` (registro viejo), el fin de ciclo se estima con la media del ciclo de la estación.
+
+### 24.4 Material y acumulación
+
+- **Tamaño del producto**: nuevo campo opcional `product.size_mm {length_mm, width_mm, height_mm}` en el modelo de proceso (tarjeta Producto). Sin él se dibuja 300 × 200 × 200 mm y se marca como supuesto visual. Los componentes de la BOM se dibujan al 60 %.
+- **Bandas**: una unidad recorre la banda de entrada a salida en el tiempo de recorrido del buffer (velocidad = largo ÷ media del recorrido; sin recorrido, 0.3 m/s como supuesto visual). Al llegar al final se detiene y las siguientes se acumulan detrás, separadas por su largo (banda de acumulación).
+- **Mesas y buffers sin banda**: las unidades en espera se acomodan en filas sobre la cara superior; si no caben, se apilan.
+- **Fila de espera**: sobre cada buffer, fuente y estación, un contador de unidades en espera, una barra de llenado según la capacidad (buffers) y color de alerta: ámbar desde 80 % y rojo en 100 %. En estaciones cuenta las unidades terminadas que no pueden salir (bloqueo).
+- **Pallets**: se llenan con un patrón por capas calculado en `@sim/domain` (columnas en la orientación que más unidades acomoda por capa, capas hasta `units_per_pallet`). Al completarse, el pallet lleno se retira, aparece uno vacío y durante el cambio se muestra "Cambiando pallet".
+- **Mapa de calor (opcional)**: un halo en el piso bajo cada nodo con el tiempo de espera acumulado (unidades × s) hasta el instante actual, normalizado contra el máximo de la escena. Muestra los cuellos de botella de un vistazo.
+
+### 24.5 Estados y tooltip
+
+- Color de cada estación: trabajando (verde), esperando (gris), bloqueada (ámbar), en falla (rojo), como hoy, más leyenda.
+- Al pasar el cursor por un objeto del proceso: nombre, estado y contadores en ese instante (en proceso, en espera, terminadas en la ventana, llenado del pallet).
+
+### 24.6 Reproducción automática y controles
+
+- Al terminar la corrida lanzada desde el editor, la web carga el registro y empieza a reproducir sola (si el usuario no está reproduciendo otra corrida).
+- Mientras está en cola o simulando, una pastilla sobre el lienzo muestra el estado y el progreso; el editor sigue usable.
+- Barra: reproducir y pausar, velocidad (0.5× a 120×), línea de tiempo con la hora de simulación, interruptor de mapa de calor y la nota "Animación representativa basada en eventos de la réplica N; no es la trayectoria real del robot".
+
+### 24.7 Rendimiento
+
+- El tiempo de reproducción vive en una referencia y avanza en el bucle de dibujo (`useFrame`); React solo actualiza la barra unas 10 veces por segundo. Hoy cada cuadro vuelve a renderizar todo el editor.
+- Las unidades se dibujan con un solo `InstancedMesh` (una caja por unidad) y matrices actualizadas por cuadro. Pensado para cientos de unidades.
+- El estado en un instante se calcula de forma incremental hacia adelante (como `createPlayback`) y desde un índice de puntos de control al retroceder en la línea de tiempo.
+
+### 24.8 Dónde vive cada pieza
+
+| Pieza | Lugar |
+|---|---|
+| `RobotVisual`, cadena simplificada, IK (numérica y analíticas), matrices 4×4 | `packages/domain` (`robot-visual.ts`, `kinematics.ts`) |
+| Estado de reproducción en un instante (unidades, filas, pallets, calor, ciclos de robot) | `packages/domain` (`playback.ts`) |
+| Plan de movimiento del robot y patrón de pallet | `packages/domain` (`robot-motion.ts`, `palletizing.ts`) |
+| Dibujo por eslabón, unidades con instancing, contadores, calor, tooltip | `apps/web/src/sim/` y `apps/web/src/editor/` |
+| Eventos `done`, `pal`, `pchg` y foto inicial | `services/sim-worker` |
+
+### 24.9 Tests
+
+- Reproducción: estado en un instante dado (filas y contadores, acumulación en banda, llenado y cambio de pallet, calor, unidad en la herramienta), igual hacia adelante y al retroceder, y compatibilidad con registros versión 1.
+- Cinemática: IK de cada familia llega al punto con error menor a 1 mm y nunca sale de los rangos de la ficha; un punto fuera de rango devuelve "no alcanzable" sin forzar ejes.
+- `RobotVisual` con un brazo de prueba distinto al simplificado, animado con el mismo plan de movimiento.
+- Patrón de pallet (orientación, capas, conteo).
+- sim-worker: eventos `done`, `pal`, `pchg` y foto inicial; mismos resultados numéricos que antes (los eventos no cambian la simulación).
+
+### 24.10 Base de datos y despliegue
+
+- **Sin SQL nuevo**: el tamaño del producto vive en la escena (JSON del layout) y el registro de eventos en Storage.
+- Hay que redesplegar **sim-worker** (eventos v2) y **web**. Las corridas viejas se reproducen con el nivel de detalle anterior.
+
+### 24.11 Pendiente de confirmar
+
+1. Fracciones del ciclo del robot (24.2) y que, si el destino está bloqueado, el robot espere sosteniendo la pieza sobre la entrega.
+2. Tamaño visual por defecto del producto (300 × 200 × 200 mm) y velocidad supuesta de banda (0.3 m/s) cuando no hay datos.
+3. Delta: aceptar la carrera vertical supuesta mientras la ficha no publique la altura del volumen de trabajo.
