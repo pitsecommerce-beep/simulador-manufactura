@@ -118,8 +118,20 @@ export const Route = z.object({
 });
 export type Route = z.infer<typeof Route>;
 
+/** Medidas del producto (mm). Solo para dibujar y acomodar en pallets y bandas. */
+export const ProductSize = z.object({
+  length_mm: z.number().finite().positive().max(10_000),
+  width_mm: z.number().finite().positive().max(10_000),
+  height_mm: z.number().finite().positive().max(10_000),
+});
+export type ProductSize = z.infer<typeof ProductSize>;
+
+/** Tamaño de dibujo si el producto no tiene medidas (supuesto visual, PLAN 24.4). */
+export const DEFAULT_PRODUCT_SIZE: ProductSize = { length_mm: 300, width_mm: 200, height_mm: 200 };
+
 export const Product = z.object({
   name: Item.default('Producto'),
+  size_mm: ProductSize.nullable().optional(),
   bom: z
     .array(z.object({ item: Item, qty: z.number().int().min(1).max(10_000) }))
     .max(50)

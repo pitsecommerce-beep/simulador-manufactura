@@ -211,11 +211,22 @@ export const METRIC_INFO: Record<
 
 export type StationState = 'busy' | 'blocked' | 'idle' | 'failed';
 
-/** [t, 'st', nodo, estado] | [t, 'at', unidad, nodo] | [t, 'gone', unidad] */
+/**
+ * [t, 'st', nodo, estado] | [t, 'at', unidad, nodo] | [t, 'gone', unidad]; versión 2 agrega
+ * [t, 'done', unidad, nodo] (fin del ciclo), [t, 'pal', salida, llenado] y
+ * [t, 'pchg', salida, 1 | 0] (cambio de pallet). Ver PLAN 24.3.
+ */
 export type SimEvent =
-  [number, 'st', string, StationState] | [number, 'at', number, string] | [number, 'gone', number];
+  | [number, 'st', string, StationState]
+  | [number, 'at', number, string]
+  | [number, 'gone', number]
+  | [number, 'done', number, string]
+  | [number, 'pal', string, number]
+  | [number, 'pchg', string, 0 | 1];
 
 export interface EventLog {
+  /** Ausente en los registros de la versión 1. */
+  version?: number;
   start_s: number;
   end_s: number;
   replication: number;
@@ -245,7 +256,7 @@ export function frameAt(log: EventLog, t: number): PlaybackFrame {
     else if (e[1] === 'at') {
       const prev = last.get(e[2]);
       last.set(e[2], [prev ? prev[1] : null, e[3], e[0]]);
-    } else last.delete(e[2]);
+    } else if (e[1] === 'gone') last.delete(e[2]);
   }
   const units = new Map<number, [string | null, string, number]>();
   for (const [u, [prev, node, since]] of last) {
@@ -278,7 +289,7 @@ export function createPlayback(log: EventLog) {
         else if (e[1] === 'at') {
           const prev = last.get(e[2]);
           last.set(e[2], [prev ? prev[1] : null, e[3], e[0]]);
-        } else last.delete(e[2]);
+        } else if (e[1] === 'gone') last.delete(e[2]);
       }
       const units = new Map<number, [string | null, string, number]>();
       for (const [u, [prev, node, since]] of last) {

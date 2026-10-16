@@ -33,8 +33,10 @@ import {
 } from './sceneOps';
 import { Warnings } from './Warnings';
 import { PlayerBar } from '../sim/PlayerBar';
+import { buildAnimation } from '../sim/animation';
+import { TelemetryPanel } from '../sim/TelemetryPanel';
+import { useClock } from '../sim/useClock';
 import { SimulationPanel } from '../sim/SimulationPanel';
-import { usePlayer } from '../sim/usePlayer';
 import { AssistantPanel, type AcceptMode } from '../assistant/AssistantPanel';
 
 const Viewport = lazy(() => import('./Viewport'));
@@ -66,7 +68,14 @@ export default function LayoutEditor({
   // Reproducción de una corrida: se muestra la escena simulada (foto), no la actual.
   const [playing, setPlaying] = useState<{ run: SimRun; log: EventLog } | null>(null);
   const [playError, setPlayError] = useState<string | null>(null);
-  const player = usePlayer(playing?.log ?? null);
+  const [heat, setHeat] = useState(false);
+  const [cameraRobot, setCameraRobot] = useState<string | null>(null);
+  const [activeRun, setActiveRun] = useState<SimRun | null>(null);
+  const range = useMemo(
+    () => (playing ? { start: playing.log.start_s, end: playing.log.end_s } : null),
+    [playing],
+  );
+  const clock = useClock(range);
   const requested = useRef(new Set<string>());
   // Asistente: propuesta en vista previa y escena previa a la última aceptación (Deshacer).
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -88,7 +97,11 @@ export default function LayoutEditor({
 
   // Carga la ficha de cada variante de robot presente en la escena.
   useEffect(() => {
-    for (const o of [...(scene?.objects ?? []), ...(preview?.scene.objects ?? [])]) {
+    for (const o of [
+      ...(scene?.objects ?? []),
+      ...(preview?.scene.objects ?? []),
+      ...(playing?.run.input?.scene.objects ?? []),
+    ]) {
       if (o.kind !== 'robot') continue;
       const slug = o.params.variant_slug;
       if (requested.current.has(slug)) continue;
@@ -101,7 +114,7 @@ export default function LayoutEditor({
         })
         .catch(() => setRobots((r) => ({ ...r, [slug]: 'error' })));
     }
-  }, [api, scene, preview]);
+  }, [api, scene, preview, playing]);
 
   // Componentes del catálogo (pocos): se cargan una vez para validar pesos y mostrar fichas.
   useEffect(() => {
@@ -124,6 +137,17 @@ export default function LayoutEditor({
     for (const [slug, info] of Object.entries(robots)) if (info !== 'error') m[slug] = info.model;
     return m;
   }, [robots]);
+
+  // Animación de la corrida que se reproduce (se arma cuando llegan las fichas de sus robots).
+  const animData = useMemo(() => {
+    const snap = playing?.run.input?.scene;
+    if (!playing || !snap) return null;
+    const pending = snap.objects.some(
+      (o) => o.kind === 'robot' && robots[o.params.variant_slug] === undefined,
+    );
+    if (pending) return null;
+    return buildAnimation(snap, playing.log, (slug) => models[slug], components);
+  }, [playing, robots, models, components]);
 
   const warnings = useMemo(
     () =>
@@ -265,14 +289,18 @@ export default function LayoutEditor({
       if (!full.input?.scene) throw new Error('La corrida no guarda la escena simulada.');
       setConnectFrom(null);
       setPlaying({ run: full, log });
-      player.setT(log.start_s);
-      player.setPlaying(true);
+      setCameraRobot(null);
+      clock.seek(log.start_s);
+      clock.setPlaying(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setPlayError((e as Error).message);
     }
   }
   const viewScene = playing?.run.input?.scene ?? scene;
+  const cameras = (playing?.run.input?.scene.objects ?? [])
+    .filter((o) => o.kind === 'robot' && o.params.wrist_camera && animData?.plans.has(o.id))
+    .map((o) => ({ id: o.id, name: o.name }));
 
   return (
     <div className="space-y-3">
@@ -460,7 +488,9 @@ export default function LayoutEditor({
           >
             <Viewport
               scene={viewScene}
-              playback={playing ? player.frame : null}
+              animation={
+                playing && animData ? { data: animData, tRef: clock.tRef, heat, cameraRobot } : null
+              }
               preview={playing ? null : (preview?.scene ?? null)}
               models={models}
               selectedId={selectedId}
@@ -480,25 +510,57 @@ export default function LayoutEditor({
             <span className="rounded-lg bg-white/90 px-2.5 py-1 text-[11px] text-slate-600 shadow-sm">
               {SIMPLIFIED_NOTICE}
             </span>
+            {activeRun && (
+              <span className="flex items-center gap-2 rounded-lg bg-white/95 px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-sm">
+                {activeRun.status === 'queued' ? 'En cola en el motor' : 'Simulando'}
+                {activeRun.progress != null && (
+                  <span className="h-1.5 w-20 overflow-hidden rounded bg-slate-200">
+                    <span
+                      className="block h-full bg-brand-600"
+                      style={{ width: `${activeRun.progress * 100}%` }}
+                    />
+                  </span>
+                )}
+                {activeRun.progress != null && `${Math.round(activeRun.progress * 100)} %`}
+              </span>
+            )}
+            {playing && !animData && (
+              <span className="rounded-lg bg-white/95 px-2.5 py-1 text-[11px] text-slate-600 shadow-sm">
+                Preparando la animación…
+              </span>
+            )}
             {preview && !playing && (
               <span className="rounded-lg border border-dashed border-violet-400 bg-violet-50/95 px-2.5 py-1 text-[11px] font-medium text-violet-800 shadow-sm">
                 Vista previa del asistente (sin aplicar)
               </span>
             )}
           </div>
+          {playing && cameraRobot && animData && (
+            <span className="pointer-events-none absolute top-[48px] right-[14px] rounded bg-slate-900/70 px-2 py-0.5 text-[11px] text-white">
+              Cámara en la herramienta ·{' '}
+              {playing.run.input?.scene.objects.find((o) => o.id === cameraRobot)?.name}
+            </span>
+          )}
           {playing ? (
             <PlayerBar
               log={playing.log}
               name={playing.run.name ?? 'Corrida'}
-              t={player.t}
-              playing={player.playing}
-              speed={player.speed}
-              onSeek={(t) => player.setT(t)}
-              onToggle={() => player.setPlaying((p) => !p)}
-              onSpeed={player.setSpeed}
+              t={clock.t}
+              playing={clock.playing}
+              speed={clock.speed}
+              heat={heat}
+              cameras={cameras}
+              camera={cameraRobot}
+              warnings={animData?.warnings ?? []}
+              onSeek={clock.seek}
+              onToggle={() => clock.setPlaying((p) => !p)}
+              onSpeed={clock.setSpeed}
+              onHeat={setHeat}
+              onCamera={setCameraRobot}
               onClose={() => {
-                player.setPlaying(false);
+                clock.setPlaying(false);
                 setPlaying(null);
+                setCameraRobot(null);
               }}
             />
           ) : (
@@ -552,6 +614,13 @@ export default function LayoutEditor({
         />
       </div>
 
+      {playing && animData && (
+        <section className="card space-y-2 p-4">
+          <h3 className="text-sm font-semibold">Telemetría de los robots</h3>
+          <TelemetryPanel data={animData} t={clock.t} onSeek={clock.seek} />
+        </section>
+      )}
+
       {playError && <Message kind="error">{playError}</Message>}
       <SimulationPanel
         projectId={projectId}
@@ -559,6 +628,11 @@ export default function LayoutEditor({
         dirty={dirty}
         flowErrors={flowErrors}
         onPlay={startPlayback}
+        onActive={setActiveRun}
+        onFinished={(run) => {
+          // Al terminar una corrida lanzada aquí, se reproduce sola (si no hay otra en curso).
+          if (!playing) void startPlayback(run);
+        }}
       />
 
       <p className="text-xs text-slate-500">

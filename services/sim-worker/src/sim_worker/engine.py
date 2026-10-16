@@ -90,8 +90,16 @@ class SinkRt:
     fill: int = 0
 
 
+EVENT_LOG_VERSION = 2
+
+
 class Recorder:
-    """Registro de eventos de una ventana de tiempo, con tope de tamaño."""
+    """Registro de eventos de una ventana de tiempo, con tope de tamaño.
+
+    Versión 2: además de `st`, `at` y `gone`, registra `done` (fin del ciclo de una unidad en
+    una estación), `pal` (llenado del pallet), `pchg` (cambio de pallet 1/0) y una foto de la
+    línea al empezar la ventana.
+    """
 
     def __init__(self, start: float, end: float, max_events: int) -> None:
         self.start = start
@@ -126,6 +134,9 @@ class Replication:
         self.horizon_s = config.horizon_h * 3600
         self._rngs: dict[str, random.Random] = {}
         self._next_unit = 0
+        # Dónde está cada unidad y si ya terminó su ciclo allí (para la foto inicial).
+        self.where: dict[int, tuple[str, bool]] = {}
+        self.pallet_changing: set[str] = set()
 
         self.stations: dict[str, StationRt] = {}
         self.buffers: dict[str, BufferRt] = {}
@@ -189,7 +200,31 @@ class Replication:
 
     def gone(self, unit: Unit) -> None:
         self.wip.add(-1)
+        self.where.pop(unit.id, None)
         self.record("gone", unit.id)
+
+    def arrive(self, unit: Unit, node: str) -> None:
+        self.where[unit.id] = (node, False)
+        self.record("at", unit.id, node)
+
+    def finished(self, unit: Unit, node: str) -> None:
+        self.where[unit.id] = (node, True)
+        self.record("done", unit.id, node)
+
+    def snapshot(self) -> Proc:
+        """Foto de la línea al empezar la ventana del registro."""
+        assert self.recorder is not None
+        yield self.env.timeout(self.recorder.start)
+        for sid, st in self.stations.items():
+            self.record("st", sid, st.state)
+        for uid, (node, done) in sorted(self.where.items()):
+            self.record("at", uid, node)
+            if done:
+                self.record("done", uid, node)
+        for kid, sink in self.sinks.items():
+            self.record("pal", kid, sink.fill)
+            if kid in self.pallet_changing:
+                self.record("pchg", kid, 1)
 
     def refresh(self, st: StationRt) -> None:
         """Actualiza las integrales de estado de la estación (la falla tiene prioridad)."""
@@ -225,27 +260,27 @@ class Replication:
             if st.servers is not None:
                 req = st.servers.request()
                 yield req
-                self.record("at", unit.id, target)
+                self.arrive(unit, target)
                 self.env.process(self.station_unit(st, unit, req))
             else:
                 store = st.staging.get(unit.item)
                 if store is None:
                     raise ValueError(f"{st.spec.name} no usa el artículo {unit.item!r}")
                 yield store.put(unit)
-                self.record("at", unit.id, target)
+                self.arrive(unit, target)
         elif target in self.buffers:
             buf = self.buffers[target]
             req = buf.slots.request()
             yield req
             buf.occupancy.add(1)
-            self.record("at", unit.id, target)
+            self.arrive(unit, target)
             self.env.process(self.buffer_unit(buf, unit, req))
         else:
             sink = self.sinks[target]
             req = sink.gate.request(priority=1)
             yield req
             sink.gate.release(req)
-            self.record("at", unit.id, target)
+            self.arrive(unit, target)
             self.exit(sink, unit)
 
     def work(self, st: StationRt, duration: float) -> Proc:
@@ -305,6 +340,7 @@ class Replication:
         yield from self.work(st, dists.sample(st.spec.cycle.dist, rng))
         st.busy -= 1
         self.refresh(st)
+        self.finished(unit, st.spec.object_id)
         yield from self.finish_unit(st, unit)
         st.servers.release(req)
 
@@ -326,7 +362,8 @@ class Replication:
                 self.gone(p)
             product = self.new_unit(self.model.product.name)
             product.t_enter = min(p.t_enter for p in parts)
-            self.record("at", product.id, st.spec.object_id)
+            self.arrive(product, st.spec.object_id)
+            self.finished(product, st.spec.object_id)
             yield from self.finish_unit(st, product)
 
     def buffer_unit(self, buf: BufferRt, unit: Unit, req: Request) -> Proc:
@@ -343,7 +380,7 @@ class Replication:
             yield self.env.timeout(dists.sample(src.interarrival.dist, rng))
             for _ in range(src.batch):
                 unit = self.new_unit(src.item)
-                self.record("at", unit.id, src.object_id)
+                self.arrive(unit, src.object_id)
                 yield from self.push(self.choose(src.object_id, unit), unit)
 
     def exit(self, sink: SinkRt, unit: Unit) -> None:
@@ -355,17 +392,24 @@ class Replication:
         sink.fill += 1
         if sink.fill >= sink.spec.units_per_pallet:
             sink.fill = 0
+            self.record("pal", sink.spec.object_id, sink.spec.units_per_pallet)
             if self.env.now >= self.warmup_s:
                 self.pallets += 1
             if sink.spec.pallet_change is not None:
                 self.env.process(self.pallet_change(sink))
+        self.record("pal", sink.spec.object_id, sink.fill)
 
     def pallet_change(self, sink: SinkRt) -> Proc:
         assert sink.spec.pallet_change is not None
         req = sink.gate.request(priority=0)  # antes que las unidades en espera
         yield req
-        rng = self.rng(f"pallet:{sink.spec.object_id}")
+        sid = sink.spec.object_id
+        self.pallet_changing.add(sid)
+        self.record("pchg", sid, 1)
+        rng = self.rng(f"pallet:{sid}")
         yield self.env.timeout(dists.sample(sink.spec.pallet_change.dist, rng))
+        self.pallet_changing.discard(sid)
+        self.record("pchg", sid, 0)
         sink.gate.release(req)
 
     def end_warmup(self) -> Proc:
@@ -391,6 +435,8 @@ class Replication:
             self.record("st", st.spec.object_id, "idle")
         if self.warmup_s > 0:
             self.env.process(self.end_warmup())
+        if self.recorder is not None:
+            self.env.process(self.snapshot())
         self.env.run(until=self.horizon_s)
         return self.results()
 

@@ -4,26 +4,39 @@ import {
   ROLE_LABEL,
   footprint,
   isWorkObject,
+  poseAt,
   resolveJoints,
-  type PlaybackFrame,
+  simplifiedVisual,
+  type PlayState,
   type RobotModel,
+  type RobotVisual,
   type Scene,
   type SceneObject,
 } from '@sim/domain';
-import { useRef, type ComponentRef } from 'react';
-import { Plane, Vector3 } from 'three';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentRef,
+  type MutableRefObject,
+  type ReactNode,
+} from 'react';
+import { Group, Plane, Vector3 } from 'three';
 import {
   EnvelopeMesh,
   FenceMesh,
   GripperMesh,
   ObjectMesh,
-  RobotMesh,
   SafetyZoneMesh,
   SensorMesh,
   type Highlight,
 } from './meshes';
-import { STATE_COLOR } from '../sim/format';
 import { PreviewLayer } from './PreviewLayer';
+import { RobotVisualMesh, simplifiedLinkGeometry } from './RobotVisualMesh';
+import type { AnimationData } from '../sim/animation';
+import { AnimationLayer, AnimationOverlays, WristCameraView } from '../sim/AnimationLayers';
 import { snap } from './sceneOps';
 
 // El modelo usa mm con Z arriba; three.js usa Y arriba. Un grupo raíz convierte:
@@ -42,8 +55,14 @@ interface Props {
   flowMode: boolean;
   /** Objeto desde el que se está trazando una ruta. */
   connectFrom: string | null;
-  /** Reproducción de una corrida: estados de estación y unidades en movimiento. */
-  playback?: PlaybackFrame | null;
+  /** Reproducción de una corrida: la escena mostrada es la simulada. */
+  animation?: {
+    data: AnimationData;
+    tRef: MutableRefObject<number>;
+    heat: boolean;
+    /** Robot cuya cámara en la herramienta se muestra (null = ninguna). */
+    cameraRobot: string | null;
+  } | null;
   /** Propuesta del asistente superpuesta como vista previa. */
   preview?: Scene | null;
   onSelect: (id: string | null) => void;
@@ -55,6 +74,36 @@ export default function Viewport(props: Props) {
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
   const drag = useRef<{ id: string; offset: [number, number] } | null>(null);
   const hit = useRef(new Vector3());
+  const root = useRef<Group>(null);
+  const anim = props.animation ?? null;
+  const latest = useRef<PlayState | null>(null);
+  const publish = useCallback((s: PlayState) => {
+    latest.current = s;
+  }, []);
+  const [frame, setFrame] = useState<PlayState | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+  // Contadores y estados en pantalla: se copian del último cuadro unas 10 veces por segundo.
+  useEffect(() => {
+    if (!anim) return;
+    const id = setInterval(() => setFrame(latest.current), 100);
+    return () => clearInterval(id);
+  }, [anim]);
+  const ui = anim ? frame : null;
+  // Un RobotVisual por robot para la pose estática del editor (la animación trae los suyos).
+  const robotKey = props.scene.objects
+    .map((o) => (o.kind === 'robot' ? `${o.id}:${o.params.variant_slug}` : ''))
+    .join('|');
+  const staticVisuals = useMemo(() => {
+    const out = new Map<string, RobotVisual>();
+    for (const o of props.scene.objects) {
+      const model = o.kind === 'robot' ? props.models[o.params.variant_slug] : undefined;
+      if (model) out.set(o.id, simplifiedVisual(model));
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [robotKey, props.models]);
+  const visualFor = (o: SceneObject, model: RobotModel): RobotVisual =>
+    anim?.data.visuals.get(o.id) ?? staticVisuals.get(o.id) ?? simplifiedVisual(model);
 
   const groundPoint = (e: ThreeEvent<PointerEvent>): [number, number] | null => {
     const p = e.ray.intersectPlane(GROUND, hit.current);
@@ -117,7 +166,7 @@ export default function Viewport(props: Props) {
   ];
 
   const highlightOf = (id: string): Highlight => {
-    if (props.playback) return props.playback.states.get(id) ?? null;
+    if (anim) return ui?.states.get(id) ?? null;
     return selectionHighlight(id);
   };
   const selectionHighlight = (id: string): Highlight =>
@@ -153,7 +202,7 @@ export default function Viewport(props: Props) {
         <planeGeometry args={[200, 200]} />
         <shadowMaterial opacity={0.12} />
       </mesh>
-      <group rotation={[-Math.PI / 2, 0, 0]} scale={MM}>
+      <group ref={root} rotation={[-Math.PI / 2, 0, 0]} scale={MM}>
         {props.scene.objects.map((o) => {
           // Los grippers montados se dibujan en la brida de su robot.
           if (o.kind === 'gripper' && mountedOn.has(o.id)) return null;
@@ -167,30 +216,41 @@ export default function Viewport(props: Props) {
               onPointerDown={(e) => onDown(e, o)}
               onPointerMove={onDragMove}
               onPointerUp={onUp}
+              onPointerOver={
+                anim && roleOf.has(o.id)
+                  ? (e) => {
+                      e.stopPropagation();
+                      setHovered(o.id);
+                    }
+                  : undefined
+              }
+              onPointerOut={anim ? () => setHovered((h) => (h === o.id ? null : h)) : undefined}
             >
               {o.kind === 'robot' ? (
                 model ? (
-                  <>
-                    <RobotMesh
-                      model={model}
-                      joints={resolveJoints(model, o.params.joints)}
-                      color={o.color}
-                      highlight={highlightOf(o.id)}
-                      tool={
-                        tool && (
-                          <group
-                            onPointerDown={(e) => {
-                              e.stopPropagation();
-                              props.onSelect(tool.id);
-                            }}
-                          >
-                            <GripperMesh color={tool.color} highlight={highlightOf(tool.id)} />
-                          </group>
-                        )
-                      }
-                    />
-                    {o.params.show_envelope && <EnvelopeMesh model={model} />}
-                  </>
+                  <RobotObject
+                    o={o}
+                    model={model}
+                    visual={visualFor(o, model)}
+                    highlight={highlightOf(o.id)}
+                    jointsAt={
+                      anim?.data.plans.has(o.id)
+                        ? () => poseAt(anim.data.plans.get(o.id)!, anim.tRef.current).joints
+                        : undefined
+                    }
+                    tool={
+                      tool && (
+                        <group
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            props.onSelect(tool.id);
+                          }}
+                        >
+                          <GripperMesh color={tool.color} highlight={highlightOf(tool.id)} />
+                        </group>
+                      )
+                    }
+                  />
                 ) : (
                   <mesh position={[0, 0, 150]}>
                     <boxGeometry args={[300, 300, 300]} />
@@ -232,52 +292,8 @@ export default function Viewport(props: Props) {
           );
         })}
         {props.preview && <PreviewLayer scene={props.preview} models={props.models} />}
-        {props.playback &&
-          props.scene.objects.map((o) => {
-            const st = props.playback!.states.get(o.id);
-            if (!st) return null;
-            const f = footprint(o);
-            const r =
-              o.kind === 'robot'
-                ? (props.models[o.params.variant_slug]?.base.radius ?? 150) * 2
-                : 0;
-            const l = f ? f.l + 300 : r * 2;
-            const w = f ? f.w + 300 : r * 2;
-            return (
-              <mesh
-                key={`halo-${o.id}`}
-                position={[o.position[0], o.position[1], 6]}
-                rotation={[0, 0, (o.rotation_deg * Math.PI) / 180]}
-              >
-                <boxGeometry args={[l, w, 6]} />
-                <meshBasicMaterial
-                  color={STATE_COLOR[st]}
-                  transparent
-                  opacity={0.45}
-                  depthWrite={false}
-                />
-              </mesh>
-            );
-          })}
-        {props.playback &&
-          [...props.playback.units].map(([unit, [prev, node, f]]) => {
-            const to = byId.get(node);
-            if (!to) return null;
-            const b = anchor(to);
-            const from = prev ? byId.get(prev) : undefined;
-            const a = from ? anchor(from) : b;
-            const p: [number, number, number] = [
-              a[0] + (b[0] - a[0]) * f,
-              a[1] + (b[1] - a[1]) * f,
-              a[2] + (b[2] - a[2]) * f - 150,
-            ];
-            return (
-              <mesh key={unit} position={p}>
-                <boxGeometry args={[160, 160, 160]} />
-                <meshStandardMaterial color="#7c3aed" />
-              </mesh>
-            );
-          })}
+        {anim && <AnimationLayer data={anim.data} tRef={anim.tRef} onFrame={publish} />}
+        {anim && <AnimationOverlays data={anim.data} ui={ui} heat={anim.heat} hovered={hovered} />}
         {props.flowMode &&
           props.scene.process.routes.map((r) => {
             const a = byId.get(r.from);
@@ -293,6 +309,9 @@ export default function Viewport(props: Props) {
             );
           })}
       </group>
+      {anim?.cameraRobot && (
+        <WristCameraView data={anim.data} tRef={anim.tRef} robotId={anim.cameraRobot} root={root} />
+      )}
       <OrbitControls
         ref={controls}
         makeDefault
@@ -349,5 +368,40 @@ function RouteArrow({
         </Html>
       )}
     </group>
+  );
+}
+
+/** Robot del lienzo: pose estática del editor o animada en la reproducción. */
+function RobotObject({
+  o,
+  model,
+  visual,
+  highlight,
+  jointsAt,
+  tool,
+}: {
+  o: Extract<SceneObject, { kind: 'robot' }>;
+  model: RobotModel;
+  visual: RobotVisual;
+  highlight: Highlight;
+  jointsAt: (() => number[]) | undefined;
+  tool: ReactNode;
+}) {
+  const geometry = useMemo(
+    () => simplifiedLinkGeometry(model, o.color, tool),
+    [model, o.color, tool],
+  );
+  return (
+    <>
+      <RobotVisualMesh
+        visual={visual}
+        geometry={geometry}
+        joints={resolveJoints(model, o.params.joints)}
+        jointsAt={jointsAt}
+        highlight={highlight}
+        baseRadius={model.base.radius}
+      />
+      {o.params.show_envelope && <EnvelopeMesh model={model} />}
+    </>
   );
 }

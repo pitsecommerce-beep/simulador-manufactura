@@ -7,7 +7,7 @@ from collections.abc import Callable
 from importlib.metadata import version
 from typing import Any
 
-from sim_worker.engine import Recorder, Replication
+from sim_worker.engine import EVENT_LOG_VERSION, Recorder, Replication
 from sim_worker.model import SimRequest, Station
 from sim_worker.stats import aggregate
 
@@ -109,6 +109,7 @@ def run_request(
             "takt_time_s": 3600 / cfg.demand_per_hour if cfg.demand_per_hour else None,
         },
         "events": {
+            "version": EVENT_LOG_VERSION,
             "start_s": recorder.start,
             "end_s": recorder.end,
             "replication": rep_idx,

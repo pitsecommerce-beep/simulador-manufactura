@@ -54,6 +54,8 @@ export const SceneObject = z.discriminatedUnion('kind', [
       /** Valor por eje en la unidad de la ficha (grados o mm). */
       joints: z.array(z.number().finite()).max(12).default([]),
       show_envelope: z.boolean().default(false),
+      /** Cámara montada en la herramienta: vista en primera persona al reproducir. */
+      wrist_camera: z.boolean().default(false),
     }),
   }),
   Base.extend({
