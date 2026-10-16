@@ -13,7 +13,7 @@ Aplicación web para diseñar y simular líneas de manufactura y empaque con rob
 | 2b. Pipeline CAD | pendiente |
 | 3. Lienzo 3D con robots simplificados | ✅ |
 | 4. Motor de línea: modelo de proceso, SimPy, indicadores, reproductor | ✅ |
-| 9. Asistente de IA | en curso |
+| 9. Asistente de IA: chat que propone layout y proceso con el catálogo | ✅ |
 | 5 a 8 y 10 | pendiente |
 
 ## Estructura
@@ -155,7 +155,7 @@ Cada servicio se despliega desde este repositorio con la integración de GitHub 
 
    | Servicio | Variables |
    |---|---|
-   | api | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `CORS_ORIGINS` (URL del web), `SIM_WORKER_URL`, `SIM_WORKER_TOKEN`, opcionales `SUPABASE_JWT_SECRET`, `SIM_MAX_REPLICATIONS`, `SIM_MAX_HORIZON_H`, `SIM_RUN_TIMEOUT_S` |
+   | api | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `CORS_ORIGINS` (URL del web), `SIM_WORKER_URL`, `SIM_WORKER_TOKEN`, opcionales `SUPABASE_JWT_SECRET`, `SIM_MAX_REPLICATIONS`, `SIM_MAX_HORIZON_H`, `SIM_RUN_TIMEOUT_S` y las del asistente (ver [Asistente de IA](#asistente-de-ia-fase-9)) |
    | web | `API_URL` (URL del api), `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` |
    | sim-worker | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SIM_WORKER_TOKEN`, `PORT=8080`, opcionales `SIM_MAX_REPLICATIONS`, `SIM_MAX_CONCURRENT_RUNS` (ver sección siguiente) |
    | cad-worker | `DATABASE_URL` (solo cuando llegue la fase 2b; mientras tanto puedes dejarlo sin desplegar) |
@@ -201,6 +201,37 @@ Si el log de build dice `using build driver railpack` en vez de construir el Doc
 - Solo hacen falta 4 servicios. Si Railway creó otros (por ejemplo `@sim/db`, `@sim/domain` o `check-no-cad`), elimínalos.
 
 Comprobación: `https://<api>/health` debe responder `"supabase":"ok"` y el web debe mostrar *Supabase conectado* en la cabecera.
+
+### Asistente de IA (fase 9)
+
+Panel **Asistente** en el editor: describe la línea y el asistente elige robots y componentes del catálogo, valida alcance, carga, colisiones y flujo, y deja una propuesta en la cuadrícula (objetos violeta punteados). **Aceptar (reemplazar)** o **Aceptar (fusionar)** la aplica al editor como *cambios sin guardar*; nada se escribe en el layout hasta pulsar **Guardar**. **Deshacer** vuelve a la escena previa a la última aceptación.
+
+1. Aplica `supabase/manual/apply_all.sql` en el SQL Editor (agrega la migración `20261016000100_ai_assistant`: columnas `proposals` y `transcript` en `ai_conversations` y la función `consume_ai_usage`).
+2. En el servicio **api** agrega:
+
+   | Variable | Valor |
+   |---|---|
+   | `AI_MODEL` | `claude-sonnet-5-5` (ejemplo; `claude-opus-5-5` para layouts más complejos). Sin esta variable el asistente responde "no configurado" |
+   | `ANTHROPIC_API_KEY` | tu clave de [console.anthropic.com](https://console.anthropic.com) |
+   | `AI_PROVIDER` | `anthropic` (opcional; es el valor por defecto y el único disponible por ahora) |
+   | `AI_DAILY_REQUEST_LIMIT` | `30` (opcional) mensajes por usuario y día |
+   | `AI_DAILY_TOKEN_LIMIT` | `1000000` (opcional) tokens por usuario y día |
+   | `AI_GLOBAL_DAILY_TOKEN_LIMIT` | `5000000` (opcional) tokens por día para toda la app |
+   | `AI_EFFORT` | opcional: `low`, `medium`, `high`, `xhigh` o `max`. Sin ella se usa el valor por defecto del modelo |
+   | `AI_MAX_TOKENS`, `AI_TIMEOUT_MS` | opcionales: `32000` y `300000` |
+
+3. Comprobación: en un proyecto donde eres propietario o editor, pulsa **Asistente**; la cabecera del panel muestra el modelo. Escribe, por ejemplo, "Celda de paletizado para cajas de 12 kg que llegan cada 8 s por una banda a un pallet EUR".
+
+Los límites se cuentan por día UTC (se reinician a medianoche UTC). Al alcanzar uno, el asistente responde con un mensaje que dice cuál fue. Si el sim-worker está configurado y el proyecto tiene un layout guardado, el asistente puede lanzar una corrida rápida (5 réplicas de 8 h, espera máxima de 60 s) que aparece en el panel de simulación como "Asistente: estimación rápida".
+
+**Costo aproximado.** Un mensaje suele implicar de 3 a 6 llamadas al modelo (búsquedas, propuesta y corrección), con unos 40 000 a 80 000 tokens de entrada acumulados y 5 000 a 10 000 de salida. Las instrucciones y las herramientas son fijas y se reutilizan desde la caché de prompts, que cobra la entrada repetida a una fracción del precio.
+
+| Modelo | Precio por millón de tokens (entrada / salida) | Costo aproximado por mensaje |
+|---|---|---|
+| `claude-sonnet-5-5` | USD 2 / 10 | USD 0.12 a 0.25 |
+| `claude-opus-5-5` | USD 4 / 20 | USD 0.25 a 0.50 |
+
+Con los límites por defecto (30 mensajes por usuario y día con Sonnet) el máximo ronda USD 7.5 por usuario y día; `AI_GLOBAL_DAILY_TOKEN_LIMIT` acota el total de la app. Precios de la lista pública de Anthropic en octubre de 2026; revísalos antes de ajustar los límites.
 
 ## CAD de fabricantes: reglas y derechos
 

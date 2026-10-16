@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type {
+  AiProposal,
+  AssistantConversation,
   CatalogComponent,
   CatalogVariant,
   CatalogVariantDetail,
@@ -11,6 +13,7 @@ import type {
   SimMetric,
   SimModel,
   SimRun,
+  TranscriptEntry,
 } from '@sim/domain';
 import type { AuthUser } from './auth.ts';
 
@@ -40,6 +43,53 @@ export interface UserRepo {
   listRuns(projectId: string): Promise<SimRun[]>;
   /** Corrida con sus métricas, o null si no existe o el usuario no la puede ver. */
   getRun(projectId: string, runId: string): Promise<{ run: SimRun; metrics: SimMetric[] } | null>;
+  /** Conversaciones del usuario en el proyecto, más recientes primero (sin historial). */
+  listConversations(projectId: string): Promise<ConversationSummary[]>;
+  /** Conversación completa si el usuario la puede leer (RLS). */
+  getConversation(id: string): Promise<StoredConversation | null>;
+}
+
+export interface ConversationSummary {
+  id: string;
+  title: string | null;
+  updated_at: string;
+}
+
+/**
+ * Conversación guardada. `messages` es el historial nativo del proveedor: cada mensaje va
+ * serializado como texto para reenviarlo byte a byte (jsonb reordena las claves).
+ */
+export interface StoredConversation extends AssistantConversation {
+  owner_id: string;
+  provider: string | null;
+  messages: string[];
+  tool_calls: ToolCallLog[];
+}
+
+export interface ToolCallLog {
+  name: string;
+  ok: boolean;
+  at: string;
+  /** Resumen corto: propuesta registrada o primer error. */
+  detail: string | null;
+}
+
+export type ConversationWrite = Omit<StoredConversation, 'id' | 'updated_at'> & {
+  id: string | null;
+};
+
+export interface AiUsageResult {
+  allowed: boolean;
+  blocked: 'requests' | 'tokens' | 'global_tokens' | null;
+  requests: number;
+  tokens: number;
+  global_tokens: number;
+}
+
+export interface AiLimits {
+  requests: number;
+  tokens: number;
+  globalTokens: number;
 }
 
 export interface StoredLayout {
@@ -72,6 +122,47 @@ export interface SystemRepo {
   ): Promise<void>;
   /** Registro de eventos comprimido (gzip) de Storage, o null si no existe. */
   downloadEvents(path: string): Promise<Buffer | null>;
+  /**
+   * Registra consumo del asistente (día UTC). Con `requests` > 0 comprueba antes los límites y
+   * no registra nada si alguno se alcanzó.
+   */
+  consumeAiUsage(
+    userId: string,
+    usage: { requests: number; tokensIn: number; tokensOut: number },
+    limits: AiLimits,
+  ): Promise<AiUsageResult>;
+  /**
+   * Crea la conversación (id null) o la actualiza si su `updated_at` sigue siendo
+   * `expectedUpdatedAt`. Lanza RepoError 409 si otro mensaje la cambió antes.
+   */
+  saveConversation(
+    conv: ConversationWrite,
+    expectedUpdatedAt: string | null,
+  ): Promise<StoredConversation>;
+}
+
+export const CONVERSATION_CONFLICT =
+  'La conversación cambió mientras respondía otro mensaje. Recárgala e intenta de nuevo.';
+
+const CONVERSATION_COLUMNS =
+  'id, project_id, owner_id, provider, model, title, messages, tool_calls, transcript, proposals, tokens_in, tokens_out, updated_at';
+
+function toConversation(row: Row): StoredConversation {
+  return {
+    id: row.id as string,
+    project_id: row.project_id as string,
+    owner_id: row.owner_id as string,
+    provider: (row.provider as string | null) ?? null,
+    model: (row.model as string | null) ?? null,
+    title: (row.title as string | null) ?? null,
+    messages: (row.messages as string[]) ?? [],
+    tool_calls: (row.tool_calls as ToolCallLog[]) ?? [],
+    transcript: (row.transcript as TranscriptEntry[]) ?? [],
+    proposals: (row.proposals as AiProposal[]) ?? [],
+    tokens_in: Number(row.tokens_in ?? 0),
+    tokens_out: Number(row.tokens_out ?? 0),
+    updated_at: row.updated_at as string,
+  };
 }
 
 const RUN_COLUMNS =
@@ -334,6 +425,26 @@ export function supabaseUserRepo(url: string, publishableKey: string, user: Auth
       if (mErr) fail(mErr);
       return { run: data as unknown as SimRun, metrics: (metrics ?? []) as SimMetric[] };
     },
+    async listConversations(projectId) {
+      const { data, error } = await sb
+        .from('ai_conversations')
+        .select('id, title, updated_at')
+        .eq('project_id', projectId)
+        .eq('owner_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(50);
+      if (error) fail(error);
+      return (data ?? []) as ConversationSummary[];
+    },
+    async getConversation(id) {
+      const { data, error } = await sb
+        .from('ai_conversations')
+        .select(CONVERSATION_COLUMNS)
+        .eq('id', id)
+        .maybeSingle();
+      if (error) fail(error);
+      return data ? toConversation(data as Row) : null;
+    },
   };
 }
 
@@ -384,6 +495,45 @@ export function supabaseSystemRepo(url: string, secretKey: string): SystemRepo {
       const { data, error } = await sb.storage.from('sim-artifacts').download(path);
       if (error || !data) return null;
       return Buffer.from(await data.arrayBuffer());
+    },
+    async consumeAiUsage(userId, usage, limits) {
+      const { data, error } = await sb.rpc('consume_ai_usage', {
+        p_user_id: userId,
+        p_requests: usage.requests,
+        p_tokens_in: usage.tokensIn,
+        p_tokens_out: usage.tokensOut,
+        p_request_limit: limits.requests,
+        p_token_limit: limits.tokens,
+        p_global_token_limit: limits.globalTokens,
+      });
+      if (error) fail(error);
+      const r = data as Row;
+      return {
+        allowed: r.allowed as boolean,
+        blocked: (r.blocked as AiUsageResult['blocked']) ?? null,
+        requests: Number(r.requests),
+        tokens: Number(r.tokens),
+        global_tokens: Number(r.global_tokens),
+      };
+    },
+    async saveConversation(conv, expectedUpdatedAt) {
+      const { id, ...fields } = conv;
+      if (id == null) {
+        const { data, error } = await sb
+          .from('ai_conversations')
+          .insert(fields)
+          .select(CONVERSATION_COLUMNS)
+          .single();
+        if (error) fail(error);
+        return toConversation(data as Row);
+      }
+      let q = sb.from('ai_conversations').update(fields).eq('id', id);
+      if (expectedUpdatedAt) q = q.eq('updated_at', expectedUpdatedAt);
+      const { data, error } = await q.select(CONVERSATION_COLUMNS);
+      if (error) fail(error);
+      const row = (data as Row[] | null)?.[0];
+      if (!row) throw new RepoError(CONVERSATION_CONFLICT, 409);
+      return toConversation(row);
     },
   };
 }

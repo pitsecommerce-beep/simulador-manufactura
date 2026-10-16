@@ -13,6 +13,8 @@ import { meRoutes } from './routes/me.ts';
 import { projectRoutes } from './routes/projects.ts';
 import { runRoutes } from './routes/runs.ts';
 import type { SimSettings } from './sim.ts';
+import type { AiSettings } from './ai/provider.ts';
+import { assistantRoutes } from './routes/assistant.ts';
 
 export interface AppDeps {
   verifyToken: TokenVerifier;
@@ -22,6 +24,8 @@ export interface AppDeps {
   rateLimitPerMinute: number;
   /** null = motor de simulación no configurado (las corridas responden 503). */
   sim: SimSettings | null;
+  /** null = asistente no configurado (sin AI_MODEL). */
+  ai: AiSettings | null;
   version: string;
   logLevel?: string;
 }
@@ -105,5 +109,6 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(projectRoutes, { prefix: '/v1' });
   await app.register(catalogRoutes, { prefix: '/v1' });
   await app.register(runRoutes, { prefix: '/v1' });
+  await app.register(assistantRoutes, { prefix: '/v1' });
   return app;
 }

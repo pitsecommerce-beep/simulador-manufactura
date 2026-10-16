@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+/** Una variable vacía (`AI_MODEL=` en el .env) cuenta como no definida. */
+const unsetIfBlank = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), schema);
+
 // Variables de entorno de la API. Todas se definen en Railway (nunca en el repo).
 const Env = z.object({
   PORT: z.coerce.number().int().positive().default(8080),
@@ -30,6 +34,17 @@ const Env = z.object({
   SIM_MAX_REPLICATIONS: z.coerce.number().int().positive().max(10_000).default(50),
   SIM_MAX_HORIZON_H: z.coerce.number().positive().max(10_000).default(720),
   SIM_RUN_TIMEOUT_S: z.coerce.number().int().positive().default(1800),
+  // Asistente de IA (fase 9). Sin AI_MODEL el asistente responde "no configurado": el código
+  // no fija ningún modelo.
+  AI_PROVIDER: z.enum(['anthropic']).default('anthropic'),
+  AI_MODEL: unsetIfBlank(z.string().trim().min(1).optional()),
+  ANTHROPIC_API_KEY: unsetIfBlank(z.string().trim().min(20).optional()),
+  AI_EFFORT: unsetIfBlank(z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional()),
+  AI_MAX_TOKENS: z.coerce.number().int().positive().max(128_000).default(32_000),
+  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(300_000),
+  AI_DAILY_REQUEST_LIMIT: z.coerce.number().int().positive().default(30),
+  AI_DAILY_TOKEN_LIMIT: z.coerce.number().int().positive().default(1_000_000),
+  AI_GLOBAL_DAILY_TOKEN_LIMIT: z.coerce.number().int().positive().default(5_000_000),
   APP_VERSION: z.string().default(process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev'),
 });
 
@@ -40,8 +55,16 @@ const SimPair = Env.refine((c) => !c.SIM_WORKER_URL || c.SIM_WORKER_TOKEN, {
   path: ['SIM_WORKER_TOKEN'],
 });
 
+const Checked = SimPair.refine(
+  (c) => !c.AI_MODEL || c.AI_PROVIDER !== 'anthropic' || c.ANTHROPIC_API_KEY,
+  {
+    message: 'ANTHROPIC_API_KEY es obligatoria si AI_PROVIDER=anthropic y se define AI_MODEL',
+    path: ['ANTHROPIC_API_KEY'],
+  },
+);
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = SimPair.safeParse(env);
+  const parsed = Checked.safeParse(env);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Configuración inválida:\n${issues}`);

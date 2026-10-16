@@ -6,3 +6,4 @@ export * from './robot-model.ts';
 export * from './validate.ts';
 export * from './process.ts';
 export * from './simulation.ts';
+export * from './assistant.ts';

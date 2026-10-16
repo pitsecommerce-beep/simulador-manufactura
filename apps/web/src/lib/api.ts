@@ -1,4 +1,7 @@
 import type {
+  AssistantConversation,
+  AssistantReply,
+  AssistantStatus,
   CatalogComponent,
   CatalogFacets,
   CatalogQuery,
@@ -15,6 +18,7 @@ import type {
   SimMetric,
   SimRun,
   EventLog,
+  ProposalStatus,
 } from '@sim/domain';
 
 export class ApiError extends Error {
@@ -100,6 +104,33 @@ export function createApi(baseUrl: string, getToken: () => Promise<string | null
       request<EventLog>(`/v1/projects/${projectId}/runs/${runId}/events`),
     listComponents: () => request<{ components: CatalogComponent[] }>('/v1/catalog/components'),
     catalogFacets: () => request<CatalogFacets>('/v1/catalog/facets'),
+    assistantStatus: () => request<AssistantStatus>('/v1/assistant/status'),
+    askAssistant: (
+      projectId: string,
+      body: { conversation_id: string | null; message: string; current_scene: Scene },
+    ) =>
+      request<AssistantReply>(`/v1/projects/${projectId}/assistant`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    listConversations: (projectId: string) =>
+      request<{ conversations: { id: string; title: string | null; updated_at: string }[] }>(
+        `/v1/projects/${projectId}/assistant/conversations`,
+      ),
+    getConversation: (projectId: string, id: string) =>
+      request<{ conversation: AssistantConversation }>(
+        `/v1/projects/${projectId}/assistant/conversations/${id}`,
+      ),
+    setProposalStatus: (
+      projectId: string,
+      conversationId: string,
+      proposalId: string,
+      status: ProposalStatus,
+    ) =>
+      request<{ conversation: AssistantConversation }>(
+        `/v1/projects/${projectId}/assistant/conversations/${conversationId}/proposals/${proposalId}`,
+        { method: 'PATCH', body: JSON.stringify({ status }) },
+      ),
     getCatalogVariant: (slug: string) =>
       request<CatalogVariantDetail>(`/v1/catalog/variants/${encodeURIComponent(slug)}`),
   };

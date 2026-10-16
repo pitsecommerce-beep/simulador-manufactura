@@ -23,6 +23,7 @@ import {
   type Highlight,
 } from './meshes';
 import { STATE_COLOR } from '../sim/format';
+import { PreviewLayer } from './PreviewLayer';
 import { snap } from './sceneOps';
 
 // El modelo usa mm con Z arriba; three.js usa Y arriba. Un grupo raíz convierte:
@@ -43,6 +44,8 @@ interface Props {
   connectFrom: string | null;
   /** Reproducción de una corrida: estados de estación y unidades en movimiento. */
   playback?: PlaybackFrame | null;
+  /** Propuesta del asistente superpuesta como vista previa. */
+  preview?: Scene | null;
   onSelect: (id: string | null) => void;
   onMove: (id: string, position: [number, number]) => void;
   onMoveEnd: () => void;
@@ -228,6 +231,7 @@ export default function Viewport(props: Props) {
             </group>
           );
         })}
+        {props.preview && <PreviewLayer scene={props.preview} models={props.models} />}
         {props.playback &&
           props.scene.objects.map((o) => {
             const st = props.playback!.states.get(o.id);

@@ -1,4 +1,5 @@
 import {
+  publishedCycleOptions,
   ROLE_LABEL,
   type CatalogVariantDetail,
   type Distribution,
@@ -10,25 +11,6 @@ import {
 import { useState } from 'react';
 import { DistributionField, NumberField, OriginBadge, TimedField } from './fields';
 import { rolesFor, removeRoute, setRole, updateNode, updateRoute } from './sceneOps';
-
-/** Tiempos de ciclo publicados en la ficha de un robot, con su condición de medición. */
-export function publishedCycleOptions(detail: CatalogVariantDetail | undefined) {
-  const out: { value_s: number; note: string; uncertain?: boolean }[] = [];
-  for (const c of detail?.specs?.published_cycle_times ?? []) {
-    const cond = c.condition ?? 'condición no indicada';
-    if (c.value_s != null) out.push({ value_s: c.value_s, note: cond });
-    const row = c.table?.[detail!.variant.variant_code];
-    row?.forEach((v, i) => {
-      if (v != null)
-        out.push({
-          value_s: v,
-          note: `${cond} (columna ${i + 1})`,
-          uncertain: !!c.mapping_uncertain,
-        });
-    });
-  }
-  return out;
-}
 
 const OP_LABEL = { process: 'Procesa', assemble: 'Ensambla (consume la BOM)' } as const;
 
