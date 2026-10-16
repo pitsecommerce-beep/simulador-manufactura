@@ -492,3 +492,90 @@ describe('cola de trabajos', () => {
     expect(ok.rows[0]).toEqual({ status: 'succeeded', result: { ok: true } });
   });
 });
+
+describe('asistente de IA', () => {
+  const consume = (c: Db, user: string, req: number, tin: number, tout: number, global = 1e9) =>
+    c
+      .query(`select public.consume_ai_usage($1, $2, $3, $4, 2, 1000, $5) as r`, [
+        user,
+        req,
+        tin,
+        tout,
+        global,
+      ])
+      .then((r) => r.rows[0].r);
+
+  it('consume_ai_usage solo la ejecuta la clave secreta', async () => {
+    await asUser(db, owner, async (c) => {
+      const msg = await expectError(
+        c,
+        `select public.consume_ai_usage($1, 1, 0, 0, 30, 1000000, null)`,
+        [owner],
+      );
+      expect(msg).toMatch(/permission denied/);
+    });
+    await asRole(db, 'anon', null, async (c) => {
+      const msg = await expectError(
+        c,
+        `select public.consume_ai_usage($1, 1, 0, 0, 30, 1000000, null)`,
+        [owner],
+      );
+      expect(msg).toMatch(/permission denied/);
+    });
+  });
+
+  it('cuenta solicitudes y tokens y bloquea al alcanzar cada límite', async () => {
+    await asRole(db, 'service_role', null, async (c) => {
+      expect(await consume(c, editor, 1, 0, 0)).toMatchObject({ allowed: true, requests: 1 });
+      expect(await consume(c, editor, 0, 300, 100)).toMatchObject({ allowed: true, tokens: 400 });
+      expect(await consume(c, editor, 1, 0, 0)).toMatchObject({ allowed: true, requests: 2 });
+      // Tercera solicitud: límite de 2 por día.
+      expect(await consume(c, editor, 1, 0, 0)).toMatchObject({
+        allowed: false,
+        blocked: 'requests',
+        requests: 2,
+      });
+      // Los tokens se registran aunque el límite ya se haya alcanzado.
+      expect(await consume(c, editor, 0, 700, 0)).toMatchObject({ allowed: true, tokens: 1100 });
+      expect(await consume(c, viewer, 1, 0, 0)).toMatchObject({ allowed: true, requests: 1 });
+      expect(await consume(c, viewer, 0, 900, 200)).toMatchObject({ tokens: 1100 });
+      expect(await consume(c, viewer, 1, 0, 0)).toMatchObject({
+        allowed: false,
+        blocked: 'tokens',
+      });
+      // Tope global: suma a todos los usuarios del día.
+      expect(await consume(c, owner, 1, 0, 0, 2000)).toMatchObject({
+        allowed: false,
+        blocked: 'global_tokens',
+        global_tokens: 2200,
+      });
+      const { rows } = await c.query(`select requests from public.ai_usage where user_id = $1`, [
+        owner,
+      ]);
+      expect(rows).toEqual([{ requests: 0 }]);
+    });
+  });
+
+  it('las conversaciones las escribe la api; su autor y los miembros las leen', async () => {
+    await inRollback(db, async (c) => {
+      await c.query(
+        `insert into public.ai_conversations (project_id, owner_id, proposals, transcript)
+         values ($1, $2, '[{"id":"p1","status":"pending"}]', '[]')`,
+        [projectId, editor],
+      );
+      await c.query(
+        `select set_config('request.jwt.claims', $1, true), set_config('role', 'authenticated', true)`,
+        [JSON.stringify({ sub: viewer, role: 'authenticated' })],
+      );
+      const read = await c.query('select proposals from public.ai_conversations');
+      expect(read.rows).toEqual([{ proposals: [{ id: 'p1', status: 'pending' }] }]);
+      expect(await expectError(c, `update public.ai_conversations set proposals = '[]'`)).toMatch(
+        /permission denied/,
+      );
+      await c.query(`select set_config('request.jwt.claims', $1, true)`, [
+        JSON.stringify({ sub: stranger, role: 'authenticated' }),
+      ]);
+      expect((await c.query('select 1 from public.ai_conversations')).rowCount).toBe(0);
+    });
+  });
+});

@@ -1,11 +1,14 @@
 import {
-  buildRobotModel,
   componentWeightKg,
+  publishedCycleOptions,
+  robotModelFromDetail,
   DISCLAIMERS,
+  mergeScenes,
   PROPORTIONS_NOTICE,
   SIMPLIFIED_NOTICE,
   validateProcess,
   validateScene,
+  type AiProposal,
   type CatalogComponent,
   type EventLog,
   type RobotModel,
@@ -17,7 +20,6 @@ import { Message, Spinner } from '../components/ui';
 import { ApiError } from '../lib/api';
 import { useApp } from '../lib/context';
 import { ComponentPicker, PalletForm, RobotPicker } from './dialogs';
-import { publishedCycleOptions } from './ProcessSection';
 import { ProductCard } from './ProductCard';
 import { Properties, type RobotInfo } from './Properties';
 import {
@@ -33,6 +35,7 @@ import { Warnings } from './Warnings';
 import { PlayerBar } from '../sim/PlayerBar';
 import { SimulationPanel } from '../sim/SimulationPanel';
 import { usePlayer } from '../sim/usePlayer';
+import { AssistantPanel, type AcceptMode } from '../assistant/AssistantPanel';
 
 const Viewport = lazy(() => import('./Viewport'));
 
@@ -65,6 +68,10 @@ export default function LayoutEditor({
   const [playError, setPlayError] = useState<string | null>(null);
   const player = usePlayer(playing?.log ?? null);
   const requested = useRef(new Set<string>());
+  // Asistente: propuesta en vista previa y escena previa a la última aceptación (Deshacer).
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [preview, setPreview] = useState<AiProposal | null>(null);
+  const [beforeAccept, setBeforeAccept] = useState<Scene | null>(null);
 
   const load = useCallback(() => {
     api
@@ -81,7 +88,7 @@ export default function LayoutEditor({
 
   // Carga la ficha de cada variante de robot presente en la escena.
   useEffect(() => {
-    for (const o of scene?.objects ?? []) {
+    for (const o of [...(scene?.objects ?? []), ...(preview?.scene.objects ?? [])]) {
       if (o.kind !== 'robot') continue;
       const slug = o.params.variant_slug;
       if (requested.current.has(slug)) continue;
@@ -89,20 +96,12 @@ export default function LayoutEditor({
       api
         .getCatalogVariant(slug)
         .then((detail) => {
-          const s = detail.specs;
-          const model = buildRobotModel({
-            kinematic_type: detail.variant.kinematic_type,
-            axes_count: s?.axes_count ?? null,
-            reach_mm: s?.reach_mm ?? null,
-            workspace_diameter_mm: s?.workspace_diameter_mm ?? null,
-            payload_kg: s?.payload_kg ?? null,
-            axis_limits: s?.axis_limits ?? null,
-          });
+          const model = robotModelFromDetail(detail);
           setRobots((r) => ({ ...r, [slug]: { detail, model } }));
         })
         .catch(() => setRobots((r) => ({ ...r, [slug]: 'error' })));
     }
-  }, [api, scene]);
+  }, [api, scene, preview]);
 
   // Componentes del catálogo (pocos): se cargan una vez para validar pesos y mostrar fichas.
   useEffect(() => {
@@ -327,6 +326,13 @@ export default function LayoutEditor({
           <span className="px-2 text-sm text-slate-500">Solo lectura: tu rol es lector.</span>
         )}
         <button
+          className={`btn py-1.5 ${assistantOpen ? 'bg-violet-600 text-white hover:bg-violet-700' : 'btn-secondary'}`}
+          aria-pressed={assistantOpen}
+          onClick={() => setAssistantOpen((v) => !v)}
+        >
+          Asistente
+        </button>
+        <button
           className={`btn py-1.5 ${flowMode ? 'bg-violet-600 text-white hover:bg-violet-700' : 'btn-secondary'}`}
           aria-pressed={flowMode}
           onClick={() => {
@@ -455,6 +461,7 @@ export default function LayoutEditor({
             <Viewport
               scene={viewScene}
               playback={playing ? player.frame : null}
+              preview={playing ? null : (preview?.scene ?? null)}
               models={models}
               selectedId={selectedId}
               warned={warned}
@@ -473,6 +480,11 @@ export default function LayoutEditor({
             <span className="rounded-lg bg-white/90 px-2.5 py-1 text-[11px] text-slate-600 shadow-sm">
               {SIMPLIFIED_NOTICE}
             </span>
+            {preview && !playing && (
+              <span className="rounded-lg border border-dashed border-violet-400 bg-violet-50/95 px-2.5 py-1 text-[11px] font-medium text-violet-800 shadow-sm">
+                Vista previa del asistente (sin aplicar)
+              </span>
+            )}
           </div>
           {playing ? (
             <PlayerBar
@@ -553,6 +565,33 @@ export default function LayoutEditor({
         {PROPORTIONS_NOTICE} {DISCLAIMERS.estimates}
       </p>
 
+      {assistantOpen && (
+        <AssistantPanel
+          projectId={projectId}
+          canEdit={canEdit}
+          scene={scene}
+          previewId={preview?.id ?? null}
+          canUndo={beforeAccept != null}
+          onPreview={setPreview}
+          onAccept={(p: AiProposal, mode: AcceptMode) => {
+            // Aceptar solo cambia el editor: queda como "cambios sin guardar".
+            setBeforeAccept(scene);
+            change((s) => (mode === 'replace' ? p.scene : mergeScenes(s, p.scene)));
+            setSelectedId(null);
+            setPreview(null);
+          }}
+          onUndo={() => {
+            if (!beforeAccept) return;
+            const prev = beforeAccept;
+            change(() => prev);
+            setBeforeAccept(null);
+          }}
+          onClose={() => {
+            setAssistantOpen(false);
+            setPreview(null);
+          }}
+        />
+      )}
       {adding === 'robot' && (
         <RobotPicker
           onClose={() => setAdding(null)}

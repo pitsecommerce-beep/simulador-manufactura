@@ -307,7 +307,7 @@ Tests obligatorios desde la fase en que aplica: alcance y carga (`domain`), pale
 
 ## 17. Variables de entorno (resumen, detalle en `.env.example`)
 
-`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (solo api y workers), `SUPABASE_JWT_SECRET`, `DATABASE_URL` (solo cad-worker, para la cola; y `pnpm db:migrate` local opcional), `SIM_WORKER_URL`, `SIM_WORKER_TOKEN`, `SIM_MAX_HORIZON_H`, `SIM_RUN_TIMEOUT_S`, `SIM_MAX_CONCURRENT_RUNS`, `AI_GLOBAL_DAILY_TOKEN_LIMIT`, `AI_PROVIDER`, `AI_MODEL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AI_DAILY_TOKEN_LIMIT`, `AI_DAILY_REQUEST_LIMIT`, `SIGNED_URL_TTL_SECONDS`, `SIM_MAX_REPLICATIONS`, `CAD_TESSELLATION_TOLERANCE`, `CAD_MAX_TRIANGLES_PER_LINK`, `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (solo api y workers), `SUPABASE_JWT_SECRET`, `DATABASE_URL` (solo cad-worker, para la cola; y `pnpm db:migrate` local opcional), `SIM_WORKER_URL`, `SIM_WORKER_TOKEN`, `SIM_MAX_HORIZON_H`, `SIM_RUN_TIMEOUT_S`, `SIM_MAX_CONCURRENT_RUNS`, `AI_GLOBAL_DAILY_TOKEN_LIMIT`, `AI_PROVIDER`, `AI_MODEL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AI_DAILY_TOKEN_LIMIT`, `AI_DAILY_REQUEST_LIMIT`, `AI_EFFORT`, `AI_MAX_TOKENS`, `AI_TIMEOUT_MS`, `SIGNED_URL_TTL_SECONDS`, `SIM_MAX_REPLICATIONS`, `CAD_TESSELLATION_TOLERANCE`, `CAD_MAX_TRIANGLES_PER_LINK`, `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 
 ---
 
@@ -728,3 +728,16 @@ Con un proveedor falso que reproduce respuestas guionizadas (sin llamadas reales
 3. **Fallas**: MTBF medido sobre tiempo de operación.
 4. **Modelo**: el README usa `claude-sonnet-5-5` como valor de ejemplo de `AI_MODEL`, con una nota de que `claude-opus-5-5` sirve para layouts más complejos. Los identificadores se verifican en la documentación oficial antes de documentarlos.
 5. **Límites**: `AI_DAILY_REQUEST_LIMIT=30` y `AI_DAILY_TOKEN_LIMIT=1000000` por usuario y día, más un tope global `AI_GLOBAL_DAILY_TOKEN_LIMIT` (ejemplo: 5 000 000) para toda la app. Al alcanzar cualquier límite, el asistente responde con un mensaje claro (cuál límite y cuándo se reinicia) en lugar de fallar.
+
+### 23.9 Implementación (notas y ajustes al diseño)
+
+- **Rutas**: `POST /v1/projects/:id/assistant`, `GET /v1/assistant/status`, `GET /v1/projects/:id/assistant/conversations[/:cid]` y `PATCH .../conversations/:cid/proposals/:pid` (estado de una propuesta). Ninguna escribe en `layouts`; un test lo comprueba.
+- **Esquemas estrictos**: `search_catalog`, `get_variant`, `list_components` y `run_simulation` usan `strict: true`. `propose_scene` y `validate_scene` no: la escena (unión de 9 tipos de objeto, 4 roles de proceso y 6 distribuciones) supera los límites de los esquemas estrictos (16 parámetros con unión y 24 opcionales por petición). Su JSON Schema se genera del mismo esquema Zod de `@sim/domain` y la api valida todo con Zod; los errores vuelven al modelo para que corrija.
+- **Historial**: `ai_conversations.messages` guarda cada mensaje del proveedor serializado como texto, porque `jsonb` reordena claves y el historial debe reenviarse sin cambios. `transcript` guarda lo que se ve en el chat; `tool_calls`, un registro breve de cada herramienta.
+- **Escena del editor**: va en el mensaje del usuario dentro de `<escena_actual>`, así el historial solo crece y las instrucciones y herramientas quedan fijas para la caché.
+- **Reglas de origen en código** (`enforceAssistantOrigins`): todo tiempo propuesto queda como `assistant`; `catalog` solo se conserva si coincide con un ciclo publicado de la ficha.
+- **Propuestas**: se rechazan con errores de esquema, slugs inexistentes o errores de flujo; las advertencias de alcance, carga y colisión se registran con la propuesta. Sin modelo de proceso la propuesta se acepta con un aviso (no se puede simular).
+- **Límites**: `consume_ai_usage` recibe además el tope global (`p_global_token_limit`). Al pasar el límite antes de responder, la api devuelve 429 con `{ error: 'ai_limit', message, limit }` y la web lo muestra como aviso. Si el límite de tokens se alcanza a mitad de una respuesta, el bucle se detiene y la respuesta lo indica.
+- **Corrida rápida**: necesita un layout guardado (las corridas se ligan a un layout); se registra como "Asistente: estimación rápida" con 5 réplicas de 8 h y espera hasta 60 s.
+- **Proveedor Anthropic**: SDK oficial `@anthropic-ai/sdk`, pensamiento adaptativo, `tool_choice: auto`, caché automática del prefijo y `AI_EFFORT` opcional. No se activa el reintento automático con otro modelo ante una negativa (`fallbacks`) porque el modelo es configurable; una negativa se informa como aviso.
+

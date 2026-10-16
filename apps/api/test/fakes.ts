@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type {
   CatalogVariant,
+  RobotSpecs,
   MemberRole,
   Project,
   ProjectMember,
@@ -12,13 +13,17 @@ import { SignJWT } from 'jose';
 import { buildApp } from '../src/app.ts';
 import { supabaseTokenVerifier, type AuthUser } from '../src/auth.ts';
 import {
+  CONVERSATION_CONFLICT,
   LAYOUT_CONFLICT,
   RepoError,
+  type AiUsageResult,
+  type StoredConversation,
   type StoredLayout,
   type SystemRepo,
   type UserRepo,
 } from '../src/repo.ts';
 import { SimWorkerError, type SimSettings } from '../src/sim.ts';
+import type { AiProvider, AiSettings, ToolCall, ToolResult, ToolSpec } from '../src/ai/provider.ts';
 
 export const SUPABASE_URL = 'https://test-project.supabase.co';
 export const JWT_SECRET = 'test-secret-with-at-least-32-characters!!';
@@ -73,6 +78,34 @@ function variant(
   };
 }
 
+/** Ficha mínima: alcance y carga del catálogo de prueba; el IRB 360 publica un ciclo. */
+function specsFor(v: CatalogVariant): RobotSpecs {
+  return {
+    axes_count: v.kinematic_type === 'delta' ? 4 : 6,
+    axes_note: null,
+    reach_mm: v.reach_mm,
+    workspace_diameter_mm: v.workspace_diameter_mm,
+    payload_kg: v.payload_kg,
+    payload_note: null,
+    armload_kg: null,
+    weight_kg: null,
+    repeatability_mm: null,
+    repeatability: null,
+    mounting_allowed: null,
+    ip_rating: null,
+    controller: null,
+    axis_limits: null,
+    published_cycle_times:
+      v.kinematic_type === 'delta'
+        ? [{ condition: 'ciclo 25-305-25 mm, 0.1 kg', value_s: 0.36 }]
+        : null,
+    max_tcp_speed_m_s: null,
+    extra: null,
+    notes: null,
+    provenance: {},
+  };
+}
+
 /** Almacén en memoria que imita las reglas de RLS (probadas por separado en packages/db). */
 export function memoryStore() {
   const projects: Project[] = [];
@@ -82,6 +115,10 @@ export function memoryStore() {
   const runs: SimRun[] = [];
   const metrics: (SimMetric & { run_id: string })[] = [];
   const files = new Map<string, Buffer>();
+  const conversations: StoredConversation[] = [];
+  const usage = new Map<string, { requests: number; tokens: number }>();
+  /** Cada escritura a `layouts` queda aquí (para comprobar que el asistente no escribe). */
+  const layoutWrites: string[] = [];
 
   const canRead = (p: Project, uid: string) =>
     p.owner_id === uid || members.some((m) => m.project_id === p.id && m.user_id === uid);
@@ -138,6 +175,7 @@ export function memoryStore() {
         updated_at: new Date().toISOString(),
       };
       layouts.set(projectId, saved);
+      layoutWrites.push(projectId);
       return saved;
     },
     async listRuns(projectId) {
@@ -150,6 +188,16 @@ export function memoryStore() {
       const run = runs.find((r) => r.id === runId && r.project_id === projectId);
       if (!p || !canRead(p, user.id) || !run) return null;
       return { run, metrics: metrics.filter((m) => m.run_id === runId) };
+    },
+    async listConversations(projectId) {
+      return conversations
+        .filter((c) => c.project_id === projectId && c.owner_id === user.id)
+        .map(({ id, title, updated_at }) => ({ id, title, updated_at }));
+    },
+    async getConversation(id) {
+      const c = conversations.find((x) => x.id === id);
+      const p = c && projects.find((x) => x.id === c.project_id);
+      return c && p && (c.owner_id === user.id || canRead(p, user.id)) ? structuredClone(c) : null;
     },
     async listCatalogComponents() {
       return [
@@ -192,7 +240,7 @@ export function memoryStore() {
           data_status: 'ok',
           notes: null,
         },
-        specs: null,
+        specs: specsFor(v),
         documents: [],
         siblings: [{ slug: v.slug, variant_code: v.variant_code }],
       };
@@ -230,9 +278,52 @@ export function memoryStore() {
     async downloadEvents(path) {
       return files.get(path) ?? null;
     },
+    async consumeAiUsage(userId, u, limits): Promise<AiUsageResult> {
+      const cur = usage.get(userId) ?? { requests: 0, tokens: 0 };
+      const global = () => [...usage.values()].reduce((a, x) => a + x.tokens, 0);
+      let blocked: AiUsageResult['blocked'] = null;
+      if (u.requests > 0) {
+        if (cur.requests + u.requests > limits.requests) blocked = 'requests';
+        else if (cur.tokens >= limits.tokens) blocked = 'tokens';
+        else if (global() >= limits.globalTokens) blocked = 'global_tokens';
+      }
+      if (!blocked) {
+        cur.requests += u.requests;
+        cur.tokens += u.tokensIn + u.tokensOut;
+        usage.set(userId, cur);
+      }
+      return { allowed: !blocked, blocked, ...cur, global_tokens: global() };
+    },
+    async saveConversation(conv, expected) {
+      // Marca de tiempo estrictamente creciente para el control optimista.
+      const updated_at = new Date(Date.now() + conversations.length + Math.random()).toISOString();
+      if (conv.id == null) {
+        const row = { ...structuredClone(conv), id: randomUUID(), updated_at };
+        conversations.push(row);
+        return structuredClone(row);
+      }
+      const i = conversations.findIndex((c) => c.id === conv.id);
+      if (i < 0 || (expected && conversations[i]!.updated_at !== expected))
+        throw new RepoError(CONVERSATION_CONFLICT, 409);
+      conversations[i] = { ...structuredClone(conv), id: conv.id, updated_at };
+      return structuredClone(conversations[i]!);
+    },
   });
 
-  return { projects, members, profiles, layouts, runs, metrics, files, repoFor, systemRepo };
+  return {
+    projects,
+    members,
+    profiles,
+    layouts,
+    layoutWrites,
+    runs,
+    metrics,
+    files,
+    conversations,
+    usage,
+    repoFor,
+    systemRepo,
+  };
 }
 
 /** Motor falso: guarda las peticiones; `fail` simula que no responde. */
@@ -255,8 +346,77 @@ export function fakeSim(opts: { fail?: boolean } = {}) {
   return { settings, requests };
 }
 
+/** Turno guionizado del proveedor falso: texto y llamadas a herramientas. */
+export interface ScriptedTurn {
+  text?: string;
+  calls?: { name: string; input: unknown }[];
+  stop?: 'end' | 'tool_use' | 'max_tokens' | 'refusal';
+  usage?: { input: number; output: number };
+  /** Lanza este error en lugar de responder. */
+  error?: Error;
+}
+
+/**
+ * Proveedor falso: reproduce turnos guionizados y guarda cada petición (historial completo)
+ * para comprobar qué recibió el modelo, incluidos los resultados de las herramientas.
+ */
+export function fakeProvider(script: ScriptedTurn[]) {
+  const requests: { system: string; tools: ToolSpec[]; history: unknown[] }[] = [];
+  let n = 0;
+  const provider: AiProvider = {
+    name: 'fake',
+    model: 'fake-model',
+    userMessage: (text) => ({ role: 'user', text }),
+    toolResultsMessage: (results: ToolResult[]) => ({ role: 'tool', results }),
+    async turn(req) {
+      requests.push({ ...req, history: structuredClone(req.history) });
+      const t = script[n++];
+      if (!t) throw new Error('El guion del proveedor falso se acabó');
+      if (t.error) throw t.error;
+      const toolCalls: ToolCall[] = (t.calls ?? []).map((c, i) => ({
+        id: `call-${n}-${i}`,
+        name: c.name,
+        input: c.input,
+      }));
+      return {
+        message: { role: 'assistant', text: t.text ?? '', calls: toolCalls },
+        text: t.text ?? '',
+        toolCalls,
+        stop: t.stop ?? (toolCalls.length ? 'tool_use' : 'end'),
+        usage: t.usage ?? { input: 100, output: 20 },
+      };
+    },
+  };
+  /** Resultados de herramientas enviados al modelo, ya decodificados. */
+  const toolResults = () =>
+    requests.flatMap((r) => {
+      const last = r.history.at(-1) as { role: string; results?: ToolResult[] };
+      return last.role === 'tool'
+        ? last.results!.map((x) => ({ ...x, content: JSON.parse(x.content) as unknown }))
+        : [];
+    });
+  return { provider, requests, toolResults, remaining: () => script.length - n };
+}
+
+export function aiSettings(provider: AiProvider, over: Partial<AiSettings> = {}): AiSettings {
+  return {
+    provider,
+    requestLimit: 30,
+    tokenLimit: 1_000_000,
+    globalTokenLimit: 5_000_000,
+    maxTurns: 8,
+    quickRun: { timeoutMs: 200, pollMs: 10, replications: 5, horizonH: 8 },
+    ...over,
+  };
+}
+
 export async function testApp(
-  opts: { pingOk?: boolean; rateLimit?: number; sim?: SimSettings | null } = {},
+  opts: {
+    pingOk?: boolean;
+    rateLimit?: number;
+    sim?: SimSettings | null;
+    ai?: AiSettings | null;
+  } = {},
 ) {
   const store = memoryStore();
   const app = await buildApp({
@@ -264,6 +424,7 @@ export async function testApp(
     userRepo: store.repoFor,
     systemRepo: store.systemRepo(opts.pingOk ?? true),
     sim: opts.sim ?? null,
+    ai: opts.ai ?? null,
     corsOrigins: ['http://localhost:5173'],
     rateLimitPerMinute: opts.rateLimit ?? 1000,
     version: 'test',

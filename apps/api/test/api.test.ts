@@ -191,7 +191,7 @@ describe('límites y seguridad', () => {
   });
 
   // Métodos que usa apps/web/src/lib/api.ts (GET implícito). Si la web agrega uno, va aquí.
-  it.each(['GET', 'POST', 'PUT', 'DELETE'])(
+  it.each(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])(
     'el preflight permite %s desde la web',
     async (method) => {
       const { app } = await testApp();
@@ -422,6 +422,33 @@ describe('configuración', () => {
     });
     expect(c.SIM_MAX_REPLICATIONS).toBe(50);
     expect(loadConfig(env).SIM_WORKER_URL).toBeUndefined();
+  });
+
+  it('el asistente: sin AI_MODEL queda apagado; con modelo exige la clave', () => {
+    const env = {
+      SUPABASE_URL: 'https://x.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_xxxxxxxxxxxxxxxx',
+      SUPABASE_SECRET_KEY: 'sb_secret_xxxxxxxxxxxxxxxxxxxxxx',
+    };
+    const off = loadConfig({ ...env, AI_MODEL: '', ANTHROPIC_API_KEY: '', AI_EFFORT: '' });
+    expect(off.AI_MODEL).toBeUndefined();
+    expect(off).toMatchObject({
+      AI_PROVIDER: 'anthropic',
+      AI_DAILY_REQUEST_LIMIT: 30,
+      AI_DAILY_TOKEN_LIMIT: 1_000_000,
+      AI_GLOBAL_DAILY_TOKEN_LIMIT: 5_000_000,
+    });
+    expect(() => loadConfig({ ...env, AI_MODEL: 'claude-sonnet-5-5' })).toThrow(
+      /ANTHROPIC_API_KEY/,
+    );
+    const on = loadConfig({
+      ...env,
+      AI_MODEL: 'claude-sonnet-5-5',
+      ANTHROPIC_API_KEY: 'sk-ant-xxxxxxxxxxxxxxxxxxxx',
+      AI_EFFORT: 'medium',
+    });
+    expect(on).toMatchObject({ AI_MODEL: 'claude-sonnet-5-5', AI_EFFORT: 'medium' });
+    expect(() => loadConfig({ ...env, AI_EFFORT: 'altísimo' })).toThrow(/AI_EFFORT/);
   });
 
   it('normaliza orígenes CORS con espacios y diagonales finales', () => {

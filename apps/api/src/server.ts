@@ -3,6 +3,7 @@ import { supabaseTokenVerifier } from './auth.ts';
 import { loadConfig } from './config.ts';
 import { supabaseSystemRepo, supabaseUserRepo } from './repo.ts';
 import { httpSimClient } from './sim.ts';
+import { anthropicProvider } from './ai/anthropic.ts';
 
 const config = loadConfig();
 
@@ -24,6 +25,23 @@ const app = await buildApp({
           runTimeoutS: config.SIM_RUN_TIMEOUT_S,
           playbackWindowS: 1800,
           maxEvents: 200_000,
+        }
+      : null,
+  ai:
+    config.AI_MODEL && config.ANTHROPIC_API_KEY
+      ? {
+          provider: anthropicProvider({
+            apiKey: config.ANTHROPIC_API_KEY,
+            model: config.AI_MODEL,
+            effort: config.AI_EFFORT,
+            maxTokens: config.AI_MAX_TOKENS,
+            timeoutMs: config.AI_TIMEOUT_MS,
+          }),
+          requestLimit: config.AI_DAILY_REQUEST_LIMIT,
+          tokenLimit: config.AI_DAILY_TOKEN_LIMIT,
+          globalTokenLimit: config.AI_GLOBAL_DAILY_TOKEN_LIMIT,
+          maxTurns: 8,
+          quickRun: { timeoutMs: 60_000, pollMs: 2_000, replications: 5, horizonH: 8 },
         }
       : null,
   version: config.APP_VERSION,
