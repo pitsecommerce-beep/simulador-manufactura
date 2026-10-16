@@ -208,3 +208,45 @@ def test_intervalo_de_confianza_contiene_la_media() -> None:
     )
     assert m["ci_low"] < m["mean"] < m["ci_high"]
     assert m["min"] <= m["p5"] <= m["mean"] <= m["p95"] <= m["max"]
+
+
+def test_registro_v2_fin_de_ciclo_pallets_y_foto_inicial() -> None:
+    nodes = [
+        source("src", fixed(1)),
+        buffer("b", 50),
+        station("st", fixed(2)),
+        sink("out", 10, change=fixed(20)),
+    ]
+    res = run_request(request(nodes, chain("src", "b", "st", "out"), replications=1, window=200))
+    ev = res["events"]
+    assert ev["version"] == 2
+    events = ev["events"]
+    start = ev["start_s"]
+
+    # Foto inicial: al empezar la ventana ya hay unidades en el buffer (la fuente es más rápida)
+    # y el estado de la estación y el llenado del pallet.
+    at_start = [e for e in events if e[0] == start]
+    assert {e[1] for e in at_start} >= {"st", "at", "pal"}
+    assert sum(1 for e in at_start if e[1] == "at" and e[3] == "b") > 5
+
+    # Cada ciclo de la estación dura 2 s: `done` llega 2 s después de su `at`.
+    starts = {e[2]: e[0] for e in events if e[1] == "at" and e[3] == "st" and e[0] > start}
+    dones = [(e[2], e[0]) for e in events if e[1] == "done" and e[3] == "st" and e[2] in starts]
+    assert len(dones) > 10
+    assert all(abs(t - starts[u] - 2) < 1e-6 for u, t in dones)
+
+    # Llenado del pallet de 1 a 10 y cambio de pallet de 20 s.
+    fills = [e[3] for e in events if e[1] == "pal" and e[0] > start]
+    assert 10 in fills and max(fills) == 10
+    changes = [(e[0], e[3]) for e in events if e[1] == "pchg" and e[0] > start]
+    on = next(t for t, v in changes if v == 1)
+    off = next(t for t, v in changes if v == 0 and t > on)
+    assert off - on == pytest.approx(20)
+
+
+def test_los_eventos_no_cambian_los_resultados() -> None:
+    nodes = [source("src", expo(10)), buffer("b", 5), station("st", expo(8)), sink("out", 5)]
+    routes = chain("src", "b", "st", "out")
+    with_window = run_request(request(nodes, routes, replications=3, window=600))
+    no_window = run_request(request(nodes, routes, replications=3, window=1))
+    assert with_window["metrics"] == no_window["metrics"]

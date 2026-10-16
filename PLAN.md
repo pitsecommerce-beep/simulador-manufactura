@@ -885,9 +885,20 @@ Cada robot genera señales sincronizadas con la reproducción para rastrear movi
 
 **Tests**: comandos de garra en el instante esperado del ciclo, velocidad de eje igual a la derivada del plan, detección de tope y de sobrevelocidad contra la ficha, contadores de ciclos y distancia, y CSV con las columnas esperadas.
 
-### 24.12 Pendiente de confirmar
+**Gráficas al terminar la corrida** (pestaña "Robots" en los resultados de la corrida, además del panel durante la reproducción): una fila por eje con su nombre y unidad, el rango de la ficha, la curva **comandada** (punteada: la pose objetivo del tramo del plan) y la **ejecutada** (continua: la posición interpolada), los dos valores en el instante actual a la derecha y la línea de la hora de reproducción. Se muestran los primeros ejes con "Mostrar los N ejes" para el resto, y las mismas filas para velocidad del TCP y estado de la garra. Los datos quedan registrados en la corrida porque se reconstruyen de forma determinista desde lo que ya se guarda (registro de eventos en Storage y foto de la escena en `simulation_runs.input`), así que se ven igual en cualquier momento después de simular.
+
+### 24.12 Cámara en la garra
+
+- Opción por robot en Propiedades: **Cámara en la herramienta** (`params.wrist_camera`, por defecto apagada; vive en la escena, sin SQL).
+- Durante la reproducción, un recuadro sobre el lienzo muestra el punto de vista de esa cámara (montada en el TCP, mirando en la dirección de la herramienta). Si hay varios robots con cámara, un selector elige cuál ver. Se dibuja con la misma escena y un segundo render en el recuadro, sin duplicar objetos.
+- Es una vista visual de la animación representativa. La cámara virtual con detección simulada sigue siendo la fase 7.
+
+### 24.13 Decisiones confirmadas
 
 1. Fracciones del ciclo del robot (24.2) y que, si el destino está bloqueado, el robot espere sosteniendo la pieza sobre la entrega.
 2. Tamaño visual por defecto del producto (300 × 200 × 200 mm) y velocidad supuesta de banda (0.3 m/s) cuando no hay datos.
 3. Delta: aceptar la carrera vertical supuesta mientras la ficha no publique la altura del volumen de trabajo.
 4. Telemetría (24.11): señales, muestreo de 20 Hz, exportación CSV y que la sobrevelocidad sea solo una advertencia (no cambia la simulación).
+5. Cámara en la herramienta por robot (24.12) y gráficas por eje comandado contra ejecutado al terminar la corrida.
+
+Confirmado por el usuario: se implementan 24.1 a 24.12 con los valores propuestos.
