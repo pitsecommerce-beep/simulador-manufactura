@@ -50,7 +50,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(helmet);
   await app.register(cors, {
     origin: deps.corsOrigins,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
   await app.register(rateLimit, {
     max: deps.rateLimitPerMinute,

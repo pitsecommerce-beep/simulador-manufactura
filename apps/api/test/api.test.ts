@@ -189,6 +189,29 @@ describe('límites y seguridad', () => {
     });
     expect(other.headers['access-control-allow-origin']).toBeUndefined();
   });
+
+  // Métodos que usa apps/web/src/lib/api.ts (GET implícito). Si la web agrega uno, va aquí.
+  it.each(['GET', 'POST', 'PUT', 'DELETE'])(
+    'el preflight permite %s desde la web',
+    async (method) => {
+      const { app } = await testApp();
+      const res = await app.inject({
+        method: 'OPTIONS',
+        url: `/v1/projects/${randomUUID()}/layout`,
+        headers: {
+          origin: 'http://localhost:5173',
+          'access-control-request-method': method,
+          'access-control-request-headers': 'authorization,content-type',
+        },
+      });
+      expect(res.statusCode).toBe(204);
+      expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+      const allowed = String(res.headers['access-control-allow-methods'])
+        .split(',')
+        .map((m) => m.trim());
+      expect(allowed).toContain(method);
+    },
+  );
 });
 
 describe('layout del proyecto', () => {
