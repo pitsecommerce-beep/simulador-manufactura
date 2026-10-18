@@ -32,6 +32,8 @@ const MAX_UNITS = 2000;
 const PRODUCT_COLOR = new Color('#d97706');
 const COMPONENT_COLOR = new Color('#38bdf8');
 const LOAD_COLOR = new Color('#b45309');
+/** Unidades cuyo ciclo de robot no se anima (fuera de alcance o simultáneo): ver advertencias. */
+const UNANIMATED_COLOR = new Color('#dc2626');
 
 export function AnimationLayer({
   data,
@@ -79,7 +81,14 @@ export function AnimationLayer({
         tmp.updateMatrix();
         um.setMatrixAt(i, tmp.matrix);
         const item = data.tl.items.get(u.id);
-        um.setColorAt(i, !item || item === product ? PRODUCT_COLOR : COMPONENT_COLOR);
+        um.setColorAt(
+          i,
+          u.unanimated
+            ? UNANIMATED_COLOR
+            : !item || item === product
+              ? PRODUCT_COLOR
+              : COMPONENT_COLOR,
+        );
       }
       um.count = n;
       um.instanceMatrix.needsUpdate = true;

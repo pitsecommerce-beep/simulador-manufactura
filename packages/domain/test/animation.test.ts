@@ -14,8 +14,10 @@ import {
   sampleTelemetry,
   Scene,
   simplifiedVisual,
+  sameConfiguration,
   telemetryCsv,
   toolAt,
+  toolYawAt,
   type EventLog,
   type IkResult,
   type JointDef,
@@ -28,6 +30,8 @@ import {
 import { IRB1300 } from './fixtures.ts';
 
 const round = (x: number) => Math.round(x * 1000) / 1000;
+/** Advertencias sin las de velocidad de la ficha (tramos que no se aceleran). */
+const withoutSpeed = (ws: string[]) => ws.filter((w) => !/No se acelera/.test(w));
 const fixed = (value: number) => ({ dist: { type: 'fixed', value }, origin: 'user', note: null });
 
 /** Banda de entrada → robot → pallet EUR (2 cajas por pallet, cambio de 9 s). */
@@ -220,7 +224,9 @@ describe('movimiento del robot (tomar y dejar)', () => {
   const plan = buildMotionPlan(tl, 'r', visual);
 
   it('cierra la garra al tomar y la abre al soltar; espera bloqueado sosteniendo la pieza', () => {
-    expect(plan.warnings).toEqual([]);
+    // El ciclo de 4 s es más corto de lo que permite la ficha para girar el eje 1: solo se
+    // admite la advertencia de velocidad (no hay problemas de alcance ni de configuración).
+    expect(withoutSpeed(plan.warnings)).toEqual([]);
     // Unidad 2: empieza al soltar la 1 (bloqueado), así que su ciclo arranca regresando
     // (20 %) y suelta al 90 % del ciclo.
     expect(plan.grips.map((g) => [round(g.t), g.command, g.unit])).toEqual([
@@ -279,6 +285,134 @@ describe('movimiento del robot (tomar y dejar)', () => {
   });
 });
 
+describe('trayectoria del robot: sin traslados fantasma, configuración y orientación', () => {
+  const tl = buildTimeline(log, scene);
+  const visual = simplifiedVisual(buildRobotModel(IRB1300));
+  const plan = buildMotionPlan(tl, 'r', visual);
+  const handling = robotHandling(new Map([['r', plan]]));
+  const same = (a: Vec3, b: Vec3) => m4.norm(m4.sub(a, b)) < 1e-6;
+  /** Diferencia de giros módulo media vuelta (la caja es simétrica). */
+  const modPi = (a: number) => Math.abs(Math.atan2(Math.sin(2 * a), Math.cos(2 * a)) / 2);
+
+  it('ninguna unidad cambia de posición entre recogida y entrega si no está en la herramienta', () => {
+    const check = (p: typeof plan, tline: typeof tl, h: typeof handling) => {
+      for (let t = 1; t <= 12; t += 0.05) {
+        for (const u of placeUnits(tline, lineStateAt(tline, t), h)) {
+          const c = p.cycles.find((x) => x.unit === u.id);
+          const v = tline.visitsByUnit.get(u.id)!.find((x) => x.node === 'r');
+          if (!v || t < v.tAt || t >= (v.tLeave ?? Infinity) || u.carriedBy) continue;
+          const pick = c?.pick ?? placeUnits(tline, lineStateAt(tline, v.tAt), h)[0]!.position;
+          const ok =
+            same(u.position, pick) || (c != null && same(u.position, c.drop)) || u.unanimated;
+          expect(ok).toBe(true);
+        }
+      }
+    };
+    check(plan, tl, handling);
+    // Fuera de alcance: no hay traslado en línea recta; espera en la recogida (en rojo) hasta
+    // el fin del ciclo y luego aparece en la entrega.
+    const far = Scene.parse({
+      ...scene,
+      objects: scene.objects.map((o) => (o.id === 'p' ? { ...o, position: [0, -3000] } : o)),
+    });
+    const ftl = buildTimeline(log, far);
+    const fh = robotHandling(new Map([['r', buildMotionPlan(ftl, 'r', visual)]]));
+    const at = (t: number) => placeUnits(ftl, lineStateAt(ftl, t), fh).find((u) => u.id === 1)!;
+    const pick = at(1).position;
+    for (const t of [1.5, 3, 4.9]) {
+      expect(at(t).position).toEqual(pick);
+      expect(at(t).unanimated).toBe(true);
+    }
+    expect(at(5.5).position[1]).toBeLessThan(-2000);
+    expect(at(5.5).position).toEqual(at(6.9).position);
+    expect(placeUnits(tl, lineStateAt(tl, 3), handling).every((u) => !u.unanimated)).toBe(true);
+  });
+
+  it('los ejes no saltan: continuidad entre tramos y en cada punto intermedio', () => {
+    for (let i = 1; i < plan.segments.length; i++) {
+      const a = plan.segments[i - 1]!;
+      const b = plan.segments[i]!;
+      if (Math.abs(a.t1 - b.t0) < 1e-9) a.to.forEach((x, k) => expect(b.from[k]).toBeCloseTo(x, 6));
+    }
+    for (const seg of plan.segments)
+      for (let i = 1; i < (seg.path?.length ?? 0); i++)
+        seg.path![i]!.forEach((x, k) =>
+          expect(Math.abs(x - seg.path![i - 1]![k]!)).toBeLessThan(15),
+        );
+    let prev = poseAt(plan, 0).joints;
+    for (let t = 0.01; t <= 14; t += 0.01) {
+      const q = poseAt(plan, t).joints;
+      q.forEach((x, k) => expect(Math.abs(x - prev[k]!)).toBeLessThan(5));
+      prev = q;
+    }
+  });
+
+  it('en las bajadas y subidas el TCP va en línea recta (desviación horizontal < 5 mm)', () => {
+    const vertical = plan.segments.filter((s) => s.path);
+    expect(vertical.map((s) => s.phase)).toContain('bajando a recoger');
+    expect(vertical.map((s) => s.phase)).toContain('bajando a entregar');
+    for (const seg of vertical) {
+      const start = toolAt(plan, seg.t0 + 1e-9).position;
+      for (let k = 1; k <= 40; k++) {
+        const p = toolAt(plan, seg.t0 + ((seg.t1 - seg.t0) * k) / 40 - 1e-9).position;
+        expect(Math.hypot(p[0] - start[0], p[1] - start[1])).toBeLessThan(5);
+      }
+    }
+  });
+
+  it('el giro de la caja en la herramienta sigue al del TCP y coincide con la banda y el pallet', () => {
+    const turned = Scene.parse({
+      ...scene,
+      objects: scene.objects.map((o) =>
+        o.id === 'p' ? { ...o, position: [0, -500], rotation_deg: 30 } : o,
+      ),
+    });
+    const ttl = buildTimeline(log, turned);
+    const p = buildMotionPlan(ttl, 'r', visual);
+    expect(withoutSpeed(p.warnings)).toEqual([]);
+    const h = robotHandling(new Map([['r', p]]));
+    for (const c of p.cycles) {
+      let offset: number | null = null;
+      for (let t = c.tGrip + 0.01; t < c.tRelease; t += 0.1) {
+        const u = placeUnits(ttl, lineStateAt(ttl, t), h).find((x) => x.id === c.unit)!;
+        expect(u.carriedBy).toBe('r');
+        const d = u.yaw - toolYawAt(p, t);
+        offset ??= d;
+        expect(modPi(d - offset)).toBeLessThan(1e-6);
+      }
+      // La herramienta se orienta con el largo de la caja en la banda y con el patrón.
+      expect(modPi(toolYawAt(p, c.tGrip) - c.pickYaw)).toBeLessThan(0.02);
+      expect(modPi(toolYawAt(p, c.tRelease) - c.dropYaw)).toBeLessThan(0.02);
+      expect(modPi(c.dropYaw - Math.PI / 6)).toBeLessThan(1e-9);
+    }
+  });
+
+  it('rechaza soluciones que cambian de configuración', () => {
+    expect(sameConfiguration(visual, [0, 0, 20, 0, 30, 0], [100, 0, 20, 0, 30, 0])).toBe(false);
+    expect(sameConfiguration(visual, [0, 0, 20, 0, 30, 0], [0, 0, -20, 0, 30, 0])).toBe(false);
+    expect(sameConfiguration(visual, [0, 0, 20, 0, 30, 0], [0, 0, 20, 0, -30, 0])).toBe(false);
+    expect(sameConfiguration(visual, [0, 0, 3, 0, 30, 0], [80, 0, -3, 0, 30, 0])).toBe(true);
+  });
+
+  it('un tramo más rápido que la ficha no se acelera y genera advertencia', () => {
+    const slow = {
+      ...IRB1300,
+      axis_limits: IRB1300.axis_limits!.map((a) => ({ ...a, max_speed: 1 })),
+    };
+    const p = buildMotionPlan(tl, 'r', simplifiedVisual(buildRobotModel(slow)));
+    expect(p.warnings.join(' ')).toMatch(
+      /Robot: el tramo "[a-z ]+" del ciclo de la unidad \d+ .* No se acelera/,
+    );
+    expect(p.overspeed.length).toBeGreaterThan(0);
+    expect(p.overspeed.every((o) => o.min_s > o.duration_s)).toBe(true);
+    expect(p.grips).toEqual(plan.grips);
+    const tel = sampleTelemetry(p, { start: 0, end: 14 });
+    expect(
+      tel.events.some((e) => e.kind === 'overspeed' && /ciclo de la unidad/.test(e.label)),
+    ).toBe(true);
+  });
+});
+
 /**
  * Robot de prueba que NO usa la cadena simplificada: un robot cilíndrico (giro, brazo
  * telescópico y columna) escrito desde cero. Si la animación solo habla con RobotVisual, debe
@@ -328,7 +462,7 @@ describe('RobotVisual: la animación funciona con otro modelo (cambio a CAD tran
   const plan = buildMotionPlan(tl, 'r', robot);
 
   it('mismo plan de tomar y dejar, mismos comandos de garra y pieza en la herramienta', () => {
-    expect(plan.warnings).toEqual([]);
+    expect(withoutSpeed(plan.warnings)).toEqual([]);
     expect(plan.grips.map((g) => [round(g.t), g.command])).toEqual([
       [1.48, 'close'],
       [7, 'open'],

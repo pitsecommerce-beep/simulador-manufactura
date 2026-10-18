@@ -47,6 +47,11 @@ export interface ToolTarget {
   position: Vec3;
   /** Dirección deseada de la herramienta; null = cualquiera. */
   approach?: Vec3 | null;
+  /**
+   * Eje X deseado de la herramienta (referencia de giro alrededor de `approach`); null =
+   * cualquiera. Se acepta también el opuesto: la pieza es simétrica a media vuelta.
+   */
+  xAxis?: Vec3 | null;
 }
 
 export interface IkResult {
@@ -56,6 +61,8 @@ export interface IkResult {
   error_mm: number;
   error_deg: number;
   reason: string | null;
+  /** Se pidió `xAxis` y la cadena no puede orientarla: se resolvió sin ella. */
+  xAxisIgnored?: boolean;
 }
 
 export interface RobotVisual {
@@ -185,8 +192,32 @@ export function solveNumeric(
   target: ToolTarget,
   seed: readonly number[],
 ): IkResult {
+  if (target.xAxis) {
+    // Primero con el giro completo; si la cadena no puede orientar la pieza (por ejemplo,
+    // un eje de muñeca sin rango publicado), se resuelve solo con la dirección.
+    const full = solveOnce(joints, toolAt, target, seed);
+    if (full.reached) return full;
+    const loose = solveOnce(joints, toolAt, { ...target, xAxis: null }, seed);
+    return loose.reached ? { ...loose, xAxisIgnored: true } : full;
+  }
+  return solveOnce(joints, toolAt, target, seed);
+}
+
+const angleBetween = (a: Vec3, b: Vec3) =>
+  Math.acos(Math.max(-1, Math.min(1, m4.dot(m4.normalize(a), m4.normalize(b)))));
+
+function solveOnce(
+  joints: readonly JointDef[],
+  toolAt: (values: readonly number[]) => ToolPose,
+  target: ToolTarget,
+  seed: readonly number[],
+): IkResult {
   const movable = joints.map((j, i) => (isMovable(j) ? i : -1)).filter((i) => i >= 0);
   const clampAll = (v: readonly number[]) => joints.map((j, i) => clampTo(j, v[i] ?? j.home));
+  // El eje X de referencia se toma con el signo más cercano al de la semilla (la pieza es
+  // simétrica a media vuelta), así la muñeca no gira 180° sin motivo.
+  let xRef: Vec3 | null = target.xAxis ? m4.normalize(target.xAxis) : null;
+  if (xRef && m4.dot(xRef, m4.axisX(toolAt(clampAll(seed)).matrix)) < 0) xRef = m4.scale(xRef, -1);
   const errorOf = (v: readonly number[]) => {
     const t = toolAt(v);
     const e = m4.sub(target.position, t.position);
@@ -195,8 +226,13 @@ export function solveNumeric(
     const out = [...e];
     if (target.approach) {
       const d = m4.sub(m4.normalize(target.approach), t.approach);
-      ang = Math.acos(Math.max(-1, Math.min(1, m4.dot(m4.normalize(target.approach), t.approach))));
+      ang = angleBetween(target.approach, t.approach);
       out.push(...m4.scale(d, ORI_WEIGHT));
+    }
+    if (xRef) {
+      const x = m4.normalize(m4.axisX(t.matrix));
+      ang = Math.max(ang, angleBetween(xRef, x));
+      out.push(...m4.scale(m4.sub(xRef, x), ORI_WEIGHT));
     }
     return { out, pos, ang: ang / DEG };
   };

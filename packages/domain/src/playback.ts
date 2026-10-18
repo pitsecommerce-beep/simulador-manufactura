@@ -565,6 +565,21 @@ export function dropPoint(
 // Posición de las unidades
 // ---------------------------------------------------------------------------
 
+/** Giro (rad, mundo) de una unidad que se recoge en el nodo `id` (el largo sigue la banda). */
+export function pickYaw(tl: LineTimeline, id: string): number {
+  return nodeGeometry(tl, id)?.yaw ?? 0;
+}
+
+/** Giro (rad, mundo) de una unidad que se deja en el nodo `id` (pallet: giro del patrón). */
+export function dropYaw(tl: LineTimeline, id: string): number {
+  const g = nodeGeometry(tl, id);
+  if (!g) return 0;
+  const pattern = tl.pallets.get(id);
+  if (g.object.kind === 'pallet' && pattern)
+    return g.object.rotation_deg * DEG + (pattern.rotated ? Math.PI / 2 : 0);
+  return g.yaw;
+}
+
 export interface PlacedUnit {
   id: number;
   /** Centro de la base de la unidad (mundo, mm). */
@@ -573,17 +588,23 @@ export interface PlacedUnit {
   size: ProductSize;
   /** Robot que la lleva en la herramienta en este instante. */
   carriedBy: string | null;
+  /**
+   * El robot de su estación no anima este ciclo (fuera de alcance, ciclos simultáneos o sin
+   * ficha): la unidad espera en la recogida y aparece en la entrega al terminar el ciclo.
+   */
+  unanimated: boolean;
 }
 
 /**
  * Qué hace el robot de una estación con una unidad en el instante t. La implementa el plan de
- * movimiento (`robot-motion.ts`); sin plan, la unidad se traslada en línea recta.
+ * movimiento (`robot-motion.ts`). Sin plan para ese ciclo devuelve null: la unidad no se
+ * traslada sola, queda en la recogida hasta el fin del ciclo y luego aparece en la entrega.
  */
 export type RobotHandling = (
   robotId: string,
   unit: number,
   t: number,
-) => { where: 'pick' | 'tool' | 'drop'; position?: Vec3 } | null;
+) => { where: 'pick' | 'tool' | 'drop'; position?: Vec3; yaw?: number } | null;
 
 export function placeUnits(
   tl: LineTimeline,
@@ -611,6 +632,7 @@ export function placeUnits(
       const size = unitSize(tl, u.id);
       let pos: Vec3 | null;
       let carriedBy: string | null = null;
+      let unanimated = false;
       let yaw = g.yaw;
       if (isRobot) {
         const visit = visitOf(u);
@@ -619,20 +641,23 @@ export function placeUnits(
         const drop = visit?.next
           ? dropPoint(tl, visit.next, size, slotFor(tl, u.id, visit.next))
           : null;
+        let where = h?.where;
+        if (!h && visit) {
+          // Sin animación del robot: no hay traslado. Espera en la recogida hasta el fin del
+          // ciclo y después aparece en la entrega.
+          unanimated = true;
+          const end = visit.tDone ?? visit.tLeave ?? Infinity;
+          where = t < end || !drop ? 'pick' : 'drop';
+        }
         if (h?.where === 'tool' && h.position) {
           pos = h.position;
           carriedBy = node;
-        } else if (h?.where === 'drop') pos = drop;
-        else if (h?.where === 'pick') pos = pick;
-        else if (pick && drop && visit) {
-          // Sin robot animado (no alcanza): traslado en línea recta durante el ciclo.
-          const end = visit.tDone ?? visit.tLeave ?? visit.tAt + 1;
-          const f = Math.min(1, Math.max(0, (t - visit.tAt) / Math.max(1e-6, end - visit.tAt)));
-          pos = m4.lerp(pick, drop, f);
-        } else pos = pick ?? drop ?? [g.top[0], g.top[1], g.top[2]];
-        const nextGeo = visit?.next ? nodeGeometry(tl, visit.next) : null;
-        if (nextGeo && (h?.where === 'drop' || h?.where === 'tool')) yaw = nextGeo.yaw;
-        else if (u.prev) yaw = nodeGeometry(tl, u.prev)?.yaw ?? yaw;
+        } else if (where === 'drop') pos = drop;
+        else if (where === 'pick') pos = pick;
+        else pos = pick ?? drop ?? [g.top[0], g.top[1], g.top[2]];
+        if (h?.where === 'tool' && h.yaw != null) yaw = h.yaw;
+        else if (where === 'drop' && visit?.next) yaw = dropYaw(tl, visit.next);
+        else if (u.prev) yaw = pickYaw(tl, u.prev);
       } else if (g.object.kind === 'conveyor') {
         if (n.role === 'buffer') {
           const speed =
@@ -669,7 +694,7 @@ export function placeUnits(
             : prevGeo.top;
         pos = m4.lerp(from, pos, (t - u.tAt) / HANDOFF_S);
       }
-      if (pos) out.push({ id: u.id, position: pos, yaw, size, carriedBy });
+      if (pos) out.push({ id: u.id, position: pos, yaw, size, carriedBy, unanimated });
     }
   }
   return out;

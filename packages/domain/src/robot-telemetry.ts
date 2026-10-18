@@ -1,5 +1,11 @@
 import * as m4 from './mat4.ts';
-import { poseAt, toolAt, type MotionPhase, type MotionPlan } from './robot-motion.ts';
+import {
+  poseAt,
+  segmentPeakSpeed,
+  toolAt,
+  type MotionPhase,
+  type MotionPlan,
+} from './robot-motion.ts';
 import type { JointDef } from './robot-model.ts';
 import type { Vec3 } from './validate.ts';
 
@@ -165,14 +171,15 @@ export function sampleTelemetry(
   }
   out.counters.cycles = plan.cycles.filter((c) => c.t0 >= opts.start && c.t0 <= opts.end).length;
 
-  // Sobrevelocidad: pico del tramo (1.5 × cambio ÷ duración con el perfil suavizado)
-  // contra la velocidad publicada del eje.
+  // Sobrevelocidad: pico del tramo (1.5 × cambio ÷ duración con el perfil suavizado, por
+  // punto intermedio en los tramos verticales) contra la velocidad publicada del eje.
   const worst = joints.map(() => 0);
   for (const seg of plan.segments) {
     if (seg.t1 < opts.start || seg.t0 > opts.end) continue;
-    const span = seg.t1 - seg.t0;
+    const peaks = segmentPeakSpeed(seg);
+    const cycle = seg.unit != null ? ` (ciclo de la unidad ${seg.unit}, ${seg.phase})` : '';
     joints.forEach((j, k) => {
-      const peak = (1.5 * Math.abs(seg.to[k]! - seg.from[k]!)) / span;
+      const peak = peaks[k]!;
       if (j.max_speed == null || j.max_speed <= 0) return;
       const pct = (peak / j.max_speed) * 100;
       out.peakSpeedPercent[k] = Math.max(out.peakSpeedPercent[k] ?? 0, pct);
@@ -183,7 +190,7 @@ export function sampleTelemetry(
           kind: 'overspeed',
           axis: j.axis,
           percent: Math.round(pct),
-          label: `Eje ${j.axis} necesitaría ${Math.round(pct)} % de su velocidad publicada`,
+          label: `Eje ${j.axis} necesitaría ${Math.round(pct)} % de su velocidad publicada${cycle}`,
         });
       }
     });
